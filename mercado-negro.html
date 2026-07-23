@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Mercado Negro – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+/* ── Underground aesthetic ── */
+.mn-hero {
+  background:linear-gradient(135deg,#0a0000,#1a0000,#0a0010);
+  border:2px solid #ff4444; border-radius:16px;
+  padding:20px 16px; margin-bottom:14px; text-align:center;
+  position:relative; overflow:hidden;
+}
+.mn-hero::before {
+  content:'🕶️'; position:absolute; font-size:100px;
+  opacity:0.04; top:-20px; right:-20px; pointer-events:none;
+}
+.mn-hero::after {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(255,68,68,0.08) 0%,transparent 60%);
+  pointer-events:none;
+}
+.mn-title {
+  font-family:'Cinzel',serif; font-size:22px; font-weight:900;
+  background:linear-gradient(135deg,#ff4444,#ff6d00);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  margin-bottom:4px; letter-spacing:1px;
+}
+.mn-sub { font-size:11px; color:#666; letter-spacing:2px; text-transform:uppercase; }
+
+/* ── Status badges ── */
+.status-live {
+  display:inline-flex; align-items:center; gap:6px;
+  background:linear-gradient(135deg,rgba(244,67,54,0.15),rgba(255,68,68,0.08));
+  border:1px solid #f44336; border-radius:20px;
+  padding:6px 16px; font-size:13px; font-weight:700; color:#ff4444;
+  animation:glow-pulse 1.5s infinite;
+}
+.live-dot {
+  width:8px; height:8px; border-radius:50%; background:#f44336;
+  animation:animate-pulse 1s ease-in-out infinite;
+}
+.status-offline {
+  display:inline-flex; align-items:center; gap:6px;
+  background:rgba(0,0,0,0.4); border:1px solid #2a2a4a; border-radius:20px;
+  padding:6px 16px; font-size:13px; font-weight:700; color:#555;
+}
+
+/* ── Countdown display ── */
+.countdown-display {
+  font-family:'Cinzel',serif; font-size:32px; font-weight:900;
+  letter-spacing:4px; color:#ff4444;
+  text-shadow:0 0 20px rgba(255,68,68,0.5);
+  margin:8px 0;
+}
+.countdown-small {
+  font-family:'Cinzel',serif; font-size:18px; font-weight:900;
+  letter-spacing:2px; color:#ffc107;
+  text-shadow:0 0 14px rgba(255,193,7,0.4);
+}
+.countdown-label { font-size:11px; color:#555; text-transform:uppercase; letter-spacing:1px; }
+
+/* ── Item cards ── */
+.mn-item-card {
+  background:linear-gradient(135deg,#0a0000,#150005);
+  border:2px solid #3a1a1a; border-radius:14px;
+  padding:16px; margin-bottom:10px;
+  position:relative; overflow:hidden; transition:all 0.2s;
+}
+.mn-item-card:hover { border-color:#ff4444; transform:translateY(-2px); box-shadow:0 6px 20px rgba(255,68,68,0.15); }
+.mn-item-card.sold-out { opacity:0.5; filter:grayscale(0.8); }
+.mn-item-card::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 10% 10%,rgba(255,68,68,0.04) 0%,transparent 60%);
+  pointer-events:none;
+}
+.mn-item-name {
+  font-family:'Cinzel',serif; font-size:15px; font-weight:900;
+  color:#ff4444; margin-bottom:4px;
+}
+.mn-item-desc { font-size:12px; color:#9e9e9e; line-height:1.7; margin-bottom:8px; }
+.mn-item-stock {
+  display:inline-flex; align-items:center; gap:4px;
+  background:rgba(255,68,68,0.08); border:1px solid #3a1a1a;
+  border-radius:10px; padding:3px 10px; font-size:11px; font-weight:700; color:#ff8888;
+}
+.mn-item-price {
+  font-family:'Cinzel',serif; font-size:18px; font-weight:900; color:#ffc107;
+}
+.mn-discount-badge {
+  background:linear-gradient(135deg,#b71c1c,#e53935); color:#fff;
+  border-radius:20px; padding:2px 10px; font-size:10px; font-weight:700;
+  position:absolute; top:12px; right:12px;
+}
+
+/* ── Schedule panel ── */
+.schedule-panel {
+  background:linear-gradient(135deg,#0a0000,#100010);
+  border:1px solid #2a2a4a; border-radius:12px;
+  padding:14px; margin-bottom:12px;
+}
+.schedule-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:7px 0; border-bottom:1px solid #1e1e30; font-size:12px;
+}
+.schedule-row:last-child { border-bottom:none; }
+
+/* ── Warning / Info boxes ── */
+.rumor-box {
+  background:rgba(0,0,0,0.6); border:1px solid #2a1a00;
+  border-radius:10px; padding:12px; font-size:12px;
+  color:#8d6e63; line-height:1.8; margin-bottom:10px;
+  font-style:italic;
+}
+.fragment-info-box {
+  background:linear-gradient(135deg,rgba(0,229,255,0.06),rgba(124,77,255,0.06));
+  border:1px solid #00e5ff; border-radius:12px;
+  padding:14px; margin-bottom:12px;
+}
+.fn-title {
+  font-family:'Cinzel',serif; font-size:13px; font-weight:700;
+  color:#00e5ff; margin-bottom:8px;
+}
+
+/* ── Grid stats ── */
+.mn-stats-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px; }
+.mn-stat-box { background:#0a0000; border:1px solid #2a1a1a; border-radius:10px; padding:8px; text-align:center; }
+.mn-stat-val { font-size:16px; font-weight:900; }
+.mn-stat-lbl { font-size:10px; color:#666; margin-top:2px; }
+
+/* ── Screen sections ── */
+#section-live    { display:none; }
+#section-offline { display:none; }
+
+/* Flicker animation for LIVE */
+@keyframes flicker {
+  0%,100%  { opacity:1; }
+  92%      { opacity:1; }
+  93%      { opacity:0.6; }
+  94%      { opacity:1; }
+  96%      { opacity:0.7; }
+  97%      { opacity:1; }
+}
+.live-flicker { animation:flicker 5s ease-in-out infinite; }
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title" style="background:linear-gradient(135deg,#ff4444,#ff6d00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">🕶️ MERCADO NEGRO</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content">
+
+  <!-- Hero -->
+  <div class="mn-hero">
+    <div style="font-size:52px;margin-bottom:8px;animation:float 3s ease-in-out infinite;" class="live-flicker">🕶️</div>
+    <div class="mn-title">MERCADO NEGRO</div>
+    <div class="mn-sub">Loja secreta · Itens proibidos · Estoque limitado</div>
+    <div style="margin-top:10px;" id="status-indicator"></div>
+  </div>
+
+  <!-- ══ SEÇÃO: AO VIVO ══ -->
+  <div id="section-live">
+
+    <!-- Timer ao vivo -->
+    <div style="background:linear-gradient(135deg,#1a0000,#2d0000);border:2px solid #ff4444;border-radius:14px;padding:16px;text-align:center;margin-bottom:12px;position:relative;overflow:hidden;">
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(255,68,68,0.08),transparent 60%);pointer-events:none;"></div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#ff8888;margin-bottom:4px;">⏰ Fecha em</div>
+      <div class="countdown-display" id="live-countdown">00:00</div>
+      <div style="font-size:11px;color:#666;">Aproveite antes que suma!</div>
+    </div>
+
+    <!-- Stats rápidas -->
+    <div class="mn-stats-grid">
+      <div class="mn-stat-box">
+        <div class="mn-stat-val" style="color:#ff4444;" id="live-time-label">10:00</div>
+        <div class="mn-stat-lbl">Tempo restante</div>
+      </div>
+      <div class="mn-stat-box">
+        <div class="mn-stat-val" style="color:#ffc107;" id="purchases-left">3</div>
+        <div class="mn-stat-lbl">Compras restantes</div>
+      </div>
+      <div class="mn-stat-box">
+        <div class="mn-stat-val" style="color:#00e5ff;" id="frag-owned-live">0</div>
+        <div class="mn-stat-lbl">💎 Fragmentos</div>
+      </div>
+    </div>
+
+    <!-- Itens à venda -->
+    <div id="live-items-list"></div>
+
+    <!-- Aviso de estoque -->
+    <div style="background:rgba(255,68,68,0.08);border:1px solid #f44336;border-radius:10px;padding:10px 12px;font-size:12px;color:#ef9a9a;line-height:1.7;margin-bottom:10px;">
+      ⚠️ <strong>Atenção:</strong> Máximo de <strong>3 compras</strong> por aparição. O estoque é compartilhado — quem chega primeiro leva!
+    </div>
+
+  </div>
+
+  <!-- ══ SEÇÃO: FECHADO ══ -->
+  <div id="section-offline">
+
+    <!-- Próxima aparição -->
+    <div style="background:linear-gradient(135deg,#0a0000,#100005);border:1px solid #2a1a1a;border-radius:14px;padding:20px;text-align:center;margin-bottom:12px;">
+      <div style="font-size:42px;margin-bottom:10px;opacity:0.5;">🔒</div>
+      <div style="font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:#555;margin-bottom:6px;">FECHADO</div>
+      <div style="font-size:12px;color:#555;margin-bottom:14px;line-height:1.7;">
+        O Mercado Negro já foi embora... ou ainda nem chegou.<br>
+        Fique ligado — ele aparece <strong style="color:#8d6e63;">1x por semana por apenas 10 minutos.</strong>
+      </div>
+      <div style="font-size:11px;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Próxima aparição estimada</div>
+      <div class="countdown-small" id="next-appearance">--d --h --m</div>
+    </div>
+
+    <!-- Rumores -->
+    <div class="rumor-box">
+      "Dizem que uma vez por semana, por exatamente 10 minutos, uma sombra aparece nas becos do mercado... Aqueles que a encontram podem trocar tudo por itens que nem existem em nenhuma outra loja. Mas pisca um segundo — ela desaparece para sempre."
+    </div>
+
+    <!-- Info sobre Fragmento de Cards -->
+    <div class="fragment-info-box">
+      <div class="fn-title">💎 Fragmento de Cards</div>
+      <div style="font-size:12px;color:#c0c0d0;line-height:1.8;margin-bottom:10px;">
+        O item mais raro do Card Fight. <strong style="color:#00e5ff;">Só disponível aqui</strong>, no Mercado Negro.<br>
+        Usado para convocar o Chefe de Raide — precisa de 3 deles.
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;background:#070712;border-radius:8px;padding:10px;">
+        <span style="font-size:28px;">💎</span>
+        <div>
+          <div style="font-weight:700;color:#00e5ff;font-size:13px;">Fragmento de Cards</div>
+          <div style="font-size:11px;color:#9e9e9e;">Você possui: <span id="frag-owned-offline" style="color:#00e5ff;font-weight:700;">0</span></div>
+        </div>
+        <div style="margin-left:auto;text-align:right;">
+          <div style="font-size:13px;font-weight:700;color:#ffc107;">💰 10.000.000</div>
+          <div style="font-size:10px;color:#9e9e9e;">cada um</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Últimas compras deste ciclo -->
+    <div id="last-purchases-wrap"></div>
+
+    <!-- Agenda -->
+    <div class="schedule-panel">
+      <div style="font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:#8d6e63;margin-bottom:10px;">📋 Como funciona</div>
+      <div class="schedule-row">
+        <span style="color:#9e9e9e;">⏱️ Duração</span>
+        <span style="font-weight:700;color:#ff4444;">Exatamente 10 minutos</span>
+      </div>
+      <div class="schedule-row">
+        <span style="color:#9e9e9e;">📅 Frequência</span>
+        <span style="font-weight:700;">1x por semana</span>
+      </div>
+      <div class="schedule-row">
+        <span style="color:#9e9e9e;">🛒 Limite de compras</span>
+        <span style="font-weight:700;color:#ffc107;">3 por aparição</span>
+      </div>
+      <div class="schedule-row">
+        <span style="color:#9e9e9e;">🕐 Horário</span>
+        <span style="font-weight:700;color:#666;">Aleatório — fique alerta</span>
+      </div>
+      <div class="schedule-row">
+        <span style="color:#9e9e9e;">💎 Fragmento de Cards</span>
+        <span style="font-weight:700;color:#00e5ff;">10.000.000 ouro cada</span>
+      </div>
+    </div>
+
+    <!-- Dicas -->
+    <div style="background:rgba(255,193,7,0.06);border:1px solid #ffc10744;border-radius:10px;padding:12px;font-size:12px;color:#ffe082;line-height:1.8;margin-bottom:10px;">
+      💡 <strong>Dica:</strong> O Mercado Negro costuma aparecer em dias específicos baseado no ciclo da semana. Sempre tenha <strong>pelo menos 10.000.000 de ouro guardado</strong> — você não vai querer ser pego de surpresa!
+    </div>
+
+  </div>
+
+  <div style="height:70px;"></div>
+</main>
+
+<!-- Modal: confirmar compra -->
+<div class="modal-overlay hidden" id="buy-modal">
+  <div class="modal-box" style="max-width:340px;">
+    <div id="buy-modal-content"></div>
+    <button class="btn btn-primary btn-block" id="confirm-buy-btn" onclick="confirmBuy()" style="margin-top:12px;">🕶️ Confirmar Compra</button>
+    <button class="btn btn-outline btn-block" onclick="document.getElementById('buy-modal').classList.add('hidden')" style="margin-top:8px;">Cancelar</button>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js"></script>
+<script src="gamedata2.js"></script>
+<script src="gamedata3.js"></script>
+<script src="gamedata-v7-patch.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   MERCADO NEGRO — Card Fight v7.0
+   Loja Secreta · Aparece 1x/semana por 10 minutos
+═══════════════════════════════════════════════════════════ */
+
+const MARKET_DURATION_MS = 10 * 60 * 1000; // 10 minutos
+const MAX_PURCHASES      = 3;
+
+const MARKET_ITEMS = [
+  {
+    id: "frag_card", name: "Fragmento de Cards",
+    emoji: "💎", price: 10000000,
+    desc: "Fragmento necessário para invocar o Chefe de Raide. Extremamente raro — só encontrado aqui. Precisa de 3 para a Raide.",
+    stock: 5, discount: "EXCLUSIVO",
+    action: "fragment"
+  },
+  {
+    id: "gold_chest", name: "Baú de Ouro Proibido",
+    emoji: "📦", price: 3000000,
+    desc: "+5.000.000 de ouro imediato. Contrabandeado de cofres antigos — não pergunte de onde veio.",
+    stock: 2, discount: "-40%",
+    action: "gold_chest"
+  },
+  {
+    id: "xp_elixir", name: "Elixir do Conhecimento Proibido",
+    emoji: "⚗️", price: 2000000,
+    desc: "+200.000 XP e +50.000 XPP instantâneos. Destilado de memórias de guerreiros caídos.",
+    stock: 3, discount: "-35%",
+    action: "xp_elixir"
+  },
+  {
+    id: "boost_pack", name: "Pacote de Boosts Furtivos",
+    emoji: "⚡", price: 1500000,
+    desc: "Ativa todos os 9 tipos de boost por 2 horas. Tempo dobrado comparado à loja oficial.",
+    stock: 2, discount: "-50%",
+    action: "boost_pack"
+  },
+];
+
+let save, selectedItem = null, liveTimer = null;
+
+/* ── Gerador semanal determinístico ── */
+function getWeekKey() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 1);
+  const week  = Math.ceil(((now - start) / 86400000 + start.getDay() + 1) / 7);
+  return `${now.getFullYear()}-W${String(week).padStart(2,'0')}`;
+}
+
+function hashStr(s) {
+  let h = 0;
+  for (let c of s) h = (h * 31 + c.charCodeAt(0)) & 0x7fffffff;
+  return h;
+}
+
+/* Retorna { dayOfWeek:0-6, startHour:0-23, startMin:0-59 } */
+function getMarketScheduleForWeek(weekKey) {
+  const h    = hashStr(weekKey + "mn");
+  const day  = h % 7;              // 0=Dom ... 6=Sab
+  const hour = (h >> 3) % 24;     // hora 0-23
+  const min  = (h >> 8) % 60;     // minuto 0-59
+  return { day, hour, min };
+}
+
+/* Retorna o timestamp de início desta semana */
+function getMarketStartThisWeek() {
+  const sched = getMarketScheduleForWeek(getWeekKey());
+  const now   = new Date();
+  // Início da semana (domingo)
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  weekStart.setHours(0, 0, 0, 0);
+
+  const start = new Date(weekStart);
+  start.setDate(weekStart.getDate() + sched.day);
+  start.setHours(sched.hour, sched.min, 0, 0);
+  return start.getTime();
+}
+
+function isMarketLive() {
+  const start = getMarketStartThisWeek();
+  const now   = Date.now();
+  return now >= start && now < (start + MARKET_DURATION_MS);
+}
+
+function getMarketRemainingMs() {
+  const start = getMarketStartThisWeek();
+  const end   = start + MARKET_DURATION_MS;
+  return Math.max(0, end - Date.now());
+}
+
+function getNextMarketMs() {
+  const thisWeekStart = getMarketStartThisWeek();
+  if (Date.now() < thisWeekStart) return thisWeekStart - Date.now();
+  // Já passou esta semana — próxima semana
+  const nextWeekDate = new Date();
+  nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+  const nwKey = getWeekKeyForDate(nextWeekDate);
+  const sched = getMarketScheduleForWeek(nwKey);
+  const nwStart = new Date(nextWeekDate);
+  nwStart.setDate(nextWeekDate.getDate() - nextWeekDate.getDay()); // domingo
+  nwStart.setHours(0,0,0,0);
+  const nextStart = new Date(nwStart);
+  nextStart.setDate(nwStart.getDate() + sched.day);
+  nextStart.setHours(sched.hour, sched.min, 0, 0);
+  return Math.max(0, nextStart.getTime() - Date.now());
+}
+
+function getWeekKeyForDate(d) {
+  const start = new Date(d.getFullYear(), 0, 1);
+  const week  = Math.ceil(((d - start) / 86400000 + start.getDay() + 1) / 7);
+  return `${d.getFullYear()}-W${String(week).padStart(2,'0')}`;
+}
+
+function getPurchasesThisWeek() {
+  const wk = getWeekKey();
+  if (!save.mercadoNegro || save.mercadoNegro.weekKey !== wk) return 0;
+  return save.mercadoNegro.purchases || 0;
+}
+
+function setPurchasesDone(count) {
+  save.mercadoNegro = save.mercadoNegro || {};
+  save.mercadoNegro.weekKey   = getWeekKey();
+  save.mercadoNegro.purchases = count;
+  writeSave(save);
+}
+
+/* ── Init ── */
+function init() {
+  save = getOrCreateSave();
+  if (!save.fragmentoCards) save.fragmentoCards = 0;
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+
+  const live = isMarketLive();
+
+  document.getElementById("status-indicator").innerHTML = live
+    ? `<div class="status-live"><div class="live-dot"></div>🔴 AO VIVO</div>`
+    : `<div class="status-offline">🔒 FECHADO</div>`;
+
+  if (live) {
+    document.getElementById("section-live").style.display = "block";
+    renderLiveMarket();
+    startLiveTimer();
+  } else {
+    document.getElementById("section-offline").style.display = "block";
+    renderOfflineInfo();
+    startNextTimer();
+  }
+}
+
+/* ── Mercado ao vivo ── */
+function renderLiveMarket() {
+  const purchases = getPurchasesThisWeek();
+  const remaining = MAX_PURCHASES - purchases;
+  document.getElementById("purchases-left").textContent = remaining;
+  document.getElementById("frag-owned-live").textContent = save.fragmentoCards || 0;
+
+  const list = document.getElementById("live-items-list");
+  list.innerHTML = MARKET_ITEMS.map(item => {
+    const soldOut = item.stock <= 0;
+    const noPurchases = remaining <= 0;
+    return `<div class="mn-item-card ${(soldOut||noPurchases)?"sold-out":""}">
+      <div class="mn-discount-badge">${item.discount}</div>
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:8px;">
+        <div style="font-size:44px;flex-shrink:0;filter:drop-shadow(0 0 12px #ff444488);">${item.emoji}</div>
+        <div style="flex:1;">
+          <div class="mn-item-name">${item.name}</div>
+          <div class="mn-item-desc">${item.desc}</div>
+          <div class="mn-item-stock">📦 ${item.stock} em estoque</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+        <div class="mn-item-price">🪙 ${fmtNum(item.price)}</div>
+        <button class="btn btn-sm btn-primary ${(soldOut||noPurchases)?"":"btn-primary"}"
+          onclick="${(soldOut||noPurchases)?"showToast('Indisponível!','error')":"openBuyModal('"+item.id+"')"}"
+          ${(soldOut||noPurchases)?"disabled style='opacity:0.5;'":""}>
+          ${soldOut?"Esgotado":noPurchases?"Limite atingido":"🕶️ Comprar"}
+        </button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+/* ── Timer ao vivo ── */
+function startLiveTimer() {
+  function tick() {
+    const rem = getMarketRemainingMs();
+    if (rem <= 0) {
+      clearInterval(liveTimer);
+      showToast("🕶️ O Mercado Negro desapareceu!", "error", 5000);
+      setTimeout(() => location.reload(), 3000);
+      return;
+    }
+    const m = Math.floor(rem / 60000);
+    const s = Math.floor((rem % 60000) / 1000);
+    const ts = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    document.getElementById("live-countdown").textContent  = ts;
+    document.getElementById("live-time-label").textContent = ts;
+  }
+  tick();
+  liveTimer = setInterval(tick, 1000);
+}
+
+/* ── Offline info ── */
+function renderOfflineInfo() {
+  document.getElementById("frag-owned-offline").textContent = save.fragmentoCards || 0;
+
+  // Últimas compras
+  const purchasesWrap = document.getElementById("last-purchases-wrap");
+  const purchases = getPurchasesThisWeek();
+  if (purchases > 0) {
+    purchasesWrap.innerHTML = `<div style="background:#0e0e1c;border:1px solid #2a2a4a;border-radius:10px;padding:10px 12px;font-size:12px;color:#9e9e9e;margin-bottom:10px;line-height:1.8;">
+      🛒 Você fez <strong style="color:#ffc107;">${purchases}</strong> compra(s) no Mercado Negro esta semana.
+      ${purchases >= MAX_PURCHASES ? "<br>🔒 Limite máximo atingido para esta semana." : `<br>Resta <strong style="color:#66bb6a;">${MAX_PURCHASES - purchases}</strong> compra(s) disponíveis.`}
+    </div>`;
+  }
+}
+
+/* ── Timer para próxima aparição ── */
+function startNextTimer() {
+  function tick() {
+    const rem = getNextMarketMs();
+    const d   = Math.floor(rem / 86400000);
+    const h   = Math.floor((rem % 86400000) / 3600000);
+    const m   = Math.floor((rem % 3600000) / 60000);
+    const el  = document.getElementById("next-appearance");
+    if (el) el.textContent = rem <= 0 ? "EM BREVE..." : `${d}d ${h}h ${m}m`;
+    // Recheck live status a cada minuto
+    if (isMarketLive()) location.reload();
+  }
+  tick();
+  setInterval(tick, 60000);
+  // Atualiza segundos para o próximo minuto
+  setInterval(() => {
+    if (isMarketLive()) { showToast("🔴 O Mercado Negro abriu! Corra!", "gold", 5000); location.reload(); }
+  }, 10000);
+}
+
+/* ── Modal de compra ── */
+function openBuyModal(itemId) {
+  const item = MARKET_ITEMS.find(x => x.id === itemId);
+  if (!item) return;
+  selectedItem = itemId;
+
+  const canAfford = save.gold >= item.price;
+  const purchases = getPurchasesThisWeek();
+  const remaining = MAX_PURCHASES - purchases;
+
+  document.getElementById("buy-modal-content").innerHTML = `
+    <div class="modal-title" style="color:#ff4444;">🕶️ Confirmar Compra</div>
+    <div style="text-align:center;margin:10px 0;">
+      <div style="font-size:52px;margin-bottom:6px;filter:drop-shadow(0 0 16px #ff444488);">${item.emoji}</div>
+      <div style="font-family:'Cinzel',serif;font-weight:700;color:#ff4444;font-size:15px;">${item.name}</div>
+    </div>
+    <div style="font-size:12px;color:#9e9e9e;text-align:center;margin-bottom:12px;line-height:1.7;">${item.desc}</div>
+    <div style="background:#0a0000;border:1px solid #3a1a1a;border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:8px;">
+      💰 Preço: <strong style="color:#ffc107;">${fmtNum(item.price)} ouro</strong><br>
+      🪙 Seu ouro: <strong style="color:${canAfford?"#66bb6a":"#ef9a9a"};">${fmtNum(save.gold)}</strong><br>
+      🛒 Compras restantes hoje: <strong style="color:${remaining>0?"#ffc107":"#ef9a9a"};">${remaining}</strong>
+    </div>
+    ${!canAfford ? `<div style="background:rgba(244,67,54,0.08);border:1px solid #f44336;border-radius:8px;padding:8px;font-size:12px;color:#ef9a9a;">❌ Ouro insuficiente!</div>` : ""}
+    ${remaining <= 0 ? `<div style="background:rgba(244,67,54,0.08);border:1px solid #f44336;border-radius:8px;padding:8px;font-size:12px;color:#ef9a9a;">❌ Limite de compras atingido!</div>` : ""}
+  `;
+
+  const btnBuy = document.getElementById("confirm-buy-btn");
+  btnBuy.disabled = !canAfford || remaining <= 0;
+  btnBuy.style.opacity = (!canAfford || remaining <= 0) ? "0.5" : "1";
+  document.getElementById("buy-modal").classList.remove("hidden");
+}
+
+function confirmBuy() {
+  const item = MARKET_ITEMS.find(x => x.id === selectedItem);
+  if (!item) return;
+  if (save.gold < item.price) { showToast("❌ Ouro insuficiente!", "error"); return; }
+  const purchases = getPurchasesThisWeek();
+  if (purchases >= MAX_PURCHASES) { showToast("❌ Limite de compras atingido!", "error"); return; }
+
+  save.gold -= item.price;
+  setPurchasesDone(purchases + 1);
+
+  // Aplica recompensa
+  switch (item.action) {
+    case "fragment":
+      save.fragmentoCards = (save.fragmentoCards || 0) + 1;
+      showToast("💎 Fragmento de Cards obtido! (" + save.fragmentoCards + " no total)", "gold", 4000);
+      break;
+    case "gold_chest":
+      save.gold += 5000000;
+      showToast("📦 +5.000.000 de ouro obtidos!", "gold", 3000);
+      break;
+    case "xp_elixir":
+      save.xp  = (save.xp  || 0) + 200000;
+      save.xpp = (save.xpp || 0) + 50000;
+      showToast("⚗️ +200.000 XP e +50.000 XPP!", "gold", 3000);
+      break;
+    case "boost_pack":
+      const boostEnd = Date.now() + 2 * 3600000;
+      save.activeBoosts = save.activeBoosts || [];
+      save.activeBoosts.push({ type:"all", mult:2, endTime: boostEnd, name:"Mercado Negro" });
+      showToast("⚡ Todos os boosts ativados por 2 horas!", "gold", 3000);
+      break;
+  }
+
+  writeSave(save);
+  document.getElementById("buy-modal").classList.add("hidden");
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+
+  // Decrementa estoque visual
+  item.stock = Math.max(0, item.stock - 1);
+  renderLiveMarket();
+}
+
+init();
+</script>
+</body>
+</html>

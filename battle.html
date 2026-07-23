@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Batalha – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+.arena {
+  background:linear-gradient(180deg,#070712 0%,#130020 40%,#07120a 100%);
+  border:2px solid #2a2a4a;border-radius:16px;
+  padding:12px;margin-bottom:10px;position:relative;overflow:hidden;
+}
+.arena::before {
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 50%,rgba(255,68,68,0.04) 0%,transparent 70%);
+  pointer-events:none;
+}
+.tower-row{display:flex;justify-content:space-between;gap:8px;margin-bottom:10px;}
+.tower-box{flex:1;background:rgba(0,0,0,0.4);border-radius:12px;padding:10px;text-align:center;border:1px solid #2a2a4a;transition:border-color 0.3s;}
+.tower-box.danger{border-color:#ef5350;animation:danger-pulse 0.8s infinite;}
+@keyframes danger-pulse{0%,100%{box-shadow:none}50%{box-shadow:0 0 14px rgba(239,83,80,0.6)}}
+.tower-emoji{font-size:28px;display:block;margin-bottom:4px;}
+.tower-name{font-size:10px;color:#9e9e9e;margin-bottom:4px;}
+.tower-hp{font-size:18px;font-weight:900;}
+.hp-bar{background:#1e1e30;border-radius:20px;height:7px;overflow:hidden;margin-top:4px;}
+.hp-fill{height:100%;border-radius:20px;transition:width 0.5s ease;}
+.hp-fill.player-hp{background:linear-gradient(90deg,#1b5e20,#66bb6a);}
+.hp-fill.enemy-hp{background:linear-gradient(90deg,#b71c1c,#ef5350);}
+.enemy-hand-row{display:flex;justify-content:center;gap:4px;margin:8px 0;flex-wrap:wrap;}
+.card-back-mini{width:34px;height:48px;background:linear-gradient(135deg,#1a1a3e,#2d1b4e);border:1px solid #3d2b5e;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all 0.3s;}
+.arena-divider{text-align:center;margin:6px 0;font-size:11px;color:#555;display:flex;align-items:center;gap:6px;}
+.arena-divider::before,.arena-divider::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,transparent,#2a2a4a,transparent);}
+.player-hand-label{font-size:12px;color:#9e9e9e;text-align:center;margin-bottom:6px;}
+.hand-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;}
+.hcard{background:linear-gradient(135deg,#12121e,#1a1a2e);border:2px solid #2a2a4a;border-radius:9px;padding:8px 4px;text-align:center;cursor:pointer;transition:all 0.18s;user-select:none;position:relative;}
+.hcard:active{transform:scale(0.93);}
+.hcard:hover{border-color:#666;transform:translateY(-3px);}
+.hcard.selected{border-color:#ffc107;box-shadow:0 0 14px rgba(255,193,7,0.6);transform:translateY(-6px) scale(1.04);}
+.hcard.disabled{opacity:0.35;pointer-events:none;}
+.hcard.dead{opacity:0.15;pointer-events:none;}
+.hcard .he{font-size:22px;}
+.hcard .hn{font-size:9px;font-weight:700;margin-top:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.hcard .ha{font-size:10px;color:#ffc107;margin-top:2px;}
+.hcard .hstar{font-size:8px;color:#ffd700;letter-spacing:0px;margin-top:1px;opacity:0.85;}
+.battle-log{background:#070712;border:1px solid #1e1e30;border-radius:8px;padding:8px 10px;font-size:11px;max-height:80px;overflow-y:auto;color:#777;margin-bottom:8px;scroll-behavior:smooth;}
+.battle-log p{margin:1px 0;}
+.log-win{color:#66bb6a;font-weight:600;}
+.log-lose{color:#ef5350;font-weight:600;}
+.log-info{color:#90caf9;}
+.log-gold{color:#ffd54f;font-weight:600;}
+.log-crit{color:#ff9800;font-weight:700;}
+.turn-bar{display:flex;align-items:center;justify-content:center;gap:8px;font-family:'Cinzel',serif;font-size:12px;font-weight:700;margin-bottom:8px;padding:8px 14px;background:#0e0e1c;border-radius:20px;border:1px solid #2a2a4a;}
+.turn-dot{width:10px;height:10px;border-radius:50%;animation:pulse 1s infinite;}
+.turn-dot.player{background:#66bb6a;}
+.turn-dot.enemy{background:#ef5350;}
+.turn-timer{font-size:18px;font-weight:900;font-family:'Cinzel',serif;min-width:28px;text-align:center;}
+.turn-timer.urgent{color:#ef5350;animation:pulse 0.5s infinite;}
+.btn-play-card{background:linear-gradient(135deg,#c62828,#e53935);color:#fff;border:none;border-radius:10px;font-family:'Cinzel',serif;font-size:14px;font-weight:700;padding:12px;width:100%;cursor:pointer;transition:all 0.2s;letter-spacing:0.5px;box-shadow:0 4px 16px rgba(229,57,53,0.4);}
+.btn-play-card:hover{filter:brightness(1.15);transform:translateY(-1px);}
+.btn-play-card:disabled{opacity:0.3;cursor:not-allowed;transform:none;}
+.clash-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:300;padding:16px;}
+.clash-overlay.hidden{display:none;}
+.clash-arena{display:flex;align-items:center;gap:16px;margin-bottom:16px;}
+.clash-card{background:linear-gradient(135deg,#12121e,#1a0a2e);border:3px solid #333;border-radius:14px;padding:14px 10px;text-align:center;min-width:110px;animation:popIn 0.3s ease;}
+.clash-card.player-side{border-color:#66bb6a;box-shadow:0 0 20px rgba(102,187,106,0.4);}
+.clash-card.enemy-side{border-color:#ef5350;box-shadow:0 0 20px rgba(239,83,80,0.4);}
+.clash-emoji{font-size:40px;display:block;margin-bottom:8px;}
+.clash-atk{font-size:20px;font-weight:900;color:#ffc107;}
+.clash-vs{font-family:'Cinzel',serif;font-size:32px;font-weight:900;background:linear-gradient(135deg,#ff4444,#ff6d00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.clash-result-text{font-family:'Cinzel',serif;font-size:22px;font-weight:900;text-align:center;animation:popIn 0.4s 0.8s backwards;}
+.damage-number{font-family:'Cinzel',serif;font-size:28px;font-weight:900;animation:dmg-float 1.5s ease forwards;}
+@keyframes dmg-float{0%{transform:translateY(0);opacity:1;}100%{transform:translateY(-60px);opacity:0;}}
+.result-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:400;padding:20px;text-align:center;}
+.result-overlay.hidden{display:none;}
+.result-particles{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+.particle{position:absolute;width:6px;height:6px;border-radius:50%;animation:particle-fly 2s ease forwards;}
+@keyframes particle-fly{0%{transform:translate(0,0) scale(1);opacity:1;}100%{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0;}}
+.result-glow{font-size:80px;animation:float 2s ease-in-out infinite;filter:drop-shadow(0 0 30px currentColor);}
+.result-title{font-family:'Cinzel',serif;font-size:36px;font-weight:900;margin:12px 0 6px;animation:popIn 0.4s ease;}
+.result-card{background:linear-gradient(135deg,#12121e,#1a1a2e);border:1px solid #2a2a4a;border-radius:14px;padding:16px;width:100%;max-width:300px;margin-bottom:16px;}
+.reward-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #1e1e30;font-size:14px;}
+.reward-row:last-child{border-bottom:none;}
+/* Modo sem cartas */
+.no-cards-screen{text-align:center;padding:40px 20px;}
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title">⚔️ BATALHA</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content" style="padding-bottom:70px;">
+
+  <!-- ══ MATCHMAKING ══ -->
+  <div id="screen-mm">
+    <div style="text-align:center;padding:24px 0 16px;">
+      <div style="font-size:64px;animation:float 2s ease-in-out infinite;">⚔️</div>
+      <h2 style="font-family:'Cinzel',serif;font-size:22px;margin:12px 0 6px;">Pronto para Batalhar?</h2>
+      <p style="color:#9e9e9e;font-size:13px;">Seu deck usará até 10 cartas aleatórias do cofre</p>
+    </div>
+
+    <div class="panel" style="text-align:center;margin-bottom:14px;">
+      <div class="rank-badge" id="mm-rank" style="margin:0 auto 10px;">Bronze I</div>
+      <div style="font-size:13px;color:#9e9e9e;">Cartas disponíveis: <strong id="mm-cards" style="color:#ffc107;">0</strong></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div id="mode-pvp" class="panel" onclick="selectMode('pvp')"
+           style="text-align:center;cursor:pointer;border-color:#2196F3;transition:all 0.2s;">
+        <div style="font-size:28px;">👤</div>
+        <div style="font-weight:700;font-size:13px;margin-top:4px;">VS Jogador</div>
+        <div style="font-size:11px;color:#9e9e9e;">Busca partida real</div>
+      </div>
+      <div id="mode-bot" class="panel" onclick="selectMode('bot')"
+           style="text-align:center;cursor:pointer;border-color:#ff4444;transition:all 0.2s;">
+        <div style="font-size:28px;">🤖</div>
+        <div style="font-weight:700;font-size:13px;margin-top:4px;">VS Bot</div>
+        <div style="font-size:11px;color:#9e9e9e;">Instantâneo</div>
+      </div>
+    </div>
+    <p id="mode-desc" style="text-align:center;font-size:12px;color:#555;margin-bottom:12px;">
+      Escolha o modo ou clique em Batalha para busca automática.
+    </p>
+
+    <button class="btn btn-primary btn-lg btn-block" id="btn-find"
+            style="font-family:'Cinzel',serif;animation:glow-pulse 2s infinite;"
+            onclick="findMatch()">⚔️ BATALHA!</button>
+
+    <div id="searching-msg" style="display:none;text-align:center;margin-top:14px;">
+      <div class="animate-pulse" style="font-size:28px;">🔍</div>
+      <p style="color:#9e9e9e;font-size:13px;margin-top:6px;" id="search-text">Procurando adversário...</p>
+    </div>
+
+    <div id="no-vault-msg" class="panel" style="display:none;border-color:#f44336;text-align:center;margin-top:10px;">
+      <p style="color:#ef9a9a;font-size:13px;">⚠️ Cofre vazio! <a href="shop.html" style="color:#ffc107;">Abra pacotes</a>.</p>
+    </div>
+  </div>
+
+  <!-- ══ BATALHA ══ -->
+  <div id="screen-battle" style="display:none;">
+
+    <div class="arena">
+      <div class="tower-row">
+        <div class="tower-box" id="enemy-tower">
+          <span class="tower-emoji">🏰</span>
+          <div class="tower-name" id="enemy-name-disp">Bot</div>
+          <div class="tower-hp" id="enemy-hp-val" style="color:#ef5350;">1000</div>
+          <div class="hp-bar"><div class="hp-fill enemy-hp" id="enemy-hp-fill" style="width:100%"></div></div>
+          <div style="font-size:11px;color:#9e9e9e;margin-top:3px;">Cartas: <span id="enemy-cards-cnt" style="color:#ef5350;font-weight:700;">10</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:4px;">
+          <div style="font-size:20px;animation:float 2s ease-in-out infinite;">⚔️</div>
+          <div id="turn-num" style="font-size:10px;color:#555;">Turno 1</div>
+        </div>
+        <div class="tower-box" id="player-tower">
+          <span class="tower-emoji">🗼</span>
+          <div class="tower-name" id="player-name-disp">Você</div>
+          <div class="tower-hp" id="player-hp-val" style="color:#66bb6a;">1000</div>
+          <div class="hp-bar"><div class="hp-fill player-hp" id="player-hp-fill" style="width:100%"></div></div>
+          <div style="font-size:11px;color:#9e9e9e;margin-top:3px;">Cartas: <span id="player-cards-cnt" style="color:#66bb6a;font-weight:700;">10</span></div>
+        </div>
+      </div>
+
+      <div class="enemy-hand-row" id="enemy-hand-row"></div>
+      <div class="arena-divider">Campo de Batalha</div>
+      <div id="center-play" style="display:none;text-align:center;margin:6px 0;min-height:40px;"></div>
+    </div>
+
+    <div class="turn-bar">
+      <div class="turn-dot" id="turn-dot"></div>
+      <span id="turn-label">Seu turno</span>
+      <span id="combo-badge" style="display:none;color:#ff9800;font-weight:900;margin-left:2px;"></span>
+      <div class="turn-timer" id="turn-timer">15</div>
+    </div>
+
+    <div class="battle-log" id="battle-log"><p class="log-info">⚔️ Batalha iniciada! Escolha sua carta.</p></div>
+
+    <!-- ⚡ POWER-UPS ⚡ -->
+    <div id="powerup-panel" style="display:none;background:linear-gradient(135deg,#0a0020,#12003a);border:1px solid #7c4dff44;border-radius:12px;padding:10px;margin-bottom:8px;">
+      <div style="font-size:11px;font-weight:700;color:#ce93d8;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+        <span>⚡ Power-ups disponíveis</span>
+        <a href="power.html" style="font-size:10px;color:#7c4dff;text-decoration:none;">Gerenciar →</a>
+      </div>
+      <div id="powerup-list" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+      <div id="active-pu-label" style="font-size:10px;color:#9e9e9e;margin-top:6px;display:none;"></div>
+    </div>
+
+    <div class="player-hand-label" id="hand-label">Escolha uma carta para jogar</div>
+    <div class="hand-grid" id="player-hand"></div>
+
+    <button class="btn-play-card" id="btn-play" onclick="playSelectedCard()" disabled style="margin-top:10px;">
+      🃏 Jogar Carta Selecionada
+    </button>
+
+    <button onclick="confirmForfeit()"
+            style="background:none;border:1px solid #333;color:#666;border-radius:8px;
+                   padding:8px;width:100%;margin-top:8px;font-size:12px;cursor:pointer;">
+      🏳️ Desistir
+    </button>
+  </div>
+
+</main>
+
+<!-- ══ OVERLAY CLASH ══ -->
+<div class="clash-overlay hidden" id="clash-overlay">
+  <div style="font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:#ffc107;margin-bottom:12px;letter-spacing:2px;">⚡ CONFRONTO ⚡</div>
+  <div class="clash-arena">
+    <div class="clash-card player-side" id="clash-p"></div>
+    <div class="clash-vs">VS</div>
+    <div class="clash-card enemy-side" id="clash-e"></div>
+  </div>
+  <div class="clash-result-text" id="clash-result-txt"></div>
+  <div id="clash-dmg" style="margin-top:10px;"></div>
+</div>
+
+<!-- ══ OVERLAY RESULTADO ══ -->
+<div class="result-overlay hidden" id="result-overlay">
+  <div class="result-particles" id="particles"></div>
+  <div class="result-glow" id="res-icon">🏆</div>
+  <div class="result-title" id="res-title">VITÓRIA!</div>
+  <p id="res-sub" style="color:#9e9e9e;font-size:13px;margin-bottom:16px;"></p>
+
+  <div class="result-card" id="rewards-card"></div>
+
+  <div id="rankup-box" style="display:none;background:linear-gradient(135deg,#1a0a2e,#2d1b4e);border:2px solid #9c27b0;border-radius:12px;padding:14px;margin-bottom:14px;text-align:center;">
+    <div style="font-size:32px;">🎖️</div>
+    <div style="font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:#ce93d8;">PATENTE AUMENTADA!</div>
+    <div id="rankup-name" style="font-size:20px;font-weight:900;color:#e040fb;"></div>
+  </div>
+
+  <div id="levelup-box" style="display:none;background:linear-gradient(135deg,#1a1a00,#2a2a00);border:2px solid #ffc107;border-radius:12px;padding:12px;margin-bottom:14px;text-align:center;">
+    <div style="font-size:28px;">⭐</div>
+    <div style="font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:#ffd54f;">LEVEL UP!</div>
+    <div id="levelup-num" style="font-size:20px;font-weight:900;color:#ffc107;"></div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:280px;">
+    <button class="btn btn-primary" onclick="restartBattle()">⚔️ Nova Batalha</button>
+    <a href="index.html" class="btn btn-outline">🏠 Menu Principal</a>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn active"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js?v=13.0"></script>
+<script src="gamedata2.js?v=13.0"></script>
+<script src="gamedata3.js?v=13.0"></script>
+<script src="gamedata-v7-patch.js?v=13.0"></script>
+<script src="gamedata-powerups.js?v=13.0"></script>
+<!-- BUGFIX: patch de Maestria/Prestige nunca era carregado na tela de batalha,
+     então o Prestige (pago com até 10 milhões de ouro) nunca tinha efeito real. -->
+<script src="gamedata-maestria-patch.js?v=13.0"></script>
+<script src="gamedata-fortaleza-patch.js?v=13.0"></script>
+<script src="gamedata-companion-patch.js?v=1.0"></script>
+<script src="gamedata-crafting.js?v=13.0"></script>
+<!-- BUGFIX: gamedata-racas-patch.js (sistema "Faça Seu Caminho") nunca era
+     carregado aqui, então window.RacasAPI não existia em batalha clássica —
+     os bônus permanentes dos Artefatos (ouro/XP/XPP/ATK/HP) e o Sigilo das
+     Origens nunca tinham efeito em nenhuma batalha. -->
+<script src="gamedata-racas-patch.js?v=13.0"></script>
+<script>
+// FIX: garante que o hook automático embutido em calcBattleRewards()
+// (gamedata-crafting.js) opere sobre o MESMO objeto "save" desta página,
+// em vez de recarregar/duplicar um novo via getOrCreateSave(). Antes disso,
+// o drop de craft era escrito num objeto separado do "save" da tela e
+// depois apagado pelo writeSave(save) seguinte em endBattle() — por isso
+// engrenagem/gasolina nunca ficavam salvas de fato.
+// A função original ainda é usada normalmente pelo init() da página (que
+// roda antes de "save" existir); só depois disso passamos a redirecionar.
+(function(){
+  const _origGetOrCreateSave = window.getOrCreateSave;
+  window.getOrCreateSave = function() {
+    if (typeof save !== "undefined" && save) return save;
+    return _origGetOrCreateSave.apply(this, arguments);
+  };
+})();
+</script>
+<script>
+// ════════════════════════════════════════════════════════════
+// BATTLE ENGINE v3 – Card Fight
+// ════════════════════════════════════════════════════════════
+const BOT_NAMES = [
+  "ShadowBlade","IronFist","DragonSlayer","NightRaider","StormBreaker",
+  "VoidHunter","CrimsonEdge","FrostWarden","ThunderKing","SilverFang",
+  "DarkReaper","PhoenixBlade","RuneKnight","SoulBreaker","EternalFlame",
+  "ObsidianFist","NebulaDrifter","HellForged","StarVandal","GrimWatcher",
+  "CosmicFury","AbyssWalker","IronBehemoth","NullReaper","ChaosEngine"
+];
+
+let save, battle = null, turnTimerInterval = null, battleMode = "auto";
+const TURN_TIME = 15;
+let activePowerup = null; // power-up selecionado pelo jogador neste turno
+
+function init() {
+  save = getOrCreateSave();
+  cleanExpiredBoosts(save);
+  updateHeader();
+  document.getElementById("mm-rank").textContent  = getRank(save.xpp).name;
+  document.getElementById("mm-cards").textContent = save.vault.length;
+  if (save.vault.length === 0) {
+    document.getElementById("btn-find").disabled = true;
+    document.getElementById("no-vault-msg").style.display = "block";
+  }
+  selectMode("auto");
+  startAutoSave(() => save);
+}
+
+function selectMode(m) {
+  battleMode = m;
+  const pvpEl = document.getElementById("mode-pvp");
+  const botEl = document.getElementById("mode-bot");
+  const desc  = document.getElementById("mode-desc");
+  pvpEl.style.opacity = m === "pvp" ? "1" : "0.5";
+  botEl.style.opacity = m === "bot" ? "1" : "0.5";
+  pvpEl.style.borderColor = m === "pvp" ? "#2196F3" : "#2a2a4a";
+  botEl.style.borderColor = m === "bot" ? "#ff4444" : "#2a2a4a";
+  if (m === "pvp") desc.textContent = "Buscando jogador real. Se não achar, cai no bot da sua patente.";
+  else if (m === "bot") desc.textContent = "Batalha instantânea contra um bot da sua patente.";
+  else desc.textContent = "Busca automática de adversário.";
+}
+
+function findMatch() {
+  document.getElementById("btn-find").disabled = true;
+  document.getElementById("searching-msg").style.display = "block";
+  const delay = battleMode === "bot" ? 600 : 1500 + Math.random() * 1500;
+  let dots = 0;
+  const ticker = setInterval(() => {
+    dots = (dots + 1) % 4;
+    document.getElementById("search-text").textContent =
+      (battleMode === "pvp" ? "Procurando jogador real" : "Preparando bot") + ".".repeat(dots + 1);
+  }, 400);
+  setTimeout(() => {
+    clearInterval(ticker);
+    const wasVsPvp = battleMode === "pvp" && Math.random() < 0.15;
+    startBattle(wasVsPvp);
+  }, delay);
+}
+
+function startBattle(isPvp) {
+  const playerHand = getHandFromVault(save.vault).map(c => {
+    // BUGFIX: usar getMaestriaBuffWithPrestige (soma o bônus pago de Prestige)
+    // em vez de getMaestriaBuff sozinho, que ignorava o Prestige do jogador.
+    const buff = (typeof getMaestriaBuffWithPrestige === "function")
+      ? getMaestriaBuffWithPrestige(save, c.id)
+      : (typeof getMaestriaBuff === "function") ? getMaestriaBuff(save, c.id) : 1;
+    const stars = (typeof getMaestriaStars === "function" && save.maestria && save.maestria[c.id])
+      ? getMaestriaStars(save.maestria[c.id].pts, c.rarity) : 0;
+    // v7: multiplicador de ATK do Companheiro equipado
+    const compAtk = (typeof getCompanionAtkMult === "function") ? getCompanionAtkMult(save) : 1;
+    let battler = {
+      ...c,
+      atk:   Math.round(c.atk * buff * compAtk),
+      hp:    Math.round((c.hp || c.atk) * buff),
+      stars: stars,
+      alive: true,
+    };
+    // BUGFIX: bônus de HP da Fortaleza (CF_Fortress.applyCombatBonuses) existia
+    // no patch mas nunca era chamado — aplicando aqui para valer em combate.
+    if (typeof CF_Fortress !== "undefined" && typeof CF_Fortress.applyCombatBonuses === "function") {
+      battler = CF_Fortress.applyCombatBonuses(save, battler);
+    }
+    // BUGFIX: bônus de ATK/HP dos Artefatos de "Faça Seu Caminho" (Núcleo de
+    // Plasma +5% ATK, Pena Sagrada +5% HP, Sigilo das Origens +50%/+50% na
+    // carta equipada) existiam em RacasAPI.applyCardMults mas nunca eram
+    // chamados em batalha clássica — aplicando aqui para valer em combate,
+    // no mesmo padrão do CF_Fortress logo acima.
+    if (typeof RacasAPI !== "undefined" && typeof RacasAPI.applyCardMults === "function") {
+      battler = RacasAPI.applyCardMults(battler);
+    }
+    return battler;
+  });
+
+  // ── FIX: Se cofre está vazio, não começa batalha ──
+  if (playerHand.length === 0) {
+    showToast("⚠️ Cofre vazio! Abra pacotes primeiro.", "error");
+    restartBattle();
+    return;
+  }
+
+  // Dificuldade escalável: bots ficam progressivamente mais fortes conforme o jogador sobe
+  // de rank, mas nunca mais fortes que o jogador — tornando as batalhas iniciais muito mais justas.
+  const playerRankIdx = RANKS.indexOf(getRank(save.xpp));
+  // v-balance: dificuldade reduzida — bots ganham menos força conforme o jogador sobe de rank
+  // v-balance2: dificuldade geral do bot aumentada em +8% (pedido do dev)
+  const botMult = (0.12 + Math.min(playerRankIdx / RANKS.length, 0.55) * 0.45 + Math.random() * 0.10) * 1.08;
+  const botXpp  = Math.max(0, save.xpp * botMult);
+  const botHand = getBotHand(botXpp).map(c => ({ ...c, alive: true }));
+  const botName = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)] + (isPvp ? "" : " [BOT]");
+
+  // Bot gets a small random powerup inventory
+  const botPus = (typeof makeBotPowerups === "function") ? makeBotPowerups() : {};
+
+  battle = {
+    playerHand, botHand,
+    playerHP: 1000, botHP: 1000,
+    botName, botRank: getRank(botXpp).name,
+    selectedIdx: null, playerTurn: true,
+    over: false, turn: 1,
+    comboPlayer: 0, comboBot: 0,
+    log: [],
+    botPowerups: botPus,
+  };
+  activePowerup = null;
+
+  document.getElementById("screen-mm").style.display = "none";
+  document.getElementById("screen-battle").style.display = "block";
+  document.getElementById("player-name-disp").textContent = save.playerName;
+  document.getElementById("enemy-name-disp").textContent  = botName;
+
+  addLog(`⚔️ Batalha contra ${botName} iniciada!`, "info");
+  const buffedCards = playerHand.filter(c => c.stars > 0);
+  if (buffedCards.length > 0) {
+    const avgBuff = Math.round(buffedCards.reduce((s,c)=>s+c.stars,0) / buffedCards.length * 10) / 10;
+    addLog(`⭐ ${buffedCards.length} carta(s) com Maestria ativa! Bônus médio: +${avgBuff}% ATK/HP`, "gold");
+  }
+  renderBattle();
+  startTurnTimer();
+}
+
+function renderBattle() {
+  if (!battle) return;
+  const pAlive = battle.playerHand.filter(c => c.alive).length;
+  const eAlive = battle.botHand.filter(c => c.alive).length;
+
+  const pPct = Math.max(0, (battle.playerHP / 1000) * 100);
+  const ePct = Math.max(0, (battle.botHP   / 1000) * 100);
+  document.getElementById("player-hp-fill").style.width = pPct + "%";
+  document.getElementById("enemy-hp-fill").style.width  = ePct + "%";
+  document.getElementById("player-hp-val").textContent  = Math.max(0, battle.playerHP);
+  document.getElementById("enemy-hp-val").textContent   = Math.max(0, battle.botHP);
+  document.getElementById("player-cards-cnt").textContent = pAlive;
+  document.getElementById("enemy-cards-cnt").textContent  = eAlive;
+  document.getElementById("turn-num").textContent = `Turno ${battle.turn}`;
+
+  document.getElementById("player-tower").classList.toggle("danger", battle.playerHP < 300);
+  document.getElementById("enemy-tower").classList.toggle("danger",  battle.botHP < 300);
+
+  document.getElementById("enemy-hand-row").innerHTML =
+    battle.botHand.filter(c => c.alive).slice(0, 10).map(() =>
+      `<div class="card-back-mini">🎴</div>`).join("");
+
+  const comboEl = document.getElementById("combo-badge");
+  if (battle.comboPlayer >= 2) {
+    comboEl.style.display = "inline"; comboEl.style.color = "#66bb6a";
+    comboEl.textContent = `🔥x${battle.comboPlayer}`;
+  } else if (battle.comboBot >= 2) {
+    comboEl.style.display = "inline"; comboEl.style.color = "#ef5350";
+    comboEl.textContent = `🔥x${battle.comboBot} (bot)`;
+  } else { comboEl.style.display = "none"; }
+
+  const dot   = document.getElementById("turn-dot");
+  const label = document.getElementById("turn-label");
+  const btnP  = document.getElementById("btn-play");
+
+  if (battle.playerTurn) {
+    dot.className = "turn-dot player"; label.textContent = "Seu turno – escolha uma carta!";
+    btnP.disabled = battle.selectedIdx === null;
+    document.getElementById("hand-label").textContent = "Toque em uma carta para selecionar";
+  } else {
+    dot.className = "turn-dot enemy"; label.textContent = "Bot está jogando...";
+    btnP.disabled = true;
+    document.getElementById("hand-label").textContent = "Aguarde o bot...";
+  }
+  renderPowerupPanel();
+
+  const ph = document.getElementById("player-hand");
+  ph.innerHTML = battle.playerHand.map((card, i) => {
+    if (!card.alive) return `<div class="hcard dead"><div class="he">💀</div></div>`;
+    const r   = RARITY[card.rarity] || RARITY.COMMON;
+    const sel = battle.selectedIdx === i ? "selected" : "";
+    const dis = !battle.playerTurn ? "disabled" : "";
+    return `<div class="hcard ${sel} ${dis}" style="border-color:${sel ? "#ffc107" : r.color}33;"
+                 onclick="selectCard(${i})">
+      <div class="he">${card.img}</div>
+      <div class="hn">${card.name}</div>
+      <div class="ha">⚔️${card.atk}</div>
+      ${card.stars > 0 ? `<div class="hstar">${"★".repeat(card.stars)}</div>` : ""}
+    </div>`;
+  }).join("");
+}
+
+// ── POWER-UP UI ──────────────────────────────────────────────
+function renderPowerupPanel() {
+  if (!battle || battle.over) return;
+  const panel = document.getElementById("powerup-panel");
+  const list  = document.getElementById("powerup-list");
+  const lbl   = document.getElementById("active-pu-label");
+  if (!panel || !list) return;
+
+  if (!battle.playerTurn || typeof POWERUPS === "undefined") {
+    panel.style.display = "none";
+    return;
+  }
+
+  const inv = (save && save.powerups) ? save.powerups : {};
+  const owned = Object.entries(inv).filter(([,cnt]) => cnt > 0);
+  if (owned.length === 0) { panel.style.display = "none"; return; }
+
+  panel.style.display = "block";
+  list.innerHTML = owned.map(([id, cnt]) => {
+    const pu = (typeof getPowerupById === "function") ? getPowerupById(id) : null;
+    if (!pu) return "";
+    const sel = activePowerup && activePowerup.id === id;
+    return `<button onclick="togglePowerup('${id}')" title="${pu.desc}"
+      style="background:${sel?"linear-gradient(135deg,#4a0072,#9c27b0)":"rgba(74,0,114,0.2)"};
+             border:1.5px solid ${sel?"#e040fb":"#7c4dff44"};border-radius:8px;
+             padding:5px 9px;color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px;">
+      ${pu.emoji} <span style="font-size:10px;color:${sel?"#fff":"#ce93d8"};">${pu.name}</span>
+      <span style="font-size:9px;background:#7c4dff44;border-radius:10px;padding:1px 5px;color:#ffc107;">×${cnt}</span>
+    </button>`;
+  }).join("");
+
+  if (activePowerup) {
+    lbl.style.display = "block";
+    lbl.innerHTML = `⚡ Ativo: <strong style="color:#e040fb;">${activePowerup.emoji} ${activePowerup.name}</strong> — ${activePowerup.desc} <button onclick="togglePowerup(null)" style="background:none;border:none;color:#9e9e9e;cursor:pointer;font-size:11px;text-decoration:underline;">Cancelar</button>`;
+  } else {
+    lbl.style.display = "none";
+  }
+}
+
+function togglePowerup(id) {
+  if (!id || (activePowerup && activePowerup.id === id)) {
+    activePowerup = null;
+  } else {
+    const pu = (typeof getPowerupById === "function") ? getPowerupById(id) : null;
+    if (!pu) return;
+    const inv = (save && save.powerups) ? save.powerups : {};
+    if (!inv[id] || inv[id] < 1) { showToast("Você não tem esse power-up!", "error"); return; }
+    activePowerup = pu;
+  }
+  renderPowerupPanel();
+}
+
+function startTurnTimer() {
+  clearInterval(turnTimerInterval);
+  if (!battle || !battle.playerTurn || battle.over) return;
+
+  // ── FIX: Se o jogador não tem cartas vivas, encerrar agora ──
+  const pAlive = battle.playerHand.filter(c => c.alive);
+  if (pAlive.length === 0) {
+    checkWin();
+    return;
+  }
+
+  let remaining = TURN_TIME;
+  const el = document.getElementById("turn-timer");
+  el.textContent = remaining;
+  el.className = "turn-timer";
+
+  turnTimerInterval = setInterval(() => {
+    remaining--;
+    el.textContent = remaining;
+    if (remaining <= 5) el.className = "turn-timer urgent";
+    if (remaining <= 0) {
+      clearInterval(turnTimerInterval);
+      const alive = battle.playerHand.map((c,i) => ({c,i})).filter(x => x.c.alive);
+      if (alive.length > 0) {
+        const pick = alive[Math.floor(Math.random() * alive.length)];
+        battle.selectedIdx = pick.i;
+        addLog("⏰ Tempo esgotado! Carta automática jogada.", "info");
+        playSelectedCard();
+      } else {
+        // ── FIX: Sem cartas para jogar → encerrar batalha ──
+        addLog("⚠️ Sem cartas para jogar. Batalha encerrada!", "info");
+        checkWin();
+      }
+    }
+  }, 1000);
+}
+
+function selectCard(i) {
+  if (!battle || !battle.playerTurn || battle.over) return;
+  if (!battle.playerHand[i].alive) return;
+  battle.selectedIdx = i;
+  document.getElementById("btn-play").disabled = false;
+  renderBattle();
+}
+
+// NOTE (bugfix): a implementação de playSelectedCard ficava aqui antes,
+// mas era 100% sobrescrita pelo patch "Bot inteligente v2.3" mais abaixo
+// (window.playSelectedCard = function() {...}), tornando este bloco morto
+// e uma fonte de confusão para manutenção futura. Removido.
+
+function showClash(pCard, bCard) {
+  // ── Compute effective ATKs from power-ups ──
+  const pue = battle.currentPuEffect;
+  const bue = battle.currentBotPuEffect;
+  let effPA = pCard.atk;
+  let effBA = bCard.atk;
+
+  // Player power-up effects on ATK
+  if (pue) {
+    if (pue.type === "atk_mult")   effPA = Math.round(effPA * pue.value);
+    if (pue.type === "berserker")  effPA = Math.round(effPA * pue.atkMult);
+    if (pue.type === "steal_atk" && bCard.atk > pCard.atk) {
+      effPA = bCard.atk;
+      addLog("🕶️ Roubo de Força: você usa o ATK do inimigo!", "gold");
+    }
+    if (pue.type === "random") {
+      const roll = Math.random();
+      if (roll < 0.25)      { effPA = Math.round(effPA * 1.25); addLog("🎲 Dado: +25% ATK!", "gold"); }
+      else if (roll < 0.50) { battle.playerHP = Math.min(1000, battle.playerHP + 100); addLog("🎲 Dado: +100HP!", "gold"); }
+      else if (roll < 0.75) { effBA = Math.round(effBA * 0.70); addLog("🎲 Dado: inimigo -30% ATK!", "gold"); }
+      else { effPA = Math.round(effPA * 1.25); effBA = Math.round(effBA * 0.70); battle.playerHP = Math.min(1000, battle.playerHP + 100); addLog("🎲 Dado: TODOS os bônus combinados!", "gold"); }
+    }
+  }
+  // Bot power-up on its ATK
+  if (bue && bue.type === "atk_mult") effBA = Math.round(effBA * bue.value);
+  if (bue && bue.type === "berserker") effBA = Math.round(effBA * bue.atkMult);
+  if (bue && bue.type === "steal_atk" && pCard.atk > bCard.atk) effBA = pCard.atk;
+  // BUGFIX (item 1): a cura do bot era só um log fixo de "80HP" que nunca
+  // alterava battle.botHP de verdade. Removida daqui — a cura real agora
+  // é aplicada no momento em que o bot escolhe o power-up (ver patch v4
+  // "IA e Power-ups do Bot" mais abaixo), com o valor correto do efeito.
+
+  const overlay = document.getElementById("clash-overlay");
+  const pR = RARITY[pCard.rarity] || RARITY.COMMON;
+  const bR = RARITY[bCard.rarity] || RARITY.COMMON;
+
+  const puBadge = pue ? `<div style="font-size:10px;color:#e040fb;margin-top:2px;">${(typeof getPowerupById!=="undefined"&&getPowerupById(pue.type))||"⚡ Power-up ativo"}</div>` : "";
+  document.getElementById("clash-p").innerHTML = `
+    <div class="clash-emoji">${pCard.img}</div>
+    <div style="font-size:12px;font-weight:700;margin-bottom:4px;">${pCard.name}</div>
+    <div class="clash-atk">⚔️ ${effPA}${pCard.atk!==effPA?`<span style="font-size:10px;color:#e040fb;"> (+)</span>`:""}</div>
+    <div style="font-size:10px;margin-top:3px;color:${pR.color};">${pR.name}</div>`;
+  document.getElementById("clash-e").innerHTML = `
+    <div class="clash-emoji">${bCard.img}</div>
+    <div style="font-size:12px;font-weight:700;margin-bottom:4px;">${bCard.name}</div>
+    <div class="clash-atk">⚔️ ${effBA}</div>
+    <div style="font-size:10px;margin-top:3px;color:${bR.color};">${bR.name}</div>`;
+
+  document.getElementById("clash-result-txt").textContent = "";
+  document.getElementById("clash-dmg").innerHTML = "";
+  overlay.classList.remove("hidden");
+  setTimeout(() => resolveClash(pCard, bCard, effPA, effBA), 650);
+}
+
+function resolveClash(pCard, bCard, effPA, effBA) {
+  // effPA / effBA are already power-up adjusted
+  if (effPA === undefined) effPA = pCard.atk;
+  if (effBA === undefined) effBA = bCard.atk;
+
+  const rtEl  = document.getElementById("clash-result-txt");
+  const dmgEl = document.getElementById("clash-dmg");
+  let isCrit  = false;
+
+  const pue = battle.currentPuEffect;
+  const bue = battle.currentBotPuEffect;
+  const shieldPct    = (pue && pue.type === "shield_pct")  ? pue.value : 0;
+  const berserkerMul = (pue && pue.type === "berserker")   ? pue.dmgMult : 1;
+  const doubleStrike = (pue && pue.type === "double_strike")? pue.value : 0;
+  // Bot shield
+  const bShieldPct   = (bue && bue.type === "shield_pct")  ? bue.value : 0;
+  const bBerserkerMul= (bue && bue.type === "berserker")   ? bue.dmgMult : 1;
+
+  const hasComboBoost  = save && (save.activeBoosts||[]).some(b => b.type === "combo" && b.endTime > Date.now());
+  const comboBoostMult = hasComboBoost ? 1.25 : 1;
+
+  if (effPA === effBA) {
+    pCard.alive = false; bCard.alive = false;
+    const dmg = Math.max(6, Math.round(effPA * 0.15));
+    battle.playerHP -= dmg; battle.botHP -= dmg;
+    battle.comboPlayer = 0; battle.comboBot = 0;
+    rtEl.textContent = "🤝 EMPATE – Ambas as torres sofrem dano!";
+    rtEl.style.color = "#ffc107";
+    dmgEl.innerHTML  = `<div class="damage-number" style="color:#ffc107;">-${dmg} HP nas duas torres</div>`;
+    addLog(`🤝 Empate! Ambas torres -${dmg}HP. Ambas cartas saem de campo.`, "info");
+    if (typeof addMaestriaPoints === "function") addMaestriaPoints(save, pCard.id, 2);
+  } else if (effPA > effBA) {
+    bCard.alive = false;
+    battle.comboPlayer++; battle.comboBot = 0;
+    const comboMult = (1 + Math.min(battle.comboPlayer - 1, 5) * 0.15) * comboBoostMult;
+    let dmg = Math.max(10, Math.round((effPA - effBA) * 1.8 * comboMult));
+    if (bShieldPct > 0) { dmg = Math.round(dmg * (1 - bShieldPct)); addLog(`🛡️ Escudo do bot absorveu ${Math.round(bShieldPct*100)}% do dano!`, "info"); }
+    isCrit = effPA >= effBA * 2;
+    battle.botHP -= dmg;
+    const comboTxt = battle.comboPlayer > 1 ? ` 🔥x${battle.comboPlayer}` : "";
+    rtEl.textContent = isCrit ? `💥 CRÍTICO! ${pCard.name} ESMAGA!${comboTxt}` : `✅ ${pCard.name} venceu!${comboTxt}`;
+    rtEl.style.color = "#66bb6a";
+    dmgEl.innerHTML  = `<div class="damage-number" style="color:#ef5350;">-${dmg} HP Torre Inimiga</div>`;
+    addLog(`${isCrit?"💥":"✅"} ${pCard.name}(${effPA}) > ${bCard.name}(${effBA}). Torre inimiga -${dmg}HP${comboTxt}. ${pCard.name} sobrevive!`, "win");
+    if (typeof addMaestriaPoints === "function") addMaestriaPoints(save, pCard.id, 3);
+    // Double strike bonus
+    if (doubleStrike > 0) {
+      const dsDmg = Math.max(5, Math.round(effPA * doubleStrike));
+      battle.botHP -= dsDmg;
+      addLog(`⚔️ Golpe Duplo! +${dsDmg}HP de dano bônus!`, "gold");
+    }
+  } else {
+    pCard.alive = false;
+    battle.comboBot++; battle.comboPlayer = 0;
+    const comboMult = 1 + Math.min(battle.comboBot - 1, 3) * 0.10;
+    let dmg = Math.max(9, Math.round((effBA - effPA) * 1.6 * comboMult * berserkerMul));
+    if (shieldPct > 0) {
+      const blocked = Math.round(dmg * shieldPct);
+      dmg = Math.max(5, dmg - blocked);
+      addLog(`🛡️ Escudo Rúnico bloqueou ${blocked}HP de dano!`, "gold");
+    }
+    isCrit = effBA >= effPA * 2.2;
+    battle.playerHP -= dmg;
+    const comboTxt = battle.comboBot > 1 ? ` 🔥x${battle.comboBot}` : "";
+    rtEl.textContent = isCrit ? `💥 CRÍTICO! ${bCard.name} ESMAGA!${comboTxt}` : `❌ ${bCard.name} venceu!${comboTxt}`;
+    rtEl.style.color = "#ef5350";
+    dmgEl.innerHTML  = `<div class="damage-number" style="color:#ef5350;">-${dmg} HP sua Torre</div>`;
+    addLog(`${isCrit?"💥":"❌"} ${bCard.name}(${effBA}) > ${pCard.name}(${effPA}). Sua torre -${dmg}HP${comboTxt}`, "lose");
+    if (typeof addMaestriaPoints === "function") addMaestriaPoints(save, pCard.id, 1);
+    // Double strike even on loss (deals 50% to enemy anyway)
+    if (doubleStrike > 0) {
+      const dsDmg = Math.max(3, Math.round(effPA * doubleStrike));
+      battle.botHP -= dsDmg;
+      addLog(`⚔️ Golpe Duplo mesmo na derrota! +${dsDmg}HP no inimigo`, "gold");
+    }
+  }
+
+  // Clear round power-up state
+  battle.currentPuEffect    = null;
+  battle.currentBotPuEffect = null;
+  battle.turn++;
+
+  setTimeout(() => {
+    document.getElementById("clash-overlay").classList.add("hidden");
+    checkWin();
+  }, isCrit ? 1500 : 1050);
+}
+
+function checkWin() {
+  if (!battle || battle.over) return;
+  const pAlive = battle.playerHand.filter(c => c.alive).length;
+  const eAlive = battle.botHand.filter(c => c.alive).length;
+
+  if (battle.botHP <= 0) {
+    endBattle(true, "🏰 Torre inimiga destruída!");
+  } else if (battle.playerHP <= 0) {
+    endBattle(false, "💀 Sua torre foi destruída!");
+  } else if (eAlive === 0 && pAlive === 0) {
+    // ── FIX: Ambos sem cartas → quem tem mais HP vence ──
+    if (battle.playerHP >= battle.botHP) {
+      endBattle(true,  "🏅 Sem cartas! Você tinha mais HP – VITÓRIA!");
+    } else {
+      endBattle(false, "🏅 Sem cartas! Bot tinha mais HP – DERROTA!");
+    }
+  } else if (eAlive === 0) {
+    // ── FIX: Bot sem cartas → jogador vence (ou faz dano com cartas restantes) ──
+    // Dano bônus por cartas restantes do jogador
+    let bonusDmg = 0;
+    battle.playerHand.filter(c => c.alive).forEach(c => {
+      const d = Math.max(5, Math.round(c.atk * 0.3));
+      bonusDmg += d;
+      battle.botHP -= d;
+    });
+    if (bonusDmg > 0) addLog(`💥 Cartas restantes atacam torre inimiga! -${bonusDmg}HP total`, "win");
+    endBattle(true, "🃏 Todas as cartas inimigas destruídas!");
+  } else if (pAlive === 0) {
+    // ── FIX: Jogador sem cartas → bot faz dano bônus ──
+    let bonusDmg = 0;
+    battle.botHand.filter(c => c.alive).forEach(c => {
+      const d = Math.max(5, Math.round(c.atk * 0.3));
+      bonusDmg += d;
+      battle.playerHP -= d;
+    });
+    if (bonusDmg > 0) addLog(`💥 Cartas do bot atacam sua torre! -${bonusDmg}HP`, "lose");
+    // Verificar se ainda tem HP após o dano
+    if (battle.playerHP > 0 && battle.botHP > 0) {
+      endBattle(false, "🃏 Todas as suas cartas foram destruídas!");
+    } else if (battle.playerHP <= 0) {
+      endBattle(false, "💀 Sua torre foi destruída pelos ataques finais!");
+    } else {
+      endBattle(true, "🃏 Resistiu até o fim!");
+    }
+  } else {
+    battle.playerTurn = true;
+    renderBattle();
+    startTurnTimer();
+  }
+}
+
+function endBattle(win, reason) {
+  battle.over = true;
+  clearInterval(turnTimerInterval);
+
+  const oldLevel = getLevel(save.xp);
+  const oldRank  = getRank(save.xpp);
+
+  const rw = calcBattleRewards(win, save);
+  // v7: aplicar buffs passivos do Companheiro equipado
+  const rwBuffed = (typeof applyCompanionRewardBuffs === "function")
+    ? applyCompanionRewardBuffs(save, rw) : rw;
+  // BUGFIX: os bônus permanentes dos Artefatos de "Faça Seu Caminho"
+  // (Coroa do Rei Perdido +10% ouro, Presa Ancestral +10% XP, Colar Lunar
+  // +10% XPP) existiam em RacasAPI.applyArtifactMults mas nunca eram
+  // chamados aqui — as recompensas de batalha clássica nunca recebiam
+  // esses bônus mesmo com o Artefato conquistado.
+  const rwArtifacts = (typeof RacasAPI !== "undefined" && typeof RacasAPI.applyArtifactMults === "function")
+    ? {
+        gold: RacasAPI.applyArtifactMults("gold", rwBuffed.gold),
+        xp:   RacasAPI.applyArtifactMults("xp",   rwBuffed.xp),
+        xpp:  RacasAPI.applyArtifactMults("xpp",  rwBuffed.xpp),
+      }
+    : rwBuffed;
+  // Usar o sistema de ledger para ouro
+  earnGold(save, rwArtifacts.gold);
+  save.xp  += rwArtifacts.xp;
+  save.xpp += rwArtifacts.xpp;
+  if (win) save.wins++; else save.losses++;
+  save.totalBattles = (save.totalBattles || 0) + 1;
+
+  if (win) updateMissionProgress(save, "wins");
+  updateMissionProgress(save, "battles");
+  save.dailyBattles = (save.dailyBattles || 0) + 1;
+  if (win) save.dailyWins = (save.dailyWins || 0) + 1;
+
+  // Evento: progresso — conta batalha em TODOS os eventos ativos
+  // FIX (pedido #5): antes, se o jogador nunca tivesse aberto a tela de
+  // Eventos, save.events[evt.id] ainda não existia e a batalha era
+  // silenciosamente ignorada. Agora o registro do evento é criado aqui
+  // também, então toda batalha conta mesmo sem visitar events.html antes.
+  if (!save.events) save.events = {};
+  if (typeof GAME_EVENTS !== "undefined") {
+    GAME_EVENTS.forEach(evt => {
+      if (isEventActive(evt, save)) {
+        if (!save.events[evt.id]) save.events[evt.id] = { battles: 0, claimedSteps: [] };
+        save.events[evt.id].battles = (save.events[evt.id].battles || 0) + 1;
+      }
+    });
+  }
+
+  const newLevel = getLevel(save.xp);
+  const newRank  = getRank(save.xpp);
+  writeSave(save);
+
+  // FIX: dispara o evento que o sistema de Fortaleza escuta para dar
+  // XP da Fortaleza em toda partida do modo clássico (vencendo ou perdendo).
+  // Sem isso, a Fortaleza nunca recebia XP de batalhas.
+  window.dispatchEvent(new CustomEvent('cf:battle:end', { detail: { mode: 'classic', win: win } }));
+
+  if (win) spawnParticles();
+
+  // BUGFIX (item 5): cfRollBattleDrop existia em gamedata-crafting.js mas
+  // nunca era chamada aqui — engrenagem/gasolina não dropavam da batalha.
+  if (win && typeof cfRollBattleDrop === "function") {
+    cfRollBattleDrop();
+  }
+
+  const overlay = document.getElementById("result-overlay");
+  overlay.classList.remove("hidden");
+  overlay.style.background = win ? "rgba(0,10,0,0.96)" : "rgba(10,0,0,0.96)";
+
+  document.getElementById("res-icon").textContent  = win ? "🏆" : "💀";
+  document.getElementById("res-icon").style.color  = win ? "#ffc107" : "#ef5350";
+  document.getElementById("res-title").textContent = win ? "VITÓRIA!" : "DERROTA";
+  document.getElementById("res-title").style.color = win ? "#66bb6a" : "#ef5350";
+  document.getElementById("res-sub").textContent   = reason;
+
+  document.getElementById("rewards-card").innerHTML = `
+    <div class="reward-row"><span style="color:#9e9e9e;">🪙 Ouro</span>
+      <span style="font-weight:900;color:#ffc107;">+${fmtNum(rwArtifacts.gold)}</span></div>
+    <div class="reward-row"><span style="color:#9e9e9e;">⭐ XP</span>
+      <span style="font-weight:900;color:#90caf9;">+${fmtNum(rwArtifacts.xp)}</span></div>
+    <div class="reward-row"><span style="color:#9e9e9e;">🎖️ XPP</span>
+      <span style="font-weight:900;color:#ce93d8;">+${fmtNum(rwArtifacts.xpp)}</span></div>
+    <div class="reward-row"><span style="color:#9e9e9e;">📊 Resultado</span>
+      <span style="font-weight:900;color:${win?"#66bb6a":"#ef5350"};">${win?"Vitória":"Derrota"}</span></div>`;
+
+  if (newRank.name !== oldRank.name) {
+    document.getElementById("rankup-box").style.display = "block";
+    document.getElementById("rankup-name").textContent  = newRank.name;
+  }
+  if (newLevel > oldLevel) {
+    document.getElementById("levelup-box").style.display = "block";
+    document.getElementById("levelup-num").textContent   = `${oldLevel} → ${newLevel}`;
+  }
+
+  updateHeader();
+}
+
+function spawnParticles() {
+  const container = document.getElementById("particles");
+  container.innerHTML = "";
+  const colors = ["#ffc107","#ff4444","#66bb6a","#2196F3","#9c27b0","#ff9800"];
+  for (let i = 0; i < 30; i++) {
+    const p = document.createElement("div");
+    p.className = "particle";
+    p.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      --tx:${(Math.random()-0.5)*200}px;--ty:${(Math.random()-0.5)*300}px;
+      animation-delay:${Math.random()*0.5}s;animation-duration:${1+Math.random()}s;`;
+    container.appendChild(p);
+  }
+}
+
+function updateHeader() {
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+}
+
+function addLog(msg, cls = "info") {
+  const log = document.getElementById("battle-log");
+  const p = document.createElement("p");
+  p.className = `log-${cls}`; p.textContent = msg;
+  log.appendChild(p);
+  log.scrollTop = log.scrollHeight;
+}
+
+function confirmForfeit() {
+  if (!battle || battle.over) return;
+  if (confirm("Desistir desta partida? Você perderá!")) {
+    endBattle(false, "🏳️ Você desistiu da partida.");
+  }
+}
+
+function restartBattle() {
+  clearInterval(turnTimerInterval);
+  battle = null;
+  ["result-overlay","clash-overlay"].forEach(id => document.getElementById(id).classList.add("hidden"));
+  ["rankup-box","levelup-box"].forEach(id => document.getElementById(id).style.display = "none");
+  document.getElementById("screen-battle").style.display = "none";
+  document.getElementById("screen-mm").style.display = "block";
+  document.getElementById("btn-find").disabled = save.vault.length === 0;
+  document.getElementById("mm-rank").textContent = getRank(save.xpp).name;
+  document.getElementById("mm-cards").textContent = save.vault.length;
+  document.getElementById("searching-msg").style.display = "none";
+}
+
+init();
+</script>
+<!-- ============================================================
+     PATCH – BOT INTELIGENTE v2.3 (raridade pareada + ciclo de força)
+     ============================================================ -->
+<script>
+(function() {
+  "use strict";
+
+  // ─── 1. GERAÇÃO DO DECK DO BOT (raridade pareada com o jogador) ───
+  window.getBotHand = function(botXpp) {
+    const playerLevel = getLevel(save.xp);
+    const playerRank = getRank(save.xpp);
+    const rankIdx = RANKS.indexOf(playerRank);
+
+    const levelFactor = Math.min(1, playerLevel / 100);
+    const rankFactor = Math.min(1, rankIdx / (RANKS.length - 1));
+    const strength = levelFactor * 0.6 + rankFactor * 0.4;
+
+    let rarities;
+    if (strength < 0.15) {
+      rarities = ['COMMON','COMMON','COMMON','COMMON','COMMON','COMMON','COMMON','COMMON','COMMON','RARE'];
+    } else if (strength < 0.30) {
+      rarities = ['COMMON','COMMON','COMMON','COMMON','RARE','RARE','RARE','RARE','EPIC','EPIC'];
+    } else if (strength < 0.45) {
+      rarities = ['COMMON','COMMON','RARE','RARE','RARE','EPIC','EPIC','EPIC','LEGENDARY','LEGENDARY'];
+    } else if (strength < 0.60) {
+      rarities = ['RARE','RARE','RARE','EPIC','EPIC','EPIC','LEGENDARY','LEGENDARY','LEGENDARY','MYTHIC'];
+    } else if (strength < 0.75) {
+      rarities = ['RARE','EPIC','EPIC','LEGENDARY','LEGENDARY','LEGENDARY','MYTHIC','MYTHIC','ULTRA_RARE','ORIGENS'];
+    } else if (strength < 0.90) {
+      rarities = ['EPIC','LEGENDARY','LEGENDARY','MYTHIC','MYTHIC','MYTHIC','ULTRA_RARE','ULTRA_RARE','ORIGENS','ORIGENS'];
+    } else {
+      rarities = ['LEGENDARY','MYTHIC','MYTHIC','ULTRA_RARE','ULTRA_RARE','ULTRA_RARE','ORIGENS','ORIGENS','ORIGENS','ORIGENS'];
+    }
+
+    const fallbackOrder = ['ORIGENS','ULTRA_RARE','MYTHIC','LEGENDARY','EPIC','RARE','COMMON'];
+
+    // ── Sorteia de TODO o banco de cartas daquela raridade (não só as ──
+    // ── que o jogador tem) — isso é o que dá variedade real de cartas ──
+    // ── "parecidas" (mesma raridade) sem repetir sempre a mesma.      ──
+    function getPool(rarity) {
+      let pool = ALL_CARDS.filter(c => c.rarity === rarity);
+      if (pool.length === 0) {
+        const startIdx = fallbackOrder.indexOf(rarity);
+        for (let i = startIdx + 1; i < fallbackOrder.length && pool.length === 0; i++) {
+          pool = ALL_CARDS.filter(c => c.rarity === fallbackOrder[i]);
+        }
+      }
+      if (pool.length === 0) pool = ALL_CARDS;
+      return pool;
+    }
+
+    const hand = [];
+    const usedIds = new Set(); // evita repetir a mesma carta na mesma mão
+
+    for (const rarity of rarities) {
+      const pool = getPool(rarity);
+      let candidates = pool.filter(c => !usedIds.has(c.id));
+      if (candidates.length === 0) candidates = pool; // pool pequeno, permite repetir
+
+      // Sorteio genuinamente aleatório a cada iteração (sem cache entre
+      // chamadas), garantindo que a mesma raridade não saia sempre igual
+      const idx = Math.floor(Math.random() * candidates.length);
+      const card = candidates[idx];
+      usedIds.add(card.id);
+      hand.push(card);
+    }
+    return hand;
+  };
+
+  // ─── 2. CICLO DE FORÇA ALEATÓRIO DO BOT ───
+  // O bot alterna entre fases "forte" e "fraca" durante a batalha.
+  // Cada fase dura de 1 a 3 turnos (às vezes um pouco mais, raramente),
+  // e ao zerar, sorteia a próxima fase e nova duração.
+  function rollStreakLength() {
+    // 1, 2 ou 3 na maioria das vezes; ocasionalmente 4 ou 5 (10% de chance)
+    if (Math.random() < 0.10) {
+      return 4 + Math.floor(Math.random() * 2); // 4 ou 5
+    }
+    return 1 + Math.floor(Math.random() * 3); // 1, 2 ou 3
+  }
+
+  function ensureBotMood(battle) {
+    if (!battle.botMood) {
+      battle.botMood = {
+        phase: Math.random() < 0.5 ? 'strong' : 'weak',
+        turnsLeft: rollStreakLength()
+      };
+    }
+  }
+
+  function advanceBotMood(battle) {
+    battle.botMood.turnsLeft--;
+    if (battle.botMood.turnsLeft <= 0) {
+      battle.botMood.phase = battle.botMood.phase === 'strong' ? 'weak' : 'strong';
+      battle.botMood.turnsLeft = rollStreakLength();
+    }
+  }
+
+  // Expõe no window para que o patch v4 (IA/Power-ups do bot), que roda
+  // num escopo de função separado, consiga chamar essas duas funções.
+  window.ensureBotMood  = ensureBotMood;
+  window.advanceBotMood = advanceBotMood;
+
+  // ─── 3. ESTRATÉGIA DO BOT (agora respeita o ciclo de força) ───
+  window.botChooseCard = function(botAlive, playerCard, battleState) {
+    const pue = battleState.currentBotPuEffect || null;
+    const rarityWeight = {
+      'COMMON': 1, 'RARE': 2, 'EPIC': 4, 'LEGENDARY': 8,
+      'MYTHIC': 16, 'ULTRA_RARE': 32, 'ORIGENS': 64
+    };
+
+    // Calcula o score normal (heurística) pra cada carta viva
+    const playerHP = battleState.playerHP || 0;
+    const scored = botAlive.map(entry => {
+      const card = entry.c;
+      let score = 0;
+
+      const atkDiff = card.atk - playerCard.atk;
+      score += atkDiff > 0 ? atkDiff * 3 : atkDiff * 1.5;
+      score += card.hp / 10;
+      score += rarityWeight[card.rarity] || 0;
+
+      if (pue && pue.type === 'atk_mult') {
+        score += card.atk * pue.value * 0.5;
+      }
+
+      const comboPlayer = battleState.comboPlayer || 0;
+      if (comboPlayer >= 3 && Math.random() < 0.3 && card.hp < 200) {
+        score += 30;
+      }
+
+      if (battleState.botHP < 300) {
+        score += card.atk * 2;
+      }
+
+      // IA melhorada: se a torre do jogador está baixa, prioriza a maior
+      // carta disponível pra tentar fechar a batalha (consciência de lethal).
+      if (playerHP > 0 && playerHP < 250) {
+        score += card.atk * 2.2;
+      }
+
+      // IA melhorada: evita "gastar" cartas muito fortes contra cartas
+      // fracas do jogador quando não há necessidade — prefere guardar
+      // ORIGENS/ULTRA_RARE/MYTHIC pra confrontos que realmente precisem,
+      // a menos que a torre do jogador já esteja baixa (aí vale tudo).
+      const overkillThreshold = 40; // diferença de ATK considerada "sobra"
+      const isPremiumCard = ['MYTHIC','ULTRA_RARE','ORIGENS'].includes(card.rarity);
+      if (isPremiumCard && atkDiff > overkillThreshold && playerHP >= 250) {
+        score -= (atkDiff - overkillThreshold) * 0.8;
+      }
+
+      score += (Math.random() - 0.5) * 10;
+
+      return { entry, score };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+
+    const phase = battleState.botMoodPhase || 'strong';
+
+    if (phase === 'strong') {
+      // Fase forte: escolhe entre as melhores opções (top ~40%, mín. 1)
+      const topN = Math.max(1, Math.ceil(scored.length * 0.4));
+      const pick = scored[Math.floor(Math.random() * topN)];
+      return pick.entry;
+    } else {
+      // Fase fraca: escolhe entre as piores opções (bottom ~40%, mín. 1)
+      const bottomN = Math.max(1, Math.ceil(scored.length * 0.4));
+      const startIdx = scored.length - bottomN;
+      const pick = scored[startIdx + Math.floor(Math.random() * bottomN)];
+      return pick.entry;
+    }
+  };
+
+  // ─── 4. FLUXO DE BATALHA ───
+  window.playSelectedCard = function() {
+    if (!battle || battle.selectedIdx === null || battle.over) return;
+    clearInterval(turnTimerInterval);
+
+    ensureBotMood(battle);
+
+    const pi    = battle.selectedIdx;
+    const pCard = battle.playerHand[pi];
+    const pu    = activePowerup;
+    activePowerup = null;
+
+    let puEffect = null;
+    if (pu && typeof usePowerup === 'function') {
+      const res = usePowerup(save, pu.id);
+      if (res.ok) {
+        puEffect = res.effect;
+        addLog(`⚡ ${pu.emoji} ${pu.name} ativado!`, 'gold');
+        if (puEffect.type === 'heal') {
+          battle.playerHP = Math.min(1000, battle.playerHP + puEffect.value);
+          addLog(`💊 Curou ${puEffect.value}HP! Torres: ${battle.playerHP}HP`, 'gold');
+        }
+        writeSave(save);
+      }
+    }
+    battle.currentPuEffect = puEffect;
+
+    battle.playerTurn = false;
+    battle.selectedIdx = null;
+    renderBattle();
+
+    setTimeout(() => {
+      const botAlive = battle.botHand.map((c,i) => ({c,i})).filter(x => x.c.alive);
+
+      if (botAlive.length === 0) {
+        const dmg = Math.max(15, Math.round(pCard.atk * 0.8));
+        battle.botHP -= dmg;
+        addLog(`💥 ${pCard.name} ataca sem oposição! Torre inimiga -${dmg}HP`, 'win');
+        checkWin();
+        return;
+      }
+
+      let botPuEffect = null;
+      if (battle.botPowerups && typeof botPickPowerup === 'function') {
+        const botPu = botPickPowerup(battle.botPowerups);
+        if (botPu) {
+          botPuEffect = botPu.effect;
+          addLog(`🤖 Bot usou ${botPu.emoji} ${botPu.name}!`, 'info');
+        }
+      }
+      battle.currentBotPuEffect = botPuEffect;
+
+      // Loga a fase atual (útil pra debug/percepção do jogador)
+      if (battle.botMood.phase === 'weak') {
+        addLog(`🤖 Bot parece hesitante neste turno...`, 'info');
+      }
+
+      const choice = window.botChooseCard(botAlive, pCard, {
+        currentBotPuEffect: botPuEffect,
+        comboPlayer: battle.comboPlayer || 0,
+        botHP: battle.botHP || 0,
+        playerHP: battle.playerHP || 0,
+        botMoodPhase: battle.botMood.phase
+      });
+      const bCard = battle.botHand[choice.i];
+
+      // Avança o ciclo de força pro próximo turno
+      advanceBotMood(battle);
+
+      showClash(pCard, bCard);
+    }, 250 + Math.random() * 200);
+  };
+
+  console.log('[Patch] Bot inteligente v2.3 ativado! (raridade pareada + ciclo de força)');
+})();
+</script>
+<!-- ============================================================
+     PATCH – IA E POWER-UPS DO BOT v4
+     (item 1: bugfix cura do bot | item 2: IA melhorada
+      | item 4: bot usa power-up em rodadas aleatórias, nem
+      toda partida tem power-up disponível pro bot)
+     ============================================================ -->
+<script>
+(function() {
+  "use strict";
+
+  // ─── ITEM 2: IA melhorada — não desperdiça cartas fortes numa troca ───
+  // que ela já sabe que vai perder de qualquer forma. Se NENHUMA carta
+  // viva do bot vence o confronto atual (nem a mais forte), ele sacrifica
+  // a carta mais fraca, guardando as boas pra um confronto que possa de
+  // fato vencer. Exceção: torre do jogador quase destruída — aí vale
+  // arriscar qualquer carta pra tentar fechar a batalha (chance de lethal).
+  const _origBotChooseCard = window.botChooseCard;
+  window.botChooseCard = function(botAlive, playerCard, battleState) {
+    const maxBotAtk = Math.max(...botAlive.map(x => x.c.atk));
+    const playerHP  = battleState.playerHP || 0;
+    const playerNearLethal = playerHP > 0 && playerHP < 250;
+
+    if (maxBotAtk < playerCard.atk && !playerNearLethal && botAlive.length > 1) {
+      return botAlive.reduce((a, b) => (a.c.atk <= b.c.atk ? a : b));
+    }
+    return _origBotChooseCard(botAlive, playerCard, battleState);
+  };
+
+  // ─── ITEM 4: pool de power-ups que o bot PODE sortear numa partida. ───
+  // Só usa efeitos que o motor de batalha já resolve corretamente do lado
+  // do bot (atk_mult, berserker, steal_atk, shield_pct em resolveClash) +
+  // cura, que agora é aplicada de verdade no momento da escolha (bugfix
+  // do item 1 — antes só existia um log falso de "+80HP").
+  const BOT_PU_POOL = [
+    { id:"bot_atk",    emoji:"💪", name:"Fúria do Bot",    effect:{ type:"atk_mult",  value:1.3 } },
+    { id:"bot_bers",   emoji:"😤", name:"Berserker",       effect:{ type:"berserker", atkMult:1.4, dmgMult:1.25 } },
+    { id:"bot_steal",  emoji:"🕶️", name:"Roubo de Força", effect:{ type:"steal_atk" } },
+    { id:"bot_shield", emoji:"🛡️", name:"Escudo de Ferro",effect:{ type:"shield_pct", value:0.3 } },
+    { id:"bot_heal",   emoji:"💊", name:"Cura Rápida",     effect:{ type:"heal", value:90 } }
+  ];
+
+  const MATCH_HAS_PU_CHANCE      = 0.55; // ~55% das partidas o bot tem 1 power-up disponível
+  const PU_TRIGGER_CHANCE_TURN   = 0.30; // a cada turno do bot, 30% de chance de ser a "rodada aleatória" que usa
+
+  // Roda 1x no início da partida (chamado por startBattle)
+  window.makeBotPowerups = function() {
+    if (Math.random() > MATCH_HAS_PU_CHANCE) {
+      return { available: null, used: false }; // nesta partida o bot não tem power-up nenhum
+    }
+    const pu = BOT_PU_POOL[Math.floor(Math.random() * BOT_PU_POOL.length)];
+    return { available: pu, used: false };
+  };
+
+  // Roda a cada turno do bot
+  window.botPickPowerup = function(state) {
+    if (!state || !state.available || state.used) return null;
+    if (Math.random() > PU_TRIGGER_CHANCE_TURN) return null; // não rolou a rodada aleatória desta vez
+    state.used = true; // 1 uso por partida
+    return state.available;
+  };
+
+  // ─── playSelectedCard v4: igual à v2.3, mas com a cura do bot ───
+  // aplicada de verdade (bugfix item 1) e leitura defensiva do botMood.
+  window.playSelectedCard = function() {
+    if (!battle || battle.selectedIdx === null || battle.over) return;
+    clearInterval(turnTimerInterval);
+
+    if (typeof window.ensureBotMood === "function") window.ensureBotMood(battle);
+
+    const pi    = battle.selectedIdx;
+    const pCard = battle.playerHand[pi];
+    const pu    = activePowerup;
+    activePowerup = null;
+
+    let puEffect = null;
+    if (pu && typeof usePowerup === "function") {
+      const res = usePowerup(save, pu.id);
+      if (res.ok) {
+        puEffect = res.effect;
+        addLog(`⚡ ${pu.emoji} ${pu.name} ativado!`, "gold");
+        if (puEffect.type === "heal") {
+          battle.playerHP = Math.min(1000, battle.playerHP + puEffect.value);
+          addLog(`💊 Curou ${puEffect.value}HP! Torres: ${battle.playerHP}HP`, "gold");
+        }
+        writeSave(save);
+      }
+    }
+    battle.currentPuEffect = puEffect;
+
+    battle.playerTurn = false;
+    battle.selectedIdx = null;
+    renderBattle();
+
+    setTimeout(() => {
+      const botAlive = battle.botHand.map((c,i) => ({c,i})).filter(x => x.c.alive);
+
+      if (botAlive.length === 0) {
+        const dmg = Math.max(15, Math.round(pCard.atk * 0.8));
+        battle.botHP -= dmg;
+        addLog(`💥 ${pCard.name} ataca sem oposição! Torre inimiga -${dmg}HP`, "win");
+        checkWin();
+        return;
+      }
+
+      let botPuEffect = null;
+      if (battle.botPowerups && typeof botPickPowerup === "function") {
+        const botPu = botPickPowerup(battle.botPowerups);
+        if (botPu) {
+          botPuEffect = botPu.effect;
+          addLog(`🤖 Bot usou ${botPu.emoji} ${botPu.name}!`, "info");
+          // BUGFIX (item 1): cura do bot agora realmente altera o HP.
+          if (botPuEffect.type === "heal") {
+            battle.botHP = Math.min(1000, battle.botHP + botPuEffect.value);
+            addLog(`🤖 Bot curou ${botPuEffect.value}HP! Torre: ${battle.botHP}HP`, "info");
+          }
+        }
+      }
+      battle.currentBotPuEffect = botPuEffect;
+
+      if (battle.botMood && battle.botMood.phase === "weak") {
+        addLog(`🤖 Bot parece hesitante neste turno...`, "info");
+      }
+
+      const choice = window.botChooseCard(botAlive, pCard, {
+        currentBotPuEffect: botPuEffect,
+        comboPlayer: battle.comboPlayer || 0,
+        botHP: battle.botHP || 0,
+        playerHP: battle.playerHP || 0,
+        botMoodPhase: battle.botMood ? battle.botMood.phase : "strong"
+      });
+      const bCard = battle.botHand[choice.i];
+
+      if (typeof window.advanceBotMood === "function") window.advanceBotMood(battle);
+
+      showClash(pCard, bCard);
+    }, 250 + Math.random() * 200);
+  };
+
+  console.log('[Patch] IA e Power-ups do Bot v4 ativado! (sacrifício inteligente de cartas + power-up em rodada aleatória + cura do bot corrigida)');
+})();
+</script>
+<!-- ============================================================
+     PATCH – IA DO BOT v5
+     (reescreve a pontuação para refletir o motor real de combate:
+      o clash só compara ATK — HP da carta não decide o duelo — e
+      o dano é proporcional à diferença de ATK * multiplicador de
+      combo. Também corrige o "sacrifício" pra preferir EMPATE a
+      perder de graça, e evita gastar cartas premium quando o bot
+      já está em desvantagem numérica de cartas.)
+     ============================================================ -->
+<script>
+(function() {
+  "use strict";
+
+  // Dano esperado se o BOT vencer o clash com bCard contra pCard,
+  // já considerando o combo atual do bot (mesma fórmula de resolveClash).
+  function expectedDmgIfBotWins(bCard, pCard, battleState) {
+    const comboBot = battleState.comboBot || 0;
+    const comboMult = 1 + Math.min(comboBot, 3) * 0.10; // combo SOBE nesta vitória
+    const bue = battleState.currentBotPuEffect;
+    const berserkerMul = (bue && bue.type === "berserker") ? bue.dmgMult : 1;
+    return Math.max(9, Math.round((bCard.atk - pCard.atk) * 1.6 * comboMult * berserkerMul));
+  }
+
+  // Dano esperado se o BOT perder o clash (jogador vence com pCard).
+  function expectedDmgIfBotLoses(bCard, pCard, battleState) {
+    const comboPlayer = battleState.comboPlayer || 0;
+    const comboMult = 1 + Math.min(comboPlayer, 5) * 0.15;
+    return Math.max(10, Math.round((pCard.atk - bCard.atk) * 1.8 * comboMult));
+  }
+
+  window.botChooseCard = function(botAlive, playerCard, battleState) {
+    const playerHP  = battleState.playerHP  || 0;
+    const botHP     = battleState.botHP     || 0;
+    const playerNearLethal = playerHP > 0 && playerHP < 250;
+    const botNearLethal    = botHP > 0 && botHP < 250;
+
+    const rarityWeight = {
+      'COMMON': 1, 'RARE': 2, 'EPIC': 4, 'LEGENDARY': 8,
+      'MYTHIC': 16, 'ULTRA_RARE': 32, 'ORIGENS': 64
+    };
+    const isPremium = c => ['MYTHIC','ULTRA_RARE','ORIGENS'].includes(c.rarity);
+
+    // Vantagem/desvantagem numérica de cartas — se o bot tem menos cartas
+    // vivas que o jogador, precisa jogar mais defensivo com o que resta.
+    const cardsBehind = botAlive.length; // já filtrado por vivo antes de chamar
+
+    const scored = botAlive.map(entry => {
+      const card = entry.c;
+      const wins  = card.atk > playerCard.atk;
+      const ties  = card.atk === playerCard.atk;
+      const loses = card.atk < playerCard.atk;
+
+      let score = 0;
+
+      if (wins) {
+        // Dano real que essa jogada causaria na torre do jogador.
+        const dmg = expectedDmgIfBotWins(card, playerCard, battleState);
+        score += dmg;
+        // Fechar a partida quando a torre do jogador está baixa vale muito.
+        if (playerNearLethal) score += dmg * 1.5;
+        // Não desperdiçar carta premium num "overkill" desnecessário —
+        // guarda pra um confronto que realmente precise dela, a menos
+        // que o bot esteja atrás no número de cartas ou perto de perder.
+        const atkDiff = card.atk - playerCard.atk;
+        if (isPremium(card) && atkDiff > 40 && !playerNearLethal && !botNearLethal) {
+          score -= (atkDiff - 40) * 0.8;
+        }
+      } else if (ties) {
+        // Empate: ambas cartas saem, dano pequeno pras duas torres, combos zeram.
+        // Prioriza usar a carta mais fraca possível pra "trocar" com vantagem
+        // de valor (perde uma carta fraca em vez de arriscar a mão).
+        score += 5 - rarityWeight[card.rarity] * 0.3;
+      } else if (loses) {
+        // Bot perde esse confronto — quanto menor o dano recebido, melhor.
+        const dmgTaken = expectedDmgIfBotLoses(playerCard, card, battleState);
+        score -= dmgTaken;
+        // Perder uma carta fraca dói menos em valor do que perder uma premium.
+        score -= rarityWeight[card.rarity] * 0.5;
+        // Se o bot está perto de perder a torre, arriscar tudo pode compensar
+        // (só ganha se vencer, então isso só entra no ramo "wins" — aqui só
+        // reduzimos a penalidade de usar qualquer carta, já que não há opção boa).
+        if (botNearLethal) score += dmgTaken * 0.3;
+      }
+
+      // Leve aleatoriedade pra não ficar 100% previsível.
+      score += (Math.random() - 0.5) * 6;
+
+      return { entry, score, wins, ties, loses };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+
+    const phase = battleState.botMoodPhase || 'strong';
+    const winningMoves = scored.filter(s => s.wins);
+    const tyingMoves   = scored.filter(s => s.ties);
+
+    // Fase fraca: ainda joga com alguma lógica, mas entre as opções medianas/piores
+    // (não joga puramente aleatório-ruim — evita parecer "burro" perdendo cartas
+    // premium à toa; ainda prefere empatar a perder feio quando possível).
+    if (phase === 'weak') {
+      if (!playerNearLethal && !botNearLethal) {
+        const pool = winningMoves.length ? winningMoves : (tyingMoves.length ? tyingMoves : scored);
+        const bottomN = Math.max(1, Math.ceil(pool.length * 0.5));
+        const startIdx = Math.max(0, pool.length - bottomN);
+        const sortedPool = [...pool].sort((a,b) => a.score - b.score);
+        return sortedPool[startIdx + Math.floor(Math.random() * (sortedPool.length - startIdx))].entry;
+      }
+      // Perto de decidir a partida, a fase fraca não sabota o bot de propósito.
+      return scored[0].entry;
+    }
+
+    // Fase forte (ou perto do lethal em qualquer fase): joga a melhor opção
+    // dentre um top pequeno pra manter alguma variação natural.
+    const topN = Math.max(1, Math.ceil(scored.length * 0.3));
+    return scored[Math.floor(Math.random() * topN)].entry;
+  };
+
+  console.log('[Patch] IA do Bot v5 ativado! (pontuação por dano real esperado + combo + sacrifício por empate)');
+})();
+</script>
+<script>
+(function loadCraftingScript() {
+  var s = document.createElement('script');
+  s.src = 'gamedata-crafting.js?v=' + (window.CF_BUILD || Date.now());
+  document.body.appendChild(s);
+})();
+</script>
+</body>
+</html>

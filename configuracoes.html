@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Configurações – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+.cfg-section {
+  font-family:'Cinzel',serif; font-size:13px; font-weight:700; color:#ffc107;
+  margin:18px 0 10px; display:flex; align-items:center; gap:8px;
+}
+.cfg-section::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,#ffc10744,transparent); }
+
+.cfg-row {
+  display:flex; align-items:center; justify-content:space-between;
+  background:#0e0e1c; border-radius:12px; padding:14px 14px;
+  margin-bottom:8px; border:1px solid #1e1e30; transition:border-color 0.2s;
+}
+.cfg-row:hover { border-color:#2a2a4a; }
+.cfg-label { display:flex; flex-direction:column; gap:2px; }
+.cfg-name  { font-weight:700; font-size:13px; color:#e0e0e0; }
+.cfg-desc  { font-size:11px; color:#9e9e9e; line-height:1.5; }
+.cfg-control { flex-shrink:0; margin-left:12px; }
+
+/* Toggle switch */
+.toggle-switch { position:relative; width:48px; height:26px; cursor:pointer; display:inline-block; }
+.toggle-switch input { opacity:0; width:0; height:0; position:absolute; }
+.toggle-track {
+  position:absolute; inset:0; background:#1e1e30; border-radius:26px;
+  border:1px solid #2a2a4a; transition:all 0.25s;
+}
+.toggle-track::before {
+  content:''; position:absolute; left:4px; top:50%; transform:translateY(-50%);
+  width:16px; height:16px; background:#555; border-radius:50%; transition:all 0.25s;
+}
+input:checked + .toggle-track { background:linear-gradient(135deg,#4a0072,#9c27b0); border-color:#9c27b0; }
+input:checked + .toggle-track::before { left:26px; background:#fff; }
+
+/* Segmented control */
+.seg-ctrl { display:flex; background:#0a0a18; border-radius:10px; padding:3px; gap:2px; }
+.seg-btn {
+  padding:6px 12px; border:none; border-radius:8px; background:transparent;
+  color:#9e9e9e; font-family:'Rajdhani',sans-serif; font-size:12px; font-weight:700;
+  cursor:pointer; transition:all 0.2s; white-space:nowrap;
+}
+.seg-btn.active { background:linear-gradient(135deg,#4a0072,#9c27b0); color:#fff; }
+
+/* Save button */
+.save-banner {
+  background:linear-gradient(135deg,#0a0a00,#141400);
+  border:1px solid #ffc10744; border-radius:12px; padding:12px;
+  text-align:center; margin-bottom:14px; display:none;
+}
+
+.cfg-hero {
+  background:linear-gradient(135deg,#080818,#12122a);
+  border:1px solid #546e7a44; border-radius:16px;
+  padding:16px; margin-bottom:14px; text-align:center;
+}
+.cfg-hero .icon { font-size:40px; display:block; margin-bottom:6px; }
+.cfg-hero .title { font-family:'Cinzel',serif; font-size:17px; font-weight:900; color:#b0bec5; margin-bottom:4px; }
+.cfg-hero .sub { font-size:11px; color:#9e9e9e; }
+
+.reset-box {
+  background:rgba(244,67,54,0.06); border:1px solid #f4433622;
+  border-radius:10px; padding:12px; margin-top:14px;
+}
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title" style="color:#b0bec5;">⚙️ CONFIGURAÇÕES</span>
+  <span style="font-size:11px;color:#555;" id="hdr-saved"></span>
+</header>
+
+<main class="content">
+
+  <div class="cfg-hero">
+    <span class="icon">⚙️</span>
+    <div class="title">Configurações do Jogo</div>
+    <div class="sub">Salvo localmente no seu dispositivo. Aplica-se a todas as telas.</div>
+  </div>
+
+  <div id="save-banner" class="save-banner">
+    <span style="color:#ffc107;font-weight:700;font-size:13px;">⚙️ Configurações salvas!</span>
+  </div>
+
+  <!-- SOM -->
+  <div class="cfg-section">🔊 Áudio</div>
+
+  <div class="cfg-row">
+    <div class="cfg-label">
+      <span class="cfg-name">🔊 Efeitos Sonoros</span>
+      <span class="cfg-desc">Sons de vitória, derrota e ações de jogo.</span>
+    </div>
+    <div class="cfg-control">
+      <label class="toggle-switch">
+        <input type="checkbox" id="cfg-sound" onchange="onChange()">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="cfg-row">
+    <div class="cfg-label">
+      <span class="cfg-name">🎵 Música de Fundo</span>
+      <span class="cfg-desc">Trilha ambiente durante a batalha.</span>
+    </div>
+    <div class="cfg-control">
+      <label class="toggle-switch">
+        <input type="checkbox" id="cfg-music" onchange="onChange()">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- VISUAL -->
+  <div class="cfg-section">💫 Visual</div>
+
+  <div class="cfg-row">
+    <div class="cfg-label">
+      <span class="cfg-name">💫 Velocidade de Animações</span>
+      <span class="cfg-desc">Controla a velocidade de transições e clashes.</span>
+    </div>
+    <div class="cfg-control">
+      <div class="seg-ctrl" id="seg-anim">
+        <button class="seg-btn" onclick="setSeg('anim','normal',this)">Normal</button>
+        <button class="seg-btn" onclick="setSeg('anim','fast',this)">Rápido</button>
+        <button class="seg-btn" onclick="setSeg('anim','off',this)">Desligado</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="cfg-row">
+    <div class="cfg-label">
+      <span class="cfg-name">🃏 Tamanho das Cartas</span>
+      <span class="cfg-desc">Tamanho das cartas na mão durante a batalha.</span>
+    </div>
+    <div class="cfg-control">
+      <div class="seg-ctrl" id="seg-cardsize">
+        <button class="seg-btn" onclick="setSeg('cardsize','small',this)">Pequeno</button>
+        <button class="seg-btn" onclick="setSeg('cardsize','medium',this)">Médio</button>
+        <button class="seg-btn" onclick="setSeg('cardsize','large',this)">Grande</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JOGABILIDADE -->
+  <div class="cfg-section">⚔️ Jogabilidade</div>
+
+  <div class="cfg-row">
+    <div class="cfg-label">
+      <span class="cfg-name">🤖 Dificuldade do Bot</span>
+      <span class="cfg-desc">Afeta o multiplicador de ATK do adversário bot na Batalha Clássica.</span>
+    </div>
+    <div class="cfg-control">
+      <div class="seg-ctrl" id="seg-difficulty">
+        <button class="seg-btn" onclick="setSeg('difficulty','easy',this)">Fácil</button>
+        <button class="seg-btn" onclick="setSeg('difficulty','normal',this)">Normal</button>
+        <button class="seg-btn" onclick="setSeg('difficulty','hard',this)">Difícil</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="cfg-row">
+    <div class="cfg-label">
+      <span class="cfg-name">⏱️ Timer do Turno</span>
+      <span class="cfg-desc">Tempo máximo por turno na batalha. Expirado = carta automática.</span>
+    </div>
+    <div class="cfg-control">
+      <div class="seg-ctrl" id="seg-timer">
+        <button class="seg-btn" onclick="setSeg('timer','10',this)">10s</button>
+        <button class="seg-btn" onclick="setSeg('timer','15',this)">15s</button>
+        <button class="seg-btn" onclick="setSeg('timer','20',this)">20s</button>
+        <button class="seg-btn" onclick="setSeg('timer','30',this)">30s</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="cfg-row">
+    <div class="cfg-label">
+      <span class="cfg-name">🎴 Auto-jogar em empate</span>
+      <span class="cfg-desc">Se ambas as cartas tiverem o mesmo ATK, jogar automaticamente outra.</span>
+    </div>
+    <div class="cfg-control">
+      <label class="toggle-switch">
+        <input type="checkbox" id="cfg-autoplay-tie" onchange="onChange()">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- INTERFACE -->
+  <div class="cfg-section">📱 Interface</div>
+
+  <div class="cfg-row">
+    <div class="cfg-label">
+      <span class="cfg-name">📳 Vibração</span>
+      <span class="cfg-desc">Vibração ao ganhar ou perder um confronto (se disponível).</span>
+    </div>
+    <div class="cfg-control">
+      <label class="toggle-switch">
+        <input type="checkbox" id="cfg-haptic" onchange="onChange()">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="cfg-row">
+    <div class="cfg-label">
+      <span class="cfg-name">💡 Dicas de Power-up</span>
+      <span class="cfg-desc">Mostrar tooltip com descrição ao selecionar um power-up.</span>
+    </div>
+    <div class="cfg-control">
+      <label class="toggle-switch">
+        <input type="checkbox" id="cfg-pu-tips" onchange="onChange()">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="cfg-row">
+    <div class="cfg-label">
+      <span class="cfg-name">🔔 Toast de Power-up do Bot</span>
+      <span class="cfg-desc">Mostrar notificação quando o bot ativa um power-up.</span>
+    </div>
+    <div class="cfg-control">
+      <label class="toggle-switch">
+        <input type="checkbox" id="cfg-bot-pu-toast" onchange="onChange()">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Botão salvar -->
+  <button class="btn btn-primary btn-block" onclick="saveSettings()" style="margin:10px 0;">
+    💾 Salvar Configurações
+  </button>
+
+  <!-- Reset -->
+  <div class="reset-box">
+    <div style="font-weight:700;font-size:13px;color:#ef9a9a;margin-bottom:6px;">⚠️ Restaurar Padrões</div>
+    <div style="font-size:11px;color:#9e9e9e;line-height:1.7;margin-bottom:10px;">
+      Reseta todas as configurações para os valores padrão do jogo.
+      Não afeta seu save (ouro, cartas, XP).
+    </div>
+    <button class="btn btn-outline btn-sm btn-block" style="border-color:#f44336;color:#ef9a9a;"
+            onclick="resetSettings()">🔄 Restaurar Padrões</button>
+  </div>
+
+  <!-- Info -->
+  <div style="background:#0e0e1c;border-radius:10px;padding:12px;font-size:11px;color:#555;line-height:1.8;margin-top:14px;">
+    📦 Configurações salvas em: <code style="color:#7c4dff;">cf_settings_v1</code> (localStorage)<br>
+    🔒 Armazenadas apenas neste dispositivo/navegador.<br>
+    🗑️ Limpadas se você limpar os dados do navegador.
+  </div>
+
+  <div style="height:80px;"></div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn active"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js?v=13.0"></script>
+<script>
+"use strict";
+
+const SETTINGS_KEY = "cf_settings_v1";
+
+const DEFAULTS = {
+  sound:        true,
+  music:        false,
+  anim:         "normal",   // normal | fast | off
+  cardsize:     "medium",   // small | medium | large
+  difficulty:   "normal",   // easy | normal | hard
+  timer:        "15",       // 10 | 15 | 20 | 30 (seconds, as string)
+  autoplayTie:  false,
+  haptic:       true,
+  puTips:       true,
+  botPuToast:   true,
+};
+
+// ── Multipliers exported for other pages to read ──
+// battle.html reads cf_settings_v1.difficulty to scale botMult
+// Values: easy = 0.75×, normal = 1.0×, hard = 1.35×
+const DIFFICULTY_MULT = { easy: 0.75, normal: 1.0, hard: 1.35 };
+const ANIM_MULT       = { normal: 1.0, fast: 0.45, off: 0.0 };
+
+let cfg = {};
+let pendingChange = false;
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    cfg = raw ? { ...DEFAULTS, ...JSON.parse(raw) } : { ...DEFAULTS };
+  } catch(e) {
+    cfg = { ...DEFAULTS };
+  }
+  // Validate every value against safe lists
+  if (!["normal","fast","off"].includes(cfg.anim))        cfg.anim        = DEFAULTS.anim;
+  if (!["small","medium","large"].includes(cfg.cardsize)) cfg.cardsize    = DEFAULTS.cardsize;
+  if (!["easy","normal","hard"].includes(cfg.difficulty)) cfg.difficulty  = DEFAULTS.difficulty;
+  if (!["10","15","20","30"].includes(cfg.timer))         cfg.timer       = DEFAULTS.timer;
+}
+
+function applyToUI() {
+  const q = id => document.getElementById(id);
+
+  q("cfg-sound").checked        = !!cfg.sound;
+  q("cfg-music").checked        = !!cfg.music;
+  q("cfg-autoplay-tie").checked = !!cfg.autoplayTie;
+  q("cfg-haptic").checked       = !!cfg.haptic;
+  q("cfg-pu-tips").checked      = !!cfg.puTips;
+  q("cfg-bot-pu-toast").checked = !!cfg.botPuToast;
+
+  setSegActive("anim",       cfg.anim);
+  setSegActive("cardsize",   cfg.cardsize);
+  setSegActive("difficulty", cfg.difficulty);
+  setSegActive("timer",      cfg.timer);
+}
+
+function setSegActive(segId, value) {
+  const seg = document.getElementById("seg-" + segId);
+  if (!seg) return;
+  seg.querySelectorAll(".seg-btn").forEach(btn => {
+    const btnVal = btn.getAttribute("onclick").match(/'([^']+)'\s*,\s*this/)?.[1] ||
+                   btn.getAttribute("onclick").match(/,'([^']+)'/)?.[1] ||
+                   btn.textContent.trim().toLowerCase().replace("s",""); // fallback
+    // Extract the value argument from onclick="setSeg('anim','normal',this)"
+    const m = btn.getAttribute("onclick").match(/setSeg\('[^']+','([^']+)'/);
+    btn.classList.toggle("active", m ? m[1] === value : false);
+  });
+}
+
+function setSeg(segId, value, btn) {
+  cfg[segId] = value;
+  // Re-highlight
+  const seg = document.getElementById("seg-" + segId);
+  if (seg) seg.querySelectorAll(".seg-btn").forEach(b => b.classList.remove("active"));
+  if (btn) btn.classList.add("active");
+  onChange();
+}
+
+function onChange() {
+  // Read toggle states
+  cfg.sound       = document.getElementById("cfg-sound").checked;
+  cfg.music       = document.getElementById("cfg-music").checked;
+  cfg.autoplayTie = document.getElementById("cfg-autoplay-tie").checked;
+  cfg.haptic      = document.getElementById("cfg-haptic").checked;
+  cfg.puTips      = document.getElementById("cfg-pu-tips").checked;
+  cfg.botPuToast  = document.getElementById("cfg-bot-pu-toast").checked;
+  pendingChange = true;
+}
+
+function saveSettings() {
+  // Re-read all toggles to be safe
+  onChange();
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(cfg));
+    pendingChange = false;
+    const banner = document.getElementById("save-banner");
+    banner.style.display = "block";
+    setTimeout(() => { banner.style.display = "none"; }, 2500);
+    if (typeof showToast === "function") showToast("⚙️ Configurações salvas!", "gold", 2500);
+  } catch(e) {
+    if (typeof showToast === "function") showToast("❌ Erro ao salvar!", "error");
+  }
+}
+
+function resetSettings() {
+  if (!confirm("Restaurar todas as configurações para o padrão?")) return;
+  cfg = { ...DEFAULTS };
+  localStorage.removeItem(SETTINGS_KEY);
+  applyToUI();
+  pendingChange = false;
+  if (typeof showToast === "function") showToast("🔄 Configurações restauradas!", "gold", 2500);
+}
+
+// Warn before leaving with unsaved changes
+window.addEventListener("beforeunload", e => {
+  if (pendingChange) {
+    e.preventDefault(); e.returnValue = "";
+  }
+});
+
+// ── INIT ──
+loadSettings();
+applyToUI();
+if (typeof startAutoSave === "function" && typeof getOrCreateSave === "function") {
+  const save = getOrCreateSave();
+  startAutoSave(() => save);
+}
+</script>
+</body>
+</html>

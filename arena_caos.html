@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Arena do Caos – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+/* ══════════════════════════════════════════
+   ARENA DO CAOS — Estilo visual exclusivo
+══════════════════════════════════════════ */
+.caos-hero {
+  background:linear-gradient(135deg,#0d0520,#1a0835,#0d0520);
+  border:2px solid #9c27b0; border-radius:20px;
+  padding:24px 16px 18px; margin-bottom:14px; text-align:center;
+  position:relative; overflow:hidden;
+}
+.caos-hero::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(156,39,176,0.22) 0%,transparent 60%);
+  pointer-events:none;
+}
+.caos-hero::after {
+  content:'🎲'; position:absolute; font-size:120px; opacity:0.04;
+  bottom:-20px; right:-15px; pointer-events:none;
+}
+.caos-hero .hero-icon { font-size:68px; display:block; margin-bottom:8px;
+  filter:drop-shadow(0 0 24px rgba(156,39,176,0.8));
+  animation:caos-spin 4s ease-in-out infinite; }
+@keyframes caos-spin {
+  0%,100% { transform:rotate(-5deg) scale(1); }
+  25%     { transform:rotate(10deg) scale(1.08); }
+  50%     { transform:rotate(-8deg) scale(1.05); }
+  75%     { transform:rotate(6deg) scale(1.1); }
+}
+.caos-hero .hero-title {
+  font-family:'Cinzel',serif; font-size:26px; font-weight:900; letter-spacing:2px;
+  background:linear-gradient(135deg,#e040fb,#9c27b0,#ff6d00,#ffc107);
+  background-size:300%; animation:caos-gradient 3s linear infinite;
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+@keyframes caos-gradient { 0%{background-position:0%} 100%{background-position:300%} }
+.caos-hero .hero-sub { font-size:11px; color:#ce93d8; margin-top:4px; letter-spacing:0.5px; }
+
+/* Evento de Caos */
+.chaos-event-box {
+  border-radius:14px; padding:14px; margin-bottom:12px;
+  border:2px solid var(--ev-color,#9c27b0);
+  background:linear-gradient(135deg,var(--ev-bg-from,#0d0520),var(--ev-bg-to,#1a0835));
+  position:relative; overflow:hidden;
+  transition:all 0.4s;
+}
+.chaos-event-box::before {
+  content:var(--ev-icon,'🎲'); position:absolute; font-size:80px; opacity:0.06;
+  top:-10px; right:-10px; pointer-events:none;
+}
+.chaos-event-label {
+  font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase;
+  color:var(--ev-color,#9c27b0); margin-bottom:4px;
+}
+.chaos-event-name {
+  font-family:'Cinzel',serif; font-size:18px; font-weight:900; color:#fff;
+  margin-bottom:4px;
+}
+.chaos-event-desc { font-size:12px; color:#c0c0d0; line-height:1.7; }
+
+/* Barras de HP */
+.hp-arena-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+.hp-arena-box { background:#0e0e1c; border-radius:12px; padding:10px; border:1px solid #1e1e30; }
+.hp-arena-who { font-size:10px; color:#9e9e9e; margin-bottom:3px; }
+.hp-arena-val { font-family:'Cinzel',serif; font-size:20px; font-weight:900; }
+.hp-arena-bar { background:#1e1e30; border-radius:20px; height:8px; overflow:hidden; margin-top:6px; }
+.hp-arena-fill { height:100%; border-radius:20px; transition:width 0.5s; }
+.hp-arena-fill.player { background:linear-gradient(90deg,#4CAF50,#66bb6a); }
+.hp-arena-fill.bot    { background:linear-gradient(90deg,#e040fb,#9c27b0); }
+
+/* Campo de batalha */
+.battle-field {
+  display:flex; align-items:center; gap:10px; margin:12px 0;
+  min-height:130px;
+}
+.battle-field-card {
+  flex:1; background:#0e0e1c; border:2px solid #2a2a4a;
+  border-radius:14px; padding:14px; text-align:center;
+  transition:all 0.3s;
+}
+.battle-field-card.attack-anim {
+  transform:translateX(8px) scale(1.06);
+  border-color:#ffc107; box-shadow:0 0 24px rgba(255,193,7,0.5);
+}
+.battle-field-card.hit-anim {
+  transform:translateX(-6px) scale(0.94);
+  border-color:#f44336; box-shadow:0 0 20px rgba(244,67,54,0.5);
+}
+.battle-field-card.winner-anim {
+  border-color:#66bb6a; box-shadow:0 0 28px rgba(76,175,80,0.6);
+  animation:winner-pulse 0.6s ease-out;
+}
+@keyframes winner-pulse {
+  0% { transform:scale(1); } 50% { transform:scale(1.1); } 100% { transform:scale(1); }
+}
+.bfc-emoji  { font-size:48px; display:block; margin-bottom:6px; }
+.bfc-name   { font-family:'Cinzel',serif; font-size:13px; font-weight:700; color:#fff; }
+.bfc-atk    { font-size:11px; color:#ffc107; margin-top:4px; font-weight:700; }
+.bfc-rarity { font-size:10px; margin-top:2px; }
+.bfc-mod    { font-size:10px; color:#e040fb; margin-top:3px; font-weight:700; }
+
+.vs-box { font-family:'Cinzel',serif; font-size:22px; font-weight:900;
+  color:#9c27b0; flex-shrink:0; text-shadow:0 0 16px rgba(156,39,176,0.8);
+  animation:vs-pulse 1s ease-in-out infinite alternate; }
+@keyframes vs-pulse { from{opacity:0.7} to{opacity:1} }
+
+/* Mão do jogador */
+.hand-row {
+  display:grid; grid-template-columns:repeat(5,1fr); gap:5px; margin:10px 0;
+}
+.hand-card-caos {
+  background:#0a0a1e; border:1.5px solid #2a2a4a; border-radius:8px;
+  padding:6px 3px; text-align:center; cursor:pointer; transition:all 0.15s;
+}
+.hand-card-caos:hover:not(.used):not(.dead) { border-color:#e040fb; transform:translateY(-3px); box-shadow:0 4px 12px rgba(224,64,251,0.3); }
+.hand-card-caos.selected { border-color:#ffc107; background:rgba(255,193,7,0.1); box-shadow:0 0 12px rgba(255,193,7,0.4); }
+.hand-card-caos.used  { opacity:0.3; cursor:not-allowed; filter:grayscale(1); }
+.hand-card-caos.dead  { opacity:0.2; cursor:not-allowed; filter:grayscale(1); }
+.hcc-em  { font-size:20px; display:block; }
+.hcc-nm  { font-size:8px; color:#9e9e9e; margin:2px 0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.hcc-at  { font-size:10px; font-weight:700; color:#e040fb; }
+
+/* Log */
+.caos-log {
+  background:#070712; border:1px solid #1a1a2e; border-radius:10px;
+  height:110px; overflow-y:auto; padding:8px; font-size:11px; line-height:1.8;
+  margin-bottom:10px;
+}
+.clog-info   { color:#9e9e9e; }
+.clog-good   { color:#66bb6a; }
+.clog-bad    { color:#ef5350; }
+.clog-chaos  { color:#e040fb; font-weight:700; }
+.clog-gold   { color:#ffc107; font-weight:700; }
+.clog-surv   { color:#ce93d8; }
+
+/* Turno badge */
+.round-badge-caos {
+  display:inline-flex; align-items:center; gap:6px; padding:6px 16px; border-radius:20px;
+  font-family:'Cinzel',serif; font-size:12px; font-weight:700; color:#fff;
+  background:linear-gradient(135deg,#4a0072,#9c27b0);
+  box-shadow:0 2px 12px rgba(156,39,176,0.4);
+}
+
+/* Botão de ação */
+.caos-btn {
+  width:100%; padding:14px; border:none; border-radius:12px;
+  font-family:'Cinzel',serif; font-size:15px; font-weight:700; cursor:pointer;
+  background:linear-gradient(135deg,#4a0072,#9c27b0,#6a1a9a);
+  background-size:200%; animation:caos-gradient 2s linear infinite;
+  color:#fff; box-shadow:0 4px 20px rgba(156,39,176,0.5);
+  transition:all 0.2s;
+}
+.caos-btn:hover:not(:disabled) { box-shadow:0 6px 28px rgba(156,39,176,0.7); transform:translateY(-2px); }
+.caos-btn:disabled { opacity:0.5; cursor:not-allowed; transform:none; animation:none; background:#2a2a4a; }
+
+/* Resultado */
+.caos-result {
+  background:linear-gradient(135deg,#0d0520,#1a0835);
+  border:2px solid #9c27b0; border-radius:20px; padding:24px; text-align:center;
+}
+.caos-result.victory { border-color:#ffc107; background:linear-gradient(135deg,#0a0a00,#1a1800); }
+.caos-result.defeat  { border-color:#f44336; background:linear-gradient(135deg,#1a0000,#2a0000); }
+
+/* Início */
+.rules-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+.rule-box {
+  background:#0e0e1c; border-radius:10px; padding:10px;
+  border-left:3px solid var(--rb-color,#9c27b0);
+  font-size:11px; color:#c0c0d0; line-height:1.6;
+}
+.rule-box strong { color:var(--rb-color,#e040fb); display:block; margin-bottom:2px; }
+
+/* Chaos event preview list */
+.ev-preview {
+  display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px;
+}
+.ev-chip {
+  font-size:11px; padding:4px 10px; border-radius:20px;
+  background:rgba(156,39,176,0.1); border:1px solid rgba(156,39,176,0.3);
+  color:#ce93d8;
+}
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title" style="background:linear-gradient(135deg,#e040fb,#9c27b0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">🎲 ARENA DO CAOS</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content">
+
+  <!-- ═══ TELA INICIAL ═══ -->
+  <div id="screen-start">
+    <div class="caos-hero">
+      <span class="hero-icon">🎲</span>
+      <div class="hero-title">ARENA DO CAOS</div>
+      <div class="hero-sub">Cada rodada muda as regras. Adapte-se ou pereça!</div>
+    </div>
+
+    <!-- Regras -->
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="panel-title" style="color:#e040fb;">⚡ Como Funciona</div>
+      <div style="font-size:12px;color:#c0c0d0;line-height:1.9;margin-bottom:10px;">
+        5 rodadas de batalha contra um bot. Antes de cada rodada, um <strong style="color:#e040fb;">Evento de Caos</strong> aleatório é revelado — e ele muda completamente as regras daquela rodada!
+      </div>
+      <div class="rules-grid">
+        <div class="rule-box" style="--rb-color:#e040fb;">
+          <strong>🎲 Evento Aleatório</strong>
+          Cada rodada tem um modificador diferente — pode dobrar dano, inverter regras, ou confundir tudo!
+        </div>
+        <div class="rule-box" style="--rb-color:#ffc107;">
+          <strong>⚔️ Carta Vencedora Sobrevive</strong>
+          A carta que vence o confronto permanece viva para a próxima rodada.
+        </div>
+        <div class="rule-box" style="--rb-color:#66bb6a;">
+          <strong>🏆 5 Rodadas</strong>
+          Sobreviva às 5 rodadas para ganhar recompensas do Caos — mais ricas que o normal!
+        </div>
+        <div class="rule-box" style="--rb-color:#29b6f6;">
+          <strong>💡 Estratégia</strong>
+          Leia o evento antes de escolher sua carta — às vezes a mais fraca é a melhor escolha!
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview de eventos -->
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="panel-title" style="color:#e040fb;">🌀 Possíveis Eventos de Caos</div>
+      <div class="ev-preview">
+        <span class="ev-chip">🔥 Chama Dupla</span>
+        <span class="ev-chip">❄️ Gelo Eterno</span>
+        <span class="ev-chip">⚡ Grande Inversão</span>
+        <span class="ev-chip">🌪️ Turbilhão</span>
+        <span class="ev-chip">💥 Explosão Total</span>
+        <span class="ev-chip">🌙 Lua Mítica</span>
+        <span class="ev-chip">🎭 Espelho</span>
+        <span class="ev-chip">🃏 Sorte do Destino</span>
+        <span class="ev-chip">🛡️ Escudo Celestial</span>
+        <span class="ev-chip">☠️ Veneno Caótico</span>
+      </div>
+      <div style="font-size:11px;color:#9e9e9e;line-height:1.7;">
+        Existem <strong style="color:#e040fb;">10 eventos possíveis</strong>, cada um com efeito único. Você nunca sabe qual vem a seguir!
+      </div>
+    </div>
+
+    <!-- Recompensas -->
+    <div class="panel" style="margin-bottom:14px;background:linear-gradient(135deg,#0d0520,#1a0835);border-color:#9c27b0;">
+      <div class="panel-title" style="color:#e040fb;">💎 Recompensas por Vitória</div>
+      <div style="font-size:12px;color:#c0c0d0;line-height:2;">
+        🪙 <strong style="color:#ffc107;">+2.500 ouro</strong> · ⭐ <strong style="color:#90caf9;">+80 XP</strong> · 🎖️ <strong style="color:#ce93d8;">+30 XPP</strong><br>
+        <span style="font-size:11px;color:#9e9e9e;">Derrota: +400 ouro, +15 XP de consolação.</span>
+      </div>
+    </div>
+
+    <button class="caos-btn" onclick="startCaos()">🎲 Entrar na Arena do Caos!</button>
+    <div style="height:10px;"></div>
+  </div>
+
+  <!-- ═══ TELA DE BATALHA ═══ -->
+  <div id="screen-battle" style="display:none;">
+
+    <!-- Rodada e Evento de Caos -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div class="round-badge-caos" id="round-badge">Rodada 1/5</div>
+      <div style="font-size:11px;color:#9e9e9e;" id="phase-label">Escolha sua carta!</div>
+    </div>
+
+    <!-- Caixa do Evento de Caos -->
+    <div class="chaos-event-box" id="chaos-event-box">
+      <div class="chaos-event-label">🎲 EVENTO DE CAOS</div>
+      <div class="chaos-event-name" id="ev-name">—</div>
+      <div class="chaos-event-desc" id="ev-desc">—</div>
+    </div>
+
+    <!-- HP Arenas -->
+    <div class="hp-arena-row">
+      <div class="hp-arena-box">
+        <div class="hp-arena-who">👤 <span id="player-name-disp">Você</span></div>
+        <div class="hp-arena-val" style="color:#66bb6a;"><span id="player-hp">1000</span></div>
+        <div class="hp-arena-bar"><div class="hp-arena-fill player" id="player-hp-bar" style="width:100%;"></div></div>
+      </div>
+      <div class="hp-arena-box">
+        <div class="hp-arena-who">🎲 <span id="bot-name-disp">Caos Bot</span></div>
+        <div class="hp-arena-val" style="color:#e040fb;"><span id="bot-hp">1000</span></div>
+        <div class="hp-arena-bar"><div class="hp-arena-fill bot" id="bot-hp-bar" style="width:100%;"></div></div>
+      </div>
+    </div>
+
+    <!-- Campo de batalha -->
+    <div class="battle-field">
+      <div class="battle-field-card" id="player-card-box">
+        <span class="bfc-emoji" id="p-emoji">🃏</span>
+        <div class="bfc-name"  id="p-name">Escolha...</div>
+        <div class="bfc-atk"   id="p-atk">ATK: —</div>
+        <div class="bfc-rarity" id="p-rarity"></div>
+        <div class="bfc-mod"    id="p-mod"></div>
+      </div>
+      <div class="vs-box">VS</div>
+      <div class="battle-field-card" id="bot-card-box">
+        <span class="bfc-emoji" id="b-emoji">🃏</span>
+        <div class="bfc-name"   id="b-name">???</div>
+        <div class="bfc-atk"    id="b-atk">ATK: ?</div>
+        <div class="bfc-rarity" id="b-rarity"></div>
+        <div class="bfc-mod"    id="b-mod"></div>
+      </div>
+    </div>
+
+    <!-- Mão do jogador -->
+    <div style="font-size:11px;color:#9e9e9e;margin-bottom:6px;">Sua mão — clique para selecionar:</div>
+    <div class="hand-row" id="player-hand"></div>
+
+    <!-- Log -->
+    <div class="caos-log" id="battle-log"></div>
+
+    <!-- Botão -->
+    <button class="caos-btn" id="btn-fight" onclick="doRound()">⚔️ Lutar!</button>
+    <div style="margin-top:8px;">
+      <button class="btn btn-outline btn-sm btn-block" onclick="surrenderCaos()">🏳️ Desistir</button>
+    </div>
+  </div>
+
+  <!-- ═══ TELA DE RESULTADO ═══ -->
+  <div id="screen-result" style="display:none;">
+    <div class="caos-result" id="result-panel">
+      <div id="res-icon" style="font-size:64px;margin-bottom:10px;">🎲</div>
+      <div id="res-title" style="font-family:'Cinzel',serif;font-size:24px;font-weight:900;margin-bottom:6px;">—</div>
+      <div id="res-sub"   style="font-size:13px;color:#9e9e9e;margin-bottom:16px;">—</div>
+      <div id="res-rewards" style="background:rgba(0,0,0,0.3);border-radius:10px;padding:14px;margin-bottom:14px;text-align:left;"></div>
+      <button class="caos-btn" onclick="restartCaos()">🎲 Jogar Novamente</button>
+      <a href="index.html" class="btn btn-outline btn-block" style="margin-top:8px;display:inline-block;">🏠 Início</a>
+    </div>
+  </div>
+
+  <div style="height:70px;"></div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js"></script>
+<script src="gamedata2.js"></script>
+<script src="gamedata3.js"></script>
+<script src="gamedata-v7-patch.js"></script>
+<script src="gamedata-pesca.js"></script>
+<script src="gamedata-pesca-patch.js"></script>
+<script src="gamedata-maestria-patch.js"></script>
+<script>
+"use strict";
+
+// ══════════════════════════════════════════════════════════════
+// ARENA DO CAOS — Novo modo de batalha v11
+// Cada rodada tem um evento aleatório que muda as regras
+// Carta vencedora SOBREVIVE ao combate (FIX v11)
+// ══════════════════════════════════════════════════════════════
+
+// ──── DEFINIÇÕES DOS EVENTOS DE CAOS ────
+const CHAOS_EVENTS = [
+  {
+    id:"chama",   icon:"🔥", name:"Chama Dupla",
+    color:"#ff6d00", bgFrom:"#1a0500", bgTo:"#2d0a00",
+    desc:"O fogo consome tudo! O dano desta rodada é DOBRADO para ambos os lados. Escolha bem — atacar forte pode te custar caro também.",
+    apply: (pAtk, bAtk) => ({
+      pFinalAtk: pAtk * 2,
+      bFinalAtk: bAtk * 2,
+      special: "🔥 Dano × 2 em ambos os lados!"
+    })
+  },
+  {
+    id:"gelo",    icon:"❄️", name:"Gelo Eterno",
+    color:"#29b6f6", bgFrom:"#001a2e", bgTo:"#002d4e",
+    desc:"O gelo congela a dor. O vencedor desta rodada NÃO toma dano — apenas o perdedor sofre, com dano multiplicado por 1.5×.",
+    apply: (pAtk, bAtk) => ({
+      pFinalAtk: pAtk,
+      bFinalAtk: bAtk,
+      special: "❄️ Vencedor fica isento de dano. Perdedor: dano × 1.5",
+      frostEffect: true
+    })
+  },
+  {
+    id:"inversao", icon:"⚡", name:"Grande Inversão",
+    color:"#ffc107", bgFrom:"#1a1400", bgTo:"#2d2200",
+    desc:"A realidade se inverte! A carta com MENOR ATK vence esta rodada. A fraqueza é força!",
+    apply: (pAtk, bAtk) => ({
+      pFinalAtk: 1000 - pAtk, // inverte: menor atk = maior valor efetivo
+      bFinalAtk: 1000 - bAtk,
+      special: "⚡ INVERTIDO! A carta mais FRACA vence!",
+      inverted: true
+    })
+  },
+  {
+    id:"turbilhao", icon:"🌪️", name:"Turbilhão",
+    color:"#80deea", bgFrom:"#001a1a", bgTo:"#002a2a",
+    desc:"O vento embaralha os poderes! O ATK de AMBAS as cartas é trocado entre si antes do confronto.",
+    apply: (pAtk, bAtk) => ({
+      pFinalAtk: bAtk, // troca os ATKs
+      bFinalAtk: pAtk,
+      special: "🌪️ ATKs trocados! Você joga com o ATK inimigo e vice-versa."
+    })
+  },
+  {
+    id:"explosao", icon:"💥", name:"Explosão Total",
+    color:"#ff1744", bgFrom:"#1a0000", bgTo:"#2d0000",
+    desc:"AMBAS as cartas explodem! Independente do resultado, as duas cartas são destruídas — mas o vencedor causa dano TRIPLO!",
+    apply: (pAtk, bAtk) => ({
+      pFinalAtk: pAtk * 3,
+      bFinalAtk: bAtk * 3,
+      special: "💥 Ambas explodem! Vencedor: dano × 3.",
+      bothDie: true
+    })
+  },
+  {
+    id:"lua", icon:"🌙", name:"Lua Mítica",
+    color:"#ce93d8", bgFrom:"#0d0525", bgTo:"#1a0840",
+    desc:"A lua cheia desperta o poder oculto! Cartas de raridade Lendária ou acima ganham +150 ATK bônus nesta rodada.",
+    apply: (pAtk, bAtk, pCard, bCard) => {
+      const LEGENDARIES = ["LEGENDARY","MYTHIC","ULTRA_RARE","ORIGENS"];
+      const pBonus = LEGENDARIES.includes(pCard?.rarity) ? 150 : 0;
+      const bBonus = LEGENDARIES.includes(bCard?.rarity) ? 150 : 0;
+      return {
+        pFinalAtk: pAtk + pBonus,
+        bFinalAtk: bAtk + bBonus,
+        special: `🌙 Lendária+ bônus ativo! Você: +${pBonus} · Bot: +${bBonus}`
+      };
+    }
+  },
+  {
+    id:"espelho", icon:"🎭", name:"Espelho",
+    color:"#7c4dff", bgFrom:"#0a0020", bgTo:"#1a0035",
+    desc:"As realidades se espelham! Você luta COM a carta do bot, e ele luta com a sua. ATKs são trocados entre jogadores.",
+    apply: (pAtk, bAtk) => ({
+      pFinalAtk: bAtk,
+      bFinalAtk: pAtk,
+      special: "🎭 Espelhos! Você usa o ATK do bot e ele usa o seu.",
+      mirrored: true
+    })
+  },
+  {
+    id:"sorte", icon:"🃏", name:"Sorte do Destino",
+    color:"#e040fb", bgFrom:"#1a0030", bgTo:"#2d0050",
+    desc:"O destino decide tudo! O ATK de ambas as cartas é substituído por um número ALEATÓRIO de 1 a 500. Pura sorte!",
+    apply: (pAtk, bAtk) => {
+      const p = Math.floor(Math.random() * 500) + 1;
+      const b = Math.floor(Math.random() * 500) + 1;
+      return {
+        pFinalAtk: p,
+        bFinalAtk: b,
+        special: `🃏 Sorte! ATKs gerados: Você ${p} · Bot ${b}`
+      };
+    }
+  },
+  {
+    id:"escudo", icon:"🛡️", name:"Escudo Celestial",
+    color:"#4CAF50", bgFrom:"#001a00", bgTo:"#002a00",
+    desc:"Um escudo divino protege o vencedor! Quem ganhar esta rodada recebe um ESCUDO de 100 HP para a próxima (sem dano).",
+    apply: (pAtk, bAtk) => ({
+      pFinalAtk: pAtk,
+      bFinalAtk: bAtk,
+      special: "🛡️ Vencedor ganha escudo: +100 HP bloqueados na próxima rodada.",
+      shieldWinner: true
+    })
+  },
+  {
+    id:"veneno", icon:"☠️", name:"Veneno Caótico",
+    color:"#69f0ae", bgFrom:"#001a0a", bgTo:"#00280f",
+    desc:"Uma névoa venenosa corroe ambos! Além do dano normal, AMBOS os lados recebem dano extra de 80 HP nesta rodada.",
+    apply: (pAtk, bAtk) => ({
+      pFinalAtk: pAtk,
+      bFinalAtk: bAtk,
+      special: "☠️ Veneno! +80 HP de dano extra para ambos, independente do resultado.",
+      poisonDmg: 80
+    })
+  }
+];
+
+// ──── ESTADO DO JOGO ────
+let save;
+let caosState = null;
+
+function getRarityColor(r) {
+  const C = { COMMON:"#9e9e9e", RARE:"#2196F3", EPIC:"#9c27b0", LEGENDARY:"#ffc107",
+               MYTHIC:"#f44336", ULTRA_RARE:"#00e5ff", ORIGENS:"#ff4444" };
+  return C[r] || "#9e9e9e";
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ──── INÍCIO ────
+function startCaos() {
+  save = getOrCreateSave();
+  if (!save.vault || save.vault.length === 0) {
+    showToast("⚠️ Cofre vazio! Abra pacotes primeiro.", "error");
+    return;
+  }
+
+  // Prepara mão do jogador (com buffs de maestria/companheiro)
+  const rawHand = getHandFromVault(save.vault);
+  const playerHand = rawHand.map(c => {
+    const buff    = (typeof getMaestriaBuff === "function") ? getMaestriaBuff(save, c.id) : 1;
+    const compAtk = (typeof getCompanionAtkMult === "function") ? getCompanionAtkMult(save) : 1;
+    return { ...c, atk: Math.round(c.atk * buff * compAtk), alive: true, used: false };
+  });
+
+  const botHand = getBotHand(save.xpp || 0).map(c => ({ ...c, alive: true }));
+
+  caosState = {
+    round:       1,
+    maxRounds:   5,
+    playerHp:    1000,
+    botHp:       1000,
+    playerHand,
+    botHand,
+    selectedIdx: null,
+    over:        false,
+    currentEvent: null,
+    playerWins:  0,
+    botWins:     0,
+    shieldPlayer: 0, // HP de escudo acumulado para próxima rodada
+    shieldBot:    0,
+  };
+
+  showScreen("screen-battle");
+  document.getElementById("player-name-disp").textContent = save.playerName || "Você";
+  drawNewEvent();
+  renderAll();
+}
+
+// ──── SORTEAR NOVO EVENTO ────
+function drawNewEvent() {
+  const idx = Math.floor(Math.random() * CHAOS_EVENTS.length);
+  caosState.currentEvent = CHAOS_EVENTS[idx];
+  renderEvent();
+}
+
+function renderEvent() {
+  const ev = caosState.currentEvent;
+  const box = document.getElementById("chaos-event-box");
+  box.style.setProperty("--ev-color",   ev.color);
+  box.style.setProperty("--ev-bg-from", ev.bgFrom);
+  box.style.setProperty("--ev-bg-to",   ev.bgTo);
+  box.style.setProperty("--ev-icon",    `"${ev.icon}"`);
+  document.getElementById("ev-name").textContent = ev.icon + " " + ev.name;
+  document.getElementById("ev-name").style.color = ev.color;
+  document.getElementById("ev-desc").textContent = ev.desc;
+}
+
+// ──── RENDER ────
+function renderAll() {
+  const cs = caosState;
+  // Round badge
+  document.getElementById("round-badge").textContent = cs.over ? "Fim do Caos" : `Rodada ${cs.round}/${cs.maxRounds}`;
+
+  // HP
+  const pPct = Math.max(0, (cs.playerHp / 1000) * 100);
+  const bPct = Math.max(0, (cs.botHp    / 1000) * 100);
+  document.getElementById("player-hp").textContent = Math.max(0, cs.playerHp);
+  document.getElementById("bot-hp").textContent    = Math.max(0, cs.botHp);
+  document.getElementById("player-hp-bar").style.width = pPct + "%";
+  document.getElementById("bot-hp-bar").style.width    = bPct + "%";
+  const pBar = document.getElementById("player-hp-bar");
+  pBar.style.background = pPct > 50 ? "linear-gradient(90deg,#4CAF50,#66bb6a)"
+                         : pPct > 20 ? "linear-gradient(90deg,#ffa726,#ffc107)"
+                         : "linear-gradient(90deg,#f44336,#ff6d00)";
+
+  // Mão do jogador
+  const handDiv = document.getElementById("player-hand");
+  handDiv.innerHTML = "";
+  cs.playerHand.forEach((c, i) => {
+    const rarColor = getRarityColor(c.rarity);
+    let cls = "hand-card-caos";
+    if (!c.alive) cls += " dead";
+    else if (c.used) cls += " used";
+    if (cs.selectedIdx === i && c.alive && !c.used) cls += " selected";
+    const div = document.createElement("div");
+    div.className = cls;
+    div.style.borderColor = (cs.selectedIdx === i && c.alive && !c.used) ? "#ffc107" : rarColor + "55";
+    div.onclick = () => selectCard(i);
+    div.innerHTML = `<span class="hcc-em">${c.img}</span><span class="hcc-nm">${c.name}</span><span class="hcc-at">⚔ ${c.atk}</span>`;
+    handDiv.appendChild(div);
+  });
+
+  // Card boxes (reset quando não há seleção)
+  if (cs.selectedIdx === null) {
+    document.getElementById("p-emoji").textContent = "🃏";
+    document.getElementById("p-name").textContent  = "Escolha...";
+    document.getElementById("p-atk").textContent   = "ATK: —";
+    document.getElementById("p-rarity").innerHTML  = "";
+    document.getElementById("p-mod").textContent   = "";
+    document.getElementById("b-emoji").textContent = "🃏";
+    document.getElementById("b-name").textContent  = "???";
+    document.getElementById("b-atk").textContent   = "ATK: ?";
+    document.getElementById("b-rarity").innerHTML  = "";
+    document.getElementById("b-mod").textContent   = "";
+  }
+
+  // Btn
+  const btn = document.getElementById("btn-fight");
+  btn.disabled = cs.over || cs.selectedIdx === null;
+}
+
+function selectCard(i) {
+  if (caosState.over) return;
+  const c = caosState.playerHand[i];
+  if (!c || !c.alive || c.used) return;
+  caosState.selectedIdx = i;
+
+  // Mostra carta selecionada no campo
+  document.getElementById("p-emoji").textContent  = c.img;
+  document.getElementById("p-name").textContent   = c.name;
+  document.getElementById("p-atk").textContent    = `ATK: ${c.atk}`;
+  document.getElementById("p-rarity").innerHTML   = `<span style="color:${getRarityColor(c.rarity)};font-size:10px;">${c.rarity}</span>`;
+  document.getElementById("p-mod").textContent    = "";
+
+  renderAll();
+  document.getElementById("phase-label").textContent = "Pronto! Clique em Lutar!";
+}
+
+// ──── EXECUTAR RODADA ────
+async function doRound() {
+  if (caosState.over) return;
+  if (caosState.selectedIdx === null) { showToast("Selecione uma carta!", "info"); return; }
+
+  const btn = document.getElementById("btn-fight");
+  btn.disabled = true;
+  document.getElementById("phase-label").textContent = "Lutando...";
+
+  const cs       = caosState;
+  const pCard    = cs.playerHand[cs.selectedIdx];
+  const ev       = cs.currentEvent;
+
+  // Bot escolhe carta aleatória viva
+  const aliveBotCards = cs.botHand.filter(c => c.alive);
+  const bCard = aliveBotCards.length > 0
+    ? aliveBotCards[Math.floor(Math.random() * aliveBotCards.length)]
+    : null;
+
+  // Mostra carta do bot
+  if (bCard) {
+    document.getElementById("b-emoji").textContent  = bCard.img;
+    document.getElementById("b-name").textContent   = bCard.name;
+    document.getElementById("b-atk").textContent    = `ATK: ${bCard.atk}`;
+    document.getElementById("b-rarity").innerHTML   = `<span style="color:${getRarityColor(bCard.rarity)};font-size:10px;">${bCard.rarity}</span>`;
+  }
+
+  await delay(400);
+
+  // Aplica evento de caos
+  let effectResult;
+  try {
+    effectResult = ev.apply(pCard.atk, bCard ? bCard.atk : 0, pCard, bCard);
+  } catch(e) {
+    effectResult = { pFinalAtk: pCard.atk, bFinalAtk: bCard ? bCard.atk : 0, special: "" };
+  }
+
+  const { pFinalAtk, bFinalAtk, special, frostEffect, bothDie, shieldWinner, poisonDmg, inverted } = effectResult;
+
+  // Log do evento
+  addLog(`<span class="clog-chaos">🎲 EVENTO: ${ev.icon} ${ev.name}</span>`);
+  if (special) addLog(`<span class="clog-chaos">→ ${special}</span>`);
+  addLog(`<span class="clog-info">⚔️ ${pCard.img} ${pCard.name} [${pFinalAtk}] vs ${bCard ? bCard.img + ' ' + bCard.name : '???'} [${bFinalAtk}]</span>`);
+
+  // Mostrar modificadores nas cards
+  document.getElementById("p-mod").textContent = `Efetivo: ${pFinalAtk}`;
+  document.getElementById("b-mod").textContent = `Efetivo: ${bFinalAtk}`;
+
+  // Animações
+  const pBox = document.getElementById("player-card-box");
+  const bBox = document.getElementById("bot-card-box");
+  pBox.classList.add("attack-anim"); bBox.classList.add("hit-anim");
+  await delay(400);
+  pBox.classList.remove("attack-anim"); bBox.classList.remove("hit-anim");
+
+  // Determina vencedor
+  let playerWonRound;
+  if (pFinalAtk > bFinalAtk)      playerWonRound = true;
+  else if (bFinalAtk > pFinalAtk) playerWonRound = false;
+  else                             playerWonRound = null; // empate
+
+  // Calcula dano
+  let pDmg = 0, bDmg = 0;
+
+  if (frostEffect) {
+    // Gelo Eterno: vencedor não toma dano, perdedor toma × 1.5
+    if (playerWonRound === true)       { bDmg = Math.round(pFinalAtk * 1.5); }
+    else if (playerWonRound === false) { pDmg = Math.round(bFinalAtk * 1.5); }
+    else                               { pDmg = pFinalAtk; bDmg = bFinalAtk; } // empate = ambos
+  } else if (playerWonRound === true) {
+    bDmg = pFinalAtk;
+    if (inverted) { bDmg = 1000 - pFinalAtk; } // inversão: menor ATK original
+  } else if (playerWonRound === false) {
+    pDmg = bFinalAtk;
+    if (inverted) { pDmg = 1000 - bFinalAtk; }
+  } else {
+    // Empate: ambos tomam dano do ATK original dividido por 2
+    pDmg = Math.floor(pCard.atk / 2);
+    bDmg = Math.floor((bCard ? bCard.atk : 0) / 2);
+  }
+
+  // Veneno caótico: extra
+  if (poisonDmg) { pDmg += poisonDmg; bDmg += poisonDmg; }
+
+  // Escudo acumulado
+  if (cs.shieldPlayer > 0) { pDmg = Math.max(0, pDmg - cs.shieldPlayer); cs.shieldPlayer = 0; }
+  if (cs.shieldBot    > 0) { bDmg = Math.max(0, bDmg - cs.shieldBot);    cs.shieldBot    = 0; }
+
+  // Aplica dano
+  cs.playerHp = Math.max(0, cs.playerHp - pDmg);
+  cs.botHp    = Math.max(0, cs.botHp    - bDmg);
+
+  // Escudo da próxima rodada
+  if (shieldWinner) {
+    if (playerWonRound === true)       cs.shieldPlayer = 100;
+    else if (playerWonRound === false) cs.shieldBot    = 100;
+  }
+
+  // Cartas sobrevivem/morrem — FIX v11: carta VENCEDORA SOBREVIVE
+  // (não marcamos pCard.used aqui: se ela vencer, precisa continuar
+  // disponível para ser escolhida nas próximas rodadas)
+  if (bCard) {
+    if (playerWonRound === true) {
+      // Jogador vence: carta do bot morre, pCard SOBREVIVE
+      if (bCard) bCard.alive = false;
+      pBox.classList.add("winner-anim");
+    } else if (playerWonRound === false) {
+      // Bot vence: pCard morre, carta do bot SOBREVIVE
+      pCard.alive = false;
+      bBox.classList.add("winner-anim");
+    } else {
+      // Empate ou bothDie: ambas morrem
+      pCard.alive = false;
+      if (bCard) bCard.alive = false;
+    }
+  }
+  if (bothDie) { pCard.alive = false; if (bCard) bCard.alive = false; }
+
+  await delay(300);
+  pBox.classList.remove("winner-anim");
+  bBox.classList.remove("winner-anim");
+
+  // Log de resultados
+  if (playerWonRound === true) {
+    cs.playerWins++;
+    addLog(`<span class="clog-good">✅ Você venceu a rodada! -${bDmg} HP do bot${pDmg > 0 ? " · Você: -"+pDmg : ""}.</span>`);
+    if (!bothDie) addLog(`<span class="clog-surv">⚔️ Sua carta sobreviveu!</span>`);
+  } else if (playerWonRound === false) {
+    cs.botWins++;
+    addLog(`<span class="clog-bad">❌ Bot venceu a rodada! Você: -${pDmg} HP${bDmg > 0 ? " · Bot: -"+bDmg : ""}.</span>`);
+    if (!bothDie) addLog(`<span class="clog-surv">🎲 Carta do bot sobreviveu!</span>`);
+  } else {
+    addLog(`<span class="clog-gold">⚡ EMPATE! Você: -${pDmg} · Bot: -${bDmg}</span>`);
+  }
+  if (cs.shieldPlayer > 0) addLog(`<span class="clog-surv">🛡️ Escudo de ${cs.shieldPlayer} HP ativo para você na próxima rodada!</span>`);
+
+  // Atualiza UI
+  renderAll();
+  await delay(500);
+
+  // Verifica fim de partida
+  if (cs.playerHp <= 0 || cs.botHp <= 0 || cs.round >= cs.maxRounds) {
+    endCaos(cs.playerHp > 0 && (cs.playerHp >= cs.botHp || cs.botHp <= 0));
+    return;
+  }
+
+  // Próxima rodada
+  cs.round++;
+  cs.selectedIdx = null;
+  drawNewEvent();
+  renderAll();
+  document.getElementById("phase-label").textContent = "Escolha sua carta!";
+  btn.disabled = false;
+}
+
+// ──── FIM DA PARTIDA ────
+function endCaos(playerWon) {
+  caosState.over = true;
+  const rewards = playerWon
+    ? { gold: 120, xp: 50, xpp: 40 }
+    : { gold: 40,  xp: 5, xpp: 5  };
+
+  earnGold(save, rewards.gold);
+  save.xp   = (save.xp   || 0) + rewards.xp;
+  save.xpp  = (save.xpp  || 0) + rewards.xpp;
+  save.wins = (save.wins  || 0) + (playerWon ? 1 : 0);
+  save.totalBattles = (save.totalBattles || 0) + 1;
+
+  // Evento: conta batalha em todos os eventos ativos
+  if (save.events && typeof GAME_EVENTS !== "undefined") {
+    GAME_EVENTS.forEach(evt => {
+      if (isEventActive(evt, save)) {
+        if (!save.events[evt.id]) save.events[evt.id] = { battles: 0, claimedSteps: [] };
+        save.events[evt.id].battles = (save.events[evt.id].battles || 0) + 1;
+      }
+    });
+  }
+
+  // Missões
+  if (typeof updateMissionProgress === "function") {
+    updateMissionProgress(save, "battles");
+  }
+
+  writeSave(save);
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+
+  showScreen("screen-result");
+  const panel = document.getElementById("result-panel");
+  panel.className = `caos-result ${playerWon ? "victory" : "defeat"}`;
+
+  document.getElementById("res-icon").textContent = playerWon ? "🏆" : "💀";
+  document.getElementById("res-title").textContent = playerWon
+    ? (caosState.botHp <= 0 ? "VITÓRIA TOTAL!" : caosState.playerWins > 3 ? "DOMINOU O CAOS!" : "VITÓRIA!")
+    : "O CAOS VENCEU!";
+  document.getElementById("res-title").style.color = playerWon ? "#ffc107" : "#ef5350";
+  document.getElementById("res-sub").textContent = playerWon
+    ? `Você sobreviveu ao Caos em ${caosState.round} rodadas! Impressionante!`
+    : `O Caos foi mais forte desta vez. Tente novamente!`;
+
+  const creatorTag = save.isVerifiedCreator ? " <span style='color:#29b6f6;font-size:10px;'>(Criador)</span>" : "";
+  document.getElementById("res-rewards").innerHTML = `
+    <div style="font-size:11px;font-weight:700;color:#9e9e9e;margin-bottom:8px;text-transform:uppercase;">Recompensas:</div>
+    <div style="display:flex;flex-direction:column;gap:5px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:#c0c0d0;padding:6px;background:rgba(0,0,0,0.3);border-radius:6px;">
+        <span>🏆 Vitórias de rodada</span><span style="font-weight:700;color:#ffc107;">${caosState.playerWins}/${caosState.maxRounds}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:#c0c0d0;padding:6px;background:rgba(0,0,0,0.3);border-radius:6px;">
+        <span>🪙 Ouro${creatorTag}</span><span style="font-weight:700;color:#ffc107;">+${fmtNum(rewards.gold)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:#c0c0d0;padding:6px;background:rgba(0,0,0,0.3);border-radius:6px;">
+        <span>⭐ XP</span><span style="font-weight:700;color:#90caf9;">+${rewards.xp}</span>
+      </div>
+      ${rewards.xpp > 0 ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:#c0c0d0;padding:6px;background:rgba(0,0,0,0.3);border-radius:6px;">
+        <span>🎖️ XPP</span><span style="font-weight:700;color:#ce93d8;">+${rewards.xpp}</span>
+      </div>` : ""}
+    </div>`;
+
+  if (playerWon) spawnParticles();
+}
+
+function surrenderCaos() {
+  if (!caosState || caosState.over) return;
+  if (confirm("Desistir? Você perderá as recompensas de vitória.")) {
+    endCaos(false);
+  }
+}
+
+function restartCaos() {
+  caosState = null;
+  showScreen("screen-start");
+}
+
+function showScreen(id) {
+  ["screen-start","screen-battle","screen-result"].forEach(s => {
+    document.getElementById(s).style.display = (s === id) ? "block" : "none";
+  });
+}
+
+function addLog(html) {
+  const log = document.getElementById("battle-log");
+  const p = document.createElement("p");
+  p.innerHTML = html; p.style.margin = "1px 0";
+  log.appendChild(p);
+  log.scrollTop = log.scrollHeight;
+}
+
+function spawnParticles() {
+  const colors = ["#e040fb","#ffc107","#66bb6a","#29b6f6","#ff6d00"];
+  for (let i = 0; i < 25; i++) {
+    const p = document.createElement("div");
+    p.style.cssText = `position:fixed;left:${Math.random()*100}%;top:${Math.random()*100}%;
+      width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;border-radius:50%;
+      pointer-events:none;z-index:9999;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation:float 1.8s ease-out forwards;opacity:0.9;`;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 2000);
+  }
+}
+
+// ── Init ──
+(function init() {
+  save = getOrCreateSave();
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+})();
+</script>
+</body>
+</html>

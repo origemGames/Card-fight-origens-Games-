@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Prime – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+/* ══════ HERO ══════ */
+.prime-hero {
+  background:linear-gradient(160deg,#100020 0%,#1a0035 45%,#2a0040 100%);
+  border:2px solid #ff00aa; border-radius:20px;
+  padding:26px 16px 22px; margin-bottom:14px; text-align:center;
+  position:relative; overflow:hidden;
+  box-shadow:0 8px 40px rgba(255,0,170,0.18), inset 0 0 60px rgba(255,0,170,0.05);
+}
+.prime-hero::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(255,0,170,0.20) 0%,transparent 60%);
+  pointer-events:none;
+}
+.prime-hero::after {
+  content:''; position:absolute; inset:0;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 25%,#fff,transparent),
+    radial-gradient(1.5px 1.5px at 82% 15%,#fff,transparent),
+    radial-gradient(1px 1px at 45% 65%,#ffc107,transparent),
+    radial-gradient(1px 1px at 70% 78%,#fff,transparent),
+    radial-gradient(1.5px 1.5px at 25% 82%,#ff00aa,transparent),
+    radial-gradient(1px 1px at 92% 55%,#fff,transparent);
+  opacity:0.7; animation:twinkle 3s ease-in-out infinite alternate;
+  pointer-events:none;
+}
+@keyframes twinkle { from{opacity:0.3;} to{opacity:0.85;} }
+
+.prime-badge-big {
+  font-size:96px; display:inline-block; position:relative; z-index:1;
+  filter:drop-shadow(0 0 24px var(--prime-glow,#ff00aa));
+  animation:float 2.6s ease-in-out infinite;
+}
+.prime-name {
+  font-family:'Cinzel',serif; font-size:28px; font-weight:900; margin:6px 0 4px;
+  letter-spacing:1.5px; position:relative; z-index:1;
+  background:linear-gradient(135deg,var(--prime-color,#ff00aa),#ffc107,var(--prime-color,#ff00aa));
+  background-size:250%;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:title-shimmer 4s linear infinite;
+}
+@keyframes title-shimmer { 0%{background-position:0% 50%;} 100%{background-position:250% 50%;} }
+
+.prime-spent {
+  font-size:13px; color:#ffc107; font-weight:700;
+  position:relative; z-index:1; margin-bottom:12px;
+}
+.prime-spent small { color:#9e9e9e; font-weight:500; }
+
+.prime-progress-wrap { position:relative; z-index:1; margin-bottom:8px; }
+.prime-progress-lbl  { display:flex; justify-content:space-between; font-size:11px; color:#9e9e9e; margin-bottom:4px; }
+.prime-progress-bar  { width:100%; height:14px; background:#0e0e1c; border-radius:8px; overflow:hidden; border:1px solid #2a2a4a; }
+.prime-progress-fill {
+  height:100%; background:linear-gradient(90deg,var(--prime-color,#ff00aa),#ffc107,var(--prime-color,#ff00aa));
+  background-size:200%; animation:title-shimmer 3s linear infinite;
+  border-radius:8px; transition:width 0.6s ease;
+}
+.prime-progress-info { font-size:10px; color:#9e9e9e; margin-top:3px; text-align:center; }
+
+/* ══════ BADGE TOGGLE ══════ */
+.prime-badge-toggle {
+  background:linear-gradient(135deg,#1a002a,#2a0040);
+  border:2px solid #ff00aa; border-radius:14px; padding:14px;
+  margin-bottom:14px; display:flex; align-items:center; gap:12px;
+}
+.prime-badge-toggle .icon { font-size:36px; filter:drop-shadow(0 0 12px #ff00aa); }
+.prime-badge-toggle .txt  { flex:1; }
+.prime-badge-toggle .t1   { font-family:'Cinzel',serif; font-size:14px; font-weight:900; color:#ff00aa; }
+.prime-badge-toggle .t2   { font-size:11px; color:#9e9e9e; margin-top:2px; }
+.prime-badge-toggle.locked { border-color:#2a2a4a; opacity:0.6; }
+
+.pt-switch {
+  position:relative; width:52px; height:28px; background:#2a2a4a; border-radius:20px;
+  cursor:pointer; transition:all 0.2s; flex-shrink:0;
+}
+.pt-switch::after {
+  content:''; position:absolute; top:3px; left:3px; width:22px; height:22px;
+  background:#fff; border-radius:50%; transition:all 0.2s;
+}
+.pt-switch.on { background:linear-gradient(135deg,#ff00aa,#ffc107); }
+.pt-switch.on::after { left:27px; }
+
+/* ══════ LADDER ══════ */
+.prime-level-card {
+  background:var(--bg-card); border:2px solid #1e1e30; border-radius:14px;
+  padding:14px; margin-bottom:10px; position:relative;
+  transition:all 0.2s;
+}
+.prime-level-card.reached { border-color:var(--lvl-color,#ff00aa); box-shadow:0 4px 20px var(--lvl-glow,rgba(255,0,170,0.2)); }
+.prime-level-card.current { background:linear-gradient(135deg,#0e0e1c,#1a0028); }
+.prime-level-head { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+.prime-level-emoji { font-size:36px; filter:drop-shadow(0 0 10px var(--lvl-glow,rgba(255,0,170,0.3))); }
+.prime-level-emoji.p7 { animation:pulse 1.5s ease-in-out infinite; filter:drop-shadow(0 0 18px #ff4444); }
+.prime-level-emoji.p8 {
+  animation:p8-mega 1.2s ease-in-out infinite;
+  filter:drop-shadow(0 0 24px #ff00aa) drop-shadow(0 0 48px #ff00aa) drop-shadow(0 0 96px #ffc107);
+}
+@keyframes p8-mega {
+  0%,100% { transform:scale(1) rotate(-4deg); }
+  50%     { transform:scale(1.18) rotate(4deg); filter:drop-shadow(0 0 48px #ff00aa) drop-shadow(0 0 96px #ffc107) hue-rotate(45deg); }
+}
+.prime-level-name  { font-family:'Cinzel',serif; font-size:16px; font-weight:900; color:var(--lvl-color,#fff); }
+.prime-level-req   { font-size:11px; color:#9e9e9e; margin-top:2px; }
+.prime-level-status{ margin-left:auto; font-size:10px; padding:4px 8px; border-radius:8px; font-weight:700; }
+.prime-level-status.done   { background:rgba(102,187,106,0.15); color:#66bb6a; border:1px solid #66bb6a; }
+.prime-level-status.locked { background:#0e0e1c; color:#555; border:1px solid #2a2a4a; }
+
+.prime-mini-bar {
+  height:6px; background:#0e0e1c; border-radius:4px; overflow:hidden;
+  border:1px solid #2a2a4a; margin-bottom:10px;
+}
+.prime-mini-fill { height:100%; background:linear-gradient(90deg,var(--lvl-color,#ff00aa),#ffc107); transition:width 0.4s ease; }
+
+.prime-reward-row {
+  display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+  padding:8px 10px; background:#0a0a18; border-radius:10px; margin-bottom:6px;
+  border:1px dashed #2a2a4a;
+}
+.prime-reward-row.claimed { border-style:solid; border-color:#66bb6a; opacity:0.75; }
+.prime-reward-row .type   { font-size:11px; font-weight:700; color:var(--lvl-color,#ffc107); min-width:74px; }
+.prime-reward-row .rewards{ flex:1; font-size:12px; color:#e0e0f0; }
+.prime-reward-row .chip   { display:inline-block; margin-right:6px; }
+.prime-btn-claim {
+  padding:6px 12px; border:none; border-radius:8px; font-weight:700; font-size:11px;
+  background:linear-gradient(135deg,#66bb6a,#43a047); color:#fff; cursor:pointer;
+  font-family:'Rajdhani',sans-serif;
+}
+.prime-btn-claim:disabled { background:#2a2a4a; color:#666; cursor:not-allowed; }
+
+/* ══════ RANKING ══════ */
+.prime-rank-row {
+  display:flex; align-items:center; gap:10px; padding:10px 12px;
+  background:var(--bg-card); border:1px solid #2a2a4a; border-radius:10px;
+  margin-bottom:5px; transition:all 0.2s;
+}
+.prime-rank-row.me { border-color:#ff00aa; background:linear-gradient(135deg,#1a0025,#2a0040); }
+.prime-rank-row.top1 { border-color:#ffc107; }
+.prime-rank-row.top2 { border-color:#bdbdbd; }
+.prime-rank-row.top3 { border-color:#cd7f32; }
+.prr-pos { width:28px; text-align:center; font-family:'Cinzel',serif; font-weight:900; font-size:13px; color:#9e9e9e; }
+.prr-pos.top1 { color:#ffc107; font-size:15px; }
+.prr-pos.top2 { color:#bdbdbd; font-size:14px; }
+.prr-pos.top3 { color:#cd7f32; font-size:14px; }
+.prr-avatar { font-size:22px; }
+.prr-info { flex:1; min-width:0; }
+.prr-name {
+  font-weight:700; font-size:13px; display:flex; align-items:center; gap:5px;
+  overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+}
+.prr-verified {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:14px; height:14px; border-radius:50%;
+  background:#29b6f6; color:#000; font-size:9px; font-weight:900; flex-shrink:0;
+}
+.prr-spent { font-size:10px; color:#9e9e9e; margin-top:1px; }
+.prr-prime { font-family:'Cinzel',serif; font-size:11px; font-weight:900; padding:3px 8px; border-radius:8px; flex-shrink:0; }
+
+/* ══════ PRIME 8 MEGA EFFECT (perigo de lag) ══════ */
+.prime-hero.p8-mode {
+  animation:p8-hero-cycle 3s ease-in-out infinite;
+}
+@keyframes p8-hero-cycle {
+  0%,100% { box-shadow:0 8px 60px rgba(255,0,170,0.4), inset 0 0 80px rgba(255,0,170,0.15); border-color:#ff00aa; }
+  33%     { box-shadow:0 8px 80px rgba(255,193,7,0.5), inset 0 0 90px rgba(255,193,7,0.18); border-color:#ffc107; }
+  66%     { box-shadow:0 8px 80px rgba(255,68,68,0.5),  inset 0 0 90px rgba(255,68,68,0.18);  border-color:#ff4444; }
+}
+.p8-fx-layer {
+  position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden;
+}
+.p8-fx-layer span {
+  position:absolute; display:block; font-size:22px;
+  animation:p8-rise linear infinite;
+  filter:drop-shadow(0 0 10px currentColor);
+}
+@keyframes p8-rise {
+  from { transform:translateY(110vh) rotate(0deg); opacity:0; }
+  10%,90% { opacity:1; }
+  to   { transform:translateY(-15vh) rotate(720deg); opacity:0; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title">8️⃣ PRIME</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content">
+
+  <div class="prime-hero" id="prime-hero">
+    <span class="prime-badge-big" id="prime-big">🔒</span>
+    <div class="prime-name" id="prime-name">Sem Prime</div>
+    <div class="prime-spent">
+      💸 <span id="prime-spent">0</span> moedas gastas<br>
+      <small id="prime-spent-full">0 moedas</small>
+    </div>
+    <div class="prime-progress-wrap">
+      <div class="prime-progress-lbl">
+        <span id="prime-cur-lbl">Progresso</span>
+        <span id="prime-pct">0%</span>
+      </div>
+      <div class="prime-progress-bar"><div class="prime-progress-fill" id="prime-bar" style="width:0%"></div></div>
+      <div class="prime-progress-info" id="prime-info">Gaste moedas para subir de Prime.</div>
+    </div>
+  </div>
+
+  <div class="prime-badge-toggle" id="badge-toggle-wrap">
+    <span class="icon">8️⃣</span>
+    <div class="txt">
+      <div class="t1">Selo Prime VIII</div>
+      <div class="t2" id="badge-toggle-desc">Desbloqueia ao completar o Prime VIII.</div>
+    </div>
+    <div class="pt-switch" id="badge-switch" onclick="togglePrimeBadge()"></div>
+  </div>
+
+  <div class="section-title">🏅 Nivel de Prime</div>
+  <div id="prime-ladder"></div>
+
+  <div class="section-title" style="margin-top:18px;">🌐 Ranking Global · Top 100 gastadores</div>
+  <div id="prime-rank-list"></div>
+
+  <div style="text-align:center;font-size:11px;color:#333;margin:50px 0 100px;">
+    Ranking atualizado dinamicamente. Suas moedas gastas contam automaticamente.    
+    
+  ⚠️Suas moedas so conta para: Ouro, Xp, Xpp, varas e iscas, na loja, fora disso, nada conta!⚠️
+  </div>
+
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js?v=13.1"></script>
+<script src="gamedata2.js?v=13.1"></script>
+<script src="gamedata3.js?v=13.1"></script>
+<script src="gamedata-prime-patch.js?v=13.1"></script>
+<script>
+let SAVE = getOrCreateSave();
+primeEnsureFields(SAVE);
+writeSave(SAVE);
+
+function fmt(n){ return Math.floor(n||0).toLocaleString("pt-BR"); }
+
+function renderHero() {
+  const lvl  = primeGetLevel(SAVE);
+  const prog = primeGetProgress(SAVE);
+  const info = primeGetInfo(lvl);
+  const hero = document.getElementById("prime-hero");
+
+  document.getElementById("hdr-gold").textContent = fmt(SAVE.gold);
+  document.getElementById("prime-spent").textContent      = primeFormatNumber(prog.total);
+  document.getElementById("prime-spent-full").textContent = fmt(prog.total) + " moedas totais";
+
+  const big = document.getElementById("prime-big");
+  if (info) {
+    hero.style.setProperty("--prime-color", info.color);
+    hero.style.setProperty("--prime-glow",  info.glow);
+    big.textContent = "8️⃣";
+    big.style.color = info.color;
+    document.getElementById("prime-name").textContent = info.name;
+    if (lvl === 8) hero.classList.add("p8-mode"); else hero.classList.remove("p8-mode");
+  } else {
+    big.textContent = "🔒";
+    document.getElementById("prime-name").textContent = "Sem Prime";
+  }
+
+  const pct = Math.round(prog.pct);
+  document.getElementById("prime-bar").style.width = pct + "%";
+  document.getElementById("prime-pct").textContent = pct + "%";
+  if (prog.next) {
+    document.getElementById("prime-cur-lbl").textContent = "Ate " + prog.next.name;
+    document.getElementById("prime-info").textContent =
+      "Faltam " + primeFormatNumber(prog.target - prog.total) + " moedas para o proximo Prime.";
+  } else {
+    document.getElementById("prime-cur-lbl").textContent = "Prime maximo";
+    document.getElementById("prime-info").textContent    = "Voce alcancou o topo do sistema Prime.";
+  }
+}
+
+function renderBadgeToggle() {
+  const wrap = document.getElementById("badge-toggle-wrap");
+  const sw   = document.getElementById("badge-switch");
+  const desc = document.getElementById("badge-toggle-desc");
+  if (SAVE.primeBadgeUnlocked) {
+    wrap.classList.remove("locked");
+    if (SAVE.primeShowBadge) sw.classList.add("on"); else sw.classList.remove("on");
+    desc.textContent = SAVE.primeShowBadge
+      ? "Selo ativo: aparece no canto inferior direito da sua foto de perfil."
+      : "Selo desbloqueado. Toque para equipar.";
+  } else {
+    wrap.classList.add("locked");
+    sw.classList.remove("on");
+    desc.textContent = "Desbloqueia ao completar o Prime VIII (ou comprar em Comprar).";
+  }
+}
+
+function togglePrimeBadge() {
+  if (!SAVE.primeBadgeUnlocked) {
+    if (typeof showToast === "function") showToast("Complete o Prime VIII primeiro.", "error");
+    return;
+  }
+  SAVE.primeShowBadge = !SAVE.primeShowBadge;
+  writeSave(SAVE);
+  renderBadgeToggle();
+  if (typeof showToast === "function") showToast(SAVE.primeShowBadge ? "Selo 8️⃣ equipado." : "Selo removido.", "info");
+}
+
+function renderLadder() {
+  const cur  = primeGetLevel(SAVE);
+  const total= primeGetTotalPoints(SAVE);
+  const el   = document.getElementById("prime-ladder");
+  let html   = "";
+  for (const p of PRIME_LEVELS) {
+    const reached = cur >= p.level;
+    const isCur   = cur === p.level;
+    const base    = p.level === 1 ? 0 : PRIME_LEVELS[p.level-2].threshold;
+    const inLvl   = Math.max(0, Math.min(p.threshold - base, total - base));
+    const pct     = Math.round((inLvl / (p.threshold - base)) * 100);
+    const halfMk  = base + (p.threshold - base) / 2;
+    const halfDone= total >= halfMk;
+    const emClass = p.level === 8 ? "p8" : p.level === 7 ? "p7" : "";
+    const halfR   = PRIME_HALF_REWARDS[p.level];
+    const fullR   = PRIME_REWARDS[p.level];
+    const halfClm = (SAVE.primeHalfClaimed||[]).includes(p.level);
+    const fullClm = (SAVE.primeClaimed||[]).includes(p.level);
+
+    html += `
+      <div class="prime-level-card ${reached?"reached":""} ${isCur?"current":""}"
+           style="--lvl-color:${p.color};--lvl-glow:${p.glow};">
+        <div class="prime-level-head">
+          <span class="prime-level-emoji ${emClass}">8️⃣</span>
+          <div>
+            <div class="prime-level-name">${p.name}</div>
+            <div class="prime-level-req">${primeFormatNumber(p.threshold)} moedas gastas</div>
+          </div>
+          <span class="prime-level-status ${reached?"done":"locked"}">${reached?"Alcancado":"Bloqueado"}</span>
+        </div>
+        <div class="prime-mini-bar"><div class="prime-mini-fill" style="width:${pct}%"></div></div>
+        ${halfR ? `
+        <div class="prime-reward-row ${halfClm?"claimed":""}">
+          <span class="type">Meio caminho</span>
+          <span class="rewards">
+            <span class="chip">🪙 ${fmt(halfR.gold)}</span>
+            <span class="chip">⭐ ${fmt(halfR.xp)} xp</span>
+            <span class="chip">✨ ${fmt(halfR.xpp)} xpp</span>
+          </span>
+          <button class="prime-btn-claim" onclick="claim(${p.level},true)"
+            ${halfClm || !halfDone ? "disabled" : ""}>
+            ${halfClm ? "OK" : halfDone ? "Resgatar" : "..."}
+          </button>
+        </div>` : ""}
+        ${fullR ? `
+        <div class="prime-reward-row ${fullClm?"claimed":""}">
+          <span class="type">Prime ${p.level}</span>
+          <span class="rewards">
+            ${fullR.gold ? `<span class="chip">🪙 ${fmt(fullR.gold)}</span>` : ""}
+            ${fullR.xp   ? `<span class="chip">⭐ ${fmt(fullR.xp)} xp</span>` : ""}
+            ${fullR.xpp  ? `<span class="chip">✨ ${fmt(fullR.xpp)} xpp</span>` : ""}
+            ${fullR.card ? `<span class="chip">🃏 Carta lendaria</span>` : ""}
+            ${fullR.origensRandom ? `<span class="chip" style="color:#ff4444;">🔥 Origens aleatoria</span>` : ""}
+            ${fullR.unlockBadge ? `<span class="chip" style="color:#ff00aa;">8️⃣ Selo</span>` : ""}
+          </span>
+          <button class="prime-btn-claim" onclick="claim(${p.level},false)"
+            ${fullClm || !reached ? "disabled" : ""}>
+            ${fullClm ? "OK" : reached ? "Resgatar" : "..."}
+          </button>
+        </div>` : ""}
+      </div>
+    `;
+  }
+  el.innerHTML = html;
+}
+
+function claim(lvl, isHalf) {
+  const r = primeClaimReward(SAVE, lvl, isHalf);
+  if (!r.ok) {
+    if (typeof showToast === "function") showToast(r.reason || "Erro.", "error");
+    return;
+  }
+  const rw = r.reward;
+  const bits = [];
+  if (rw.gold) bits.push("🪙 " + fmt(rw.gold));
+  if (rw.xp)   bits.push("⭐ " + fmt(rw.xp) + " xp");
+  if (rw.xpp)  bits.push("✨ " + fmt(rw.xpp) + " xpp");
+  if (rw.card) bits.push("🃏 Nova carta");
+  if (rw.origensRandom) bits.push("🔥 Carta Origens");
+  if (rw.unlockBadge)   bits.push("8️⃣ Selo Prime VIII");
+  if (typeof showToast === "function") showToast("Recompensa: " + bits.join(" · "), "success");
+  renderHero(); renderLadder(); renderBadgeToggle();
+}
+
+function renderRank() {
+  const rows = primeGetLeaderboard(SAVE);
+  let html   = "";
+  for (const r of rows) {
+    const cls = [];
+    if (r.isMe) cls.push("me");
+    if (r.pos === 1) cls.push("top1");
+    else if (r.pos === 2) cls.push("top2");
+    else if (r.pos === 3) cls.push("top3");
+    const info = primeGetInfo(r.primeLevel);
+    const primeChip = info
+      ? `<span class="prr-prime" style="background:${info.color}22;color:${info.color};border:1px solid ${info.color};">${info.name}</span>`
+      : `<span class="prr-prime" style="background:#0e0e1c;color:#555;border:1px solid #2a2a4a;">—</span>`;
+    const posCls = r.pos === 1 ? "top1" : r.pos === 2 ? "top2" : r.pos === 3 ? "top3" : "";
+    html += `
+      <div class="prime-rank-row ${cls.join(" ")}">
+        <span class="prr-pos ${posCls}">${r.pos}</span>
+        <span class="prr-avatar">${r.avatar}</span>
+        <div class="prr-info">
+          <div class="prr-name">${r.name}${r.verified?'<span class="prr-verified">✓</span>':""}${r.isMe?' <small style="color:#ff00aa;">(voce)</small>':""}</div>
+          <div class="prr-spent">💸 ${primeFormatNumber(r.spent)}</div>
+        </div>
+        ${primeChip}
+      </div>
+    `;
+  }
+  document.getElementById("prime-rank-list").innerHTML = html;
+}
+
+// Efeito pesado do Prime 8
+function mountP8Fx() {
+  if (primeGetLevel(SAVE) < 8) return;
+  const layer = document.createElement("div");
+  layer.className = "p8-fx-layer";
+  const emojis = ["8️⃣","💎","🪙","✨","👑","🔥"];
+  for (let i = 0; i < 80; i++) { // pesado propositalmente
+    const s = document.createElement("span");
+    s.textContent = emojis[i % emojis.length];
+    s.style.left  = (Math.random()*100) + "%";
+    s.style.color = ["#ff00aa","#ffc107","#ff4444","#fff"][i % 4];
+    s.style.animationDuration = (5 + Math.random()*7) + "s";
+    s.style.animationDelay    = (-Math.random()*7) + "s";
+    s.style.fontSize = (14 + Math.random()*20) + "px";
+    layer.appendChild(s);
+  }
+  document.body.appendChild(layer);
+}
+
+renderHero();
+renderBadgeToggle();
+renderLadder();
+renderRank();
+mountP8Fx();
+setInterval(() => { SAVE = getOrCreateSave(); renderHero(); }, 8000);
+</script>
+</body>
+</html>

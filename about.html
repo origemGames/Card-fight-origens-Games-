@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Sobre – Card Fight</title>
+<script>
+  var CF_BUILD = Date.now();
+  document.write('<link rel="stylesheet" href="game.css?v=' + CF_BUILD + '"/>');
+</script>
+<style>
+.about-hero {
+  background:linear-gradient(180deg,#070712 0%,#1a0808 50%,#07120a 100%);
+  border:2px solid #ff4444; border-radius:20px;
+  padding:24px 16px 20px; margin-bottom:16px; text-align:center;
+}
+.about-title {
+  font-family:'Cinzel',serif; font-size:26px; font-weight:900;
+  background:linear-gradient(135deg,#ff4444,#ffc107); background-size:200%;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin:6px 0 4px; letter-spacing:2px;
+  animation:title-shimmer 4s linear infinite;
+}
+.section-title {
+  font-family:'Cinzel',serif; font-size:12px; font-weight:700;
+  letter-spacing:1.8px; text-transform:uppercase;
+  color:var(--sc,#ffc107); margin:16px 0 8px; padding:0 2px;
+}
+.sabio-section {
+  background:linear-gradient(135deg,#1a0e05,#2a1a08);
+  border:2px solid #e6c36a; border-radius:16px;
+  padding:16px; margin-bottom:14px; position:relative; overflow:hidden;
+}
+.sabio-section::before {
+  content:'🧙‍♂️'; position:absolute; top:-15px; right:-10px; font-size:100px; opacity:0.06;
+}
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Início</a>
+  <span class="logo-title">ℹ️ SOBRE</span>
+  <span style="width:80px;"></span>
+</header>
+
+<main class="content">
+
+  <div class="about-hero">
+    <div style="font-size:60px;">⚔️</div>
+    <div class="about-title">CARD FIGHT</div>
+    <div style="font-size:12px;color:#9e9e9e;">by Origens Games · v19.0 ✨</div>
+    <div style="font-size:11px;color:#666;margin-top:4px;">Um jogo de cartas competitivo e colecionável.</div>
+  </div>
+
+  <!-- ═══ NOVO: SÁBIO DAS TROCAS ═══ -->
+  <div class="sabio-section">
+    <div style="font-family:'Cinzel',serif;font-size:18px;color:#e6c36a;font-weight:700;margin-bottom:8px;position:relative;z-index:1;">
+      🧙‍♂️ Sábio das Trocas <span style="font-size:10px;background:#e6c36a;color:#000;padding:2px 8px;border-radius:8px;margin-left:6px;">NOVO v16.0</span>
+    </div>
+    <div style="font-size:12px;color:#c9b48a;line-height:1.9;position:relative;z-index:1;">
+      Um velho ermitão vive nas montanhas e adora colecionar cartas.
+      Ele te pede <strong style="color:#fff3c0;">uma carta específica do seu cofre</strong> em troca de
+      ouro, boosts, cartas ou pacotes.<br><br>
+      🎯 <strong>Nível 1 → 10</strong>: 2 trilhões de XP no total<br>
+      ⏱️ Entrega em <strong>menos de 30 min</strong> = felicidade extra<br>
+      ⏭️ <strong>Pular</strong>: apenas 1x por dia (chateia o Sábio)<br>
+      😊 <strong>Felicidade</strong> multiplica recompensas até <strong style="color:#ffc107;">x3.0</strong><br>
+      🌌 <strong style="color:#ff00aa;">Nível 10 — Troca Lendária</strong>: 1 carta ORIGENS por <strong>3 ORIGENS</strong><br>
+      🛒 <strong>Loja</strong>: compre "Felicidades pro Sábio" e "XPs pro Sábio"
+    </div>
+    <div style="margin-top:12px;position:relative;z-index:1;">
+      <a href="Sabio.html" class="btn btn-block" style="background:linear-gradient(135deg,#8a5a20,#e6c36a);color:#000;font-weight:700;">
+        🧙‍♂️ Visitar o Sábio
+      </a>
+    </div>
+  </div>
+
+  
+  <!-- ═══ NOVO v18 — ACADEMIA & EXPEDIÇÃO ═══ -->
+  <div class="sabio-section" style="background:linear-gradient(135deg,#1a0e05,#2a1a08);border-color:#e6c36a;">
+    <div style="font-family:'Cinzel',serif;font-size:20px;color:#e6c36a;font-weight:700;margin-bottom:8px;position:relative;z-index:1;">
+      🥋 Academia &amp; Expedição <span style="font-size:10px;background:#e6c36a;color:#000;padding:2px 8px;border-radius:8px;margin-left:6px;">NOVO v18.0</span>
+    </div>
+    <div style="font-size:12px;color:#c9b48a;line-height:1.9;position:relative;z-index:1;">
+      Um sistema completo de <b style="color:#fff3c0;">progressão de cartas</b> em 3 modalidades — cada carta pode receber
+      buffs permanentes de ATK/HP ganhando o selo <b style="color:#fff3c0;">🥋 Treinada</b> (uma única vez na vida!).
+      <br><br>
+
+      <b style="color:#e6c36a;font-size:13px;">🥋 ACADEMIA (diária)</b><br>
+      • Envie <b>1 carta por dia</b> · duração <b>totalmente aleatória</b>: 2h, 4h, 8h, 12h, 24h ou 42h<br>
+      • Buffs aleatórios: <b style="color:#66bb6a;">+1% a +3%</b> (positivo) OU <b style="color:#ff4444;">até -2%</b> (azar!)<br>
+      • Escolha o <b>foco</b>: ATK, HP ou Equilibrado — foco escolhido tem chance maior de buff positivo<br>
+      • Carta ganha <b>🥋</b> permanente e não poderá mais treinar<br><br>
+
+      <b style="color:#e6c36a;font-size:13px;">⛩️ SEÇÃO (avançada — desbloqueio 100.000 🪙)</b><br>
+      • <b>7 dias consecutivos</b> de treino intensivo<br>
+      • Boost final até <b style="color:#66bb6a;">+10% ATK/HP</b><br>
+      • <b style="color:#ff4444;">⚠️ Cuidado: se perder dias, penalidade até -30% ATK/HP!</b><br>
+      • Selo 🥋 só chega após concluir os 7 dias<br><br>
+
+      <b style="color:#29b6f6;font-size:13px;">🗺️ EXPEDIÇÕES (diária)</b><br>
+      • Envie 1 carta por dia · mesma variação de tempo (2h a 42h)<br>
+      • Recompensas: até <b style="color:#ffc107;">1.500 🪙</b> · <b style="color:#66bb6a;">1.050 XP</b> · <b style="color:#29b6f6;">1.000 XPP</b><br>
+      • <b>47% de chance</b> de trazer uma carta nova (rara chance de Origens/Ultra Raro)<br>
+      • <b style="color:#ff4444;">⚠️ Risco:</b> a carta pode não voltar — perdida para sempre<br>
+      • 🛡️ <b>Seguro</b> (bem caro): reduz drasticamente (não zera) a chance de perda<br>
+      • 👯 <b>Enviar 2 cartas</b>: teto de recompensa 1.7x, risco dobrado<br><br>
+
+      <b style="color:#ce93d8;font-size:13px;">⭐ XP DA ACADEMIA (Nv 1 → 6)</b><br>
+      • XP separado do jogo normal · acumulado a cada treino/expedição<br>
+      • Cada nível melhora a <b>faixa de sorte</b>: reduz teto negativo, aumenta chance positiva, reduz risco de perda<br>
+      • <b>Nv 6 (Faixa Preta):</b> teto negativo apenas -0.25% e risco mínimo em expedições<br><br>
+
+      <b style="color:#ffb300;font-size:13px;">🏆 CONQUISTAS</b><br>
+      • <b>23 conquistas</b> exclusivas dão ouro e XP da Academia<br>
+      • Complete metas de treino, expedição, nível de faixa e recompensas raras
+    </div>
+    <div style="margin-top:12px;position:relative;z-index:1;">
+      <a href="AcademiaExP.html" class="btn btn-block" style="background:linear-gradient(135deg,#8a5a20,#e6c36a);color:#000;font-weight:700;">
+        🥋 Abrir Academia &amp; Expedição
+      </a>
+    </div>
+  </div>
+
+  <!-- Novidades da versão -->
+  <div class="panel">
+    <div class="panel-title" style="color:#66bb6a;">🆕 Novidades v18.0</div>
+    <div style="font-size:12px;color:#c0c0d0;line-height:1.9;">
+      • 🥋 <strong>Academia & Expedição</strong> — sistema completo de progressão de cartas<br>
+      • ⛩️ <strong>Seção 7 dias</strong> — boost até +10% ATK/HP (100K pra desbloquear)<br>
+      • 🗺️ <strong>Expedições diárias</strong> — cartas raras & risco de perda<br>
+      • ⭐ <strong>6 níveis de faixa</strong> · 23 conquistas · foco ATK/HP/Equilibrado<br>
+      • 🧙‍♂️ <strong>Sábio das Trocas</strong> — NPC de trocas com 10 níveis de progressão<br>
+      • 😊 Sistema de <strong>felicidade</strong> que multiplica recompensas<br>
+      • 🎁 4 tipos de recompensa aleatória (ouro, boost, carta, pacote)<br>
+      • ⏭️ Pular pedido 1x/dia<br>
+      • 🌌 Troca lendária no nível 10 (1 Origens → 3 Origens)<br>
+      • 🛒 Novos itens na loja: <strong>Felicidades pro Sábio</strong> e <strong>XPs pro Sábio</strong>
+    </div>
+  </div>
+
+<!-- Fortaleza -->
+<div class="panel" style="border-color:#7c4dff;background:linear-gradient(135deg,#0a0015,#1a0028);">
+  <div class="panel-title" style="color:#ce93d8;">🏰 FORTALEZA</div>
+  <div style="font-size:12px;color:#c0c0d0;line-height:1.9;">
+    <strong style="color:#ffc107;">Sua base de poder!</strong> A Fortaleza é um sistema de progressão paralelo que concede
+    <strong style="color:#ce93d8;">bônus passivos</strong> em todas as batalhas.<br><br>
+    • <strong>20 níveis</strong> — progressão lenta e desafiadora.<br>
+    • Ganhe XP da Fortaleza por: <strong>missões diárias</strong>, <strong>batalhas clássicas</strong> e
+    <strong>gastando ouro</strong>.<br>
+    • No nível 20: <strong style="color:#66bb6a;">+10% ouro, +15% XP, +15% XPP, +2% ATK, +3% HP</strong>
+    e <strong style="color:#ffc107;">1 carta aleatória por dia</strong>.<br>
+    • Conquistas exclusivas para cada marco (níveis 5, 10, 15 e 20).<br><br>
+    <a href="fortaleza.html" class="btn btn-sm" style="background:linear-gradient(135deg,#4a0072,#9c27b0);color:#fff;border:none;padding:6px 16px;border-radius:8px;font-weight:700;">🏰 Ver Fortaleza</a>
+  </div>
+</div>
+
+<!-- ═══ NOVO: ROLETA ═══ -->
+<div class="panel" style="border-color:#ffb300;background:linear-gradient(135deg,#0a0a00,#1a1a00);">
+  <div class="panel-title" style="color:#ffb300;">🎰 ROLETA DO DESTINO - V15.0!</div>
+  <div style="font-size:12px;color:#c0c0d0;line-height:1.9;">
+    <strong style="color:#ffc107;">Gire a roleta e teste sua sorte!</strong> Um novo sistema de recompensas aleatórias com 4 níveis de roleta.<br><br>
+    • <strong>🍀 Roleta da Sorte</strong> (1.000 🪙): prêmios comuns, ouro, XP e XPP.<br>
+    • <strong>🧭 Roleta dos Aventureiros</strong> (5.000 🪙): cartas raras e épicas.<br>
+    • <strong>⚡ Roleta dos Deuses</strong> (15.000 🪙): cartas lendárias e míticas.<br>
+    • <strong>👑 Roleta Origens</strong> (20.000 🪙): a única chance de conseguir a <strong style="color:#ff1744;">Rei Das Roletas</strong> (Origens) e outras ultra raras!<br><br>
+    <span style="color:#ff8a80;">⚠️ Jogue com responsabilidade. A sorte é uma aliada, mas não uma garantia.</span><br><br>
+    <a href="roleta.html" class="btn btn-sm" style="background:linear-gradient(135deg,#b8730a,#e65100);color:#fff;border:none;padding:6px 16px;border-radius:8px;font-weight:700;">🎰 Girar Agora</a>
+  </div>
+</div>
+
+
+  
+<!-- ═══ NOVO v17 — ALDEIA ═══ -->
+<div class="panel" style="border-color:#7cb342;background:linear-gradient(135deg,#0a1505,#1a2a08);">
+  <div class="panel-title" style="color:#7cb342;">🏘️ SISTEMA DE ALDEIA — v18.0</div>
+  <div style="font-size:12px;color:#c0c0d0;line-height:1.9;">
+    <strong style="color:#ffc107;">Sua própria aldeia!</strong> Um sistema profundo de simulação econômica.<br><br>
+    • <strong>8 construções</strong>: Loja 🏪 · Minas ⛏️ · Fazenda 🌾 · Publicidade 📣 · Qualidade ⭐ · Armazém 📦 · Guarda 🛡️ · Decoração 🌸<br>
+    • <strong>Clientes NPC</strong> com falas variadas — atenda antes que percam a paciência.<br>
+    • <strong>Ladrões disfarçados</strong> deixam pistas cada vez mais sutis conforme você evolui.<br>
+    • <strong>VIPs raros</strong> aparecem se sua decoração for alta — pagam melhor, esperam menos.<br>
+    • <strong>Minigame de negociação</strong>: escolha a frase certa para salvar a venda.<br>
+    • <strong>Informante da cidade</strong> avisa dias de perigo (pago).<br>
+    • <strong>Dia e hora</strong> influenciam o movimento (fins de semana lotam!).<br>
+    • <strong>Contratos semanais</strong> com prazo e recompensas raras.<br>
+    • <strong>Ranking dinâmico</strong> de 100 aldeias — os pontos delas só sobem.<br><br>
+    <a href="Aldeia.html" class="btn btn-sm" style="background:linear-gradient(135deg,#4a7c1e,#7cb342);color:#fff;border:none;padding:6px 16px;border-radius:8px;font-weight:700;">🏘️ Abrir Aldeia</a>
+  </div>
+</div>
+
+  <!-- Créditos -->
+  <div class="panel" style="margin-top:14px;">
+    <div class="panel-title">👑 Créditos</div>
+    <div style="font-size:12px;color:#c0c0d0;line-height:1.8;">
+      Desenvolvido por <strong style="color:#ffc107;">Origens Games</strong>.<br>
+      Todos os direitos reservados © 2026.
+    </div>
+  </div>
+
+  <div style="height:80px;"></div>
+
+  <!-- ═══ NOVO v16 — CRAFTING ═══ -->
+  <div class="sabio-section" style="background:linear-gradient(135deg,#1a0e05,#2a1a08);border-color:#ffb74d;">
+    <div style="font-family:'Cinzel',serif;font-size:18px;color:#ffb74d;font-weight:700;margin-bottom:8px;position:relative;z-index:1;">
+      ⚙️ Mesa de Ferramentas <span style="font-size:10px;background:#ffb74d;color:#000;padding:2px 8px;border-radius:8px;margin-left:6px;">NOVO v16</span>
+    </div>
+    <div style="font-size:12px;color:#c9b48a;line-height:1.9;position:relative;z-index:1;">
+      Um novo sistema profundo de <strong style="color:#fff3c0;">craft de cartas</strong>: funda 2 cartas do seu cofre
+      em <strong style="color:#fff3c0;">200 cartas exclusivas</strong>. Todas começam escondidas — você precisa
+      <strong style="color:#fff3c0;">pesquisar</strong> cada receita antes de forjá-la.
+      <br><br>
+      🔬 <b>Pesquisa:</b> 5K de ouro (20K para Ultra/Origens), até 3 por dia, dura 30min ou 1h30, com chance
+      de falhar (50% do ouro retorna).<br>
+      🔧 <b>Craft:</b> após revelada, custa <b>ouro + engrenagens + gasolina</b> e leva <b>1h</b>.<br>
+      ⛽ <b>Gasolina & ⚙️ Engrenagens:</b> brindes diários grátis + loja + drops em batalha (7%) e pesca (22%).<br>
+      🏭 <b>Upgrades:</b> 3 níveis de máquina que aceleram tudo até -40% e dão +30% de recursos.<br>
+      🏆 <b>Conquistas:</b> 22 metas exclusivas dando ouro, engrenagens e gasolina.<br>
+      🎫 <b>Tickets:</b> pacotes premium por pagamento manual (Pix).
+    </div>
+  </div>
+
+  <!-- ═══ NOVO v19 — FAÇA SEU CAMINHO ═══ -->
+  <div class="sabio-section" style="background:linear-gradient(135deg,#150025,#0a0018);border-color:#ff00aa;">
+    <div style="font-family:'Cinzel',serif;font-size:18px;color:#ff00aa;font-weight:700;margin-bottom:8px;position:relative;z-index:1;">
+      ✨ Faça Seu Caminho <span style="font-size:10px;background:#ff00aa;color:#fff;padding:2px 8px;border-radius:8px;margin-left:6px;">NOVO v19.0</span>
+    </div>
+    <div style="font-size:12px;color:#c9b48a;line-height:1.9;position:relative;z-index:1;">
+      Escolha uma de <strong style="color:#fff3c0;">5 raças especiais</strong> (Human 🛡️, Shark 🦈, Mink 🐺, Cyborg 🤖, Angel 👼)
+      e siga uma <strong>jornada única de 30 batalhas</strong> com lore, chefes e escolhas de rota (nodes 8, 16, 24).
+      <br><br>
+      ⏳ <b>Cooldowns:</b> vitória = <b style="color:#66bb6a;">24h</b>, derrota = <b style="color:#ff4444;">3 dias</b>. Pule com <b>50 ⚡ Energia</b>.<br>
+      🎴 <b>Requisito de deck:</b> cada batalha pede uma composição exata de 10 cartas (ex: 5 Lendárias + 5 Míticas no BOSS).<br>
+      🏆 <b>Artefatos permanentes:</b><br>
+      &nbsp;&nbsp;• 🥇 Human → <b>+10% ouro</b><br>
+      &nbsp;&nbsp;• 🦷 Shark → <b>+10% XP</b><br>
+      &nbsp;&nbsp;• 🌙 Mink → <b>+10% XPP</b><br>
+      &nbsp;&nbsp;• ⚙️ Cyborg → <b>+5% ATK</b> em todas as cartas<br>
+      &nbsp;&nbsp;• 🕊️ Angel → <b>+5% HP</b> em todas as cartas<br>
+      ⭐ <b>V1 → V4:</b> zerar a raça sobe uma versão; V4 desbloqueia efeitos brilhantes e bônus na batalha clássica.<br>
+      🌌 <b>Raça Origens:</b> só após V4 em todas + fundir 5 cartas Origens. Ao chegar em V4: <b>título "Portador das Origens" + 1M🪙 + 5M XPP + 10M XP</b>.<br>
+      ✨ <b>Sigilo:</b> equipe em qualquer carta do cofre → <b>+50% ATK/HP</b> nas batalhas clássicas.<br>
+      👑 <b>Dominador de Artefatos:</b> junte os 5 Artefatos + 1M🪙 + 500⚡ e ganhe a carta ORIGENS mais forte do jogo (ATK 1050 / HP 3000).<br>
+      🎖️ <b>20 conquistas</b> exclusivas dando ouro, XP e XPP.
+    </div>
+    <div style="text-align:center;margin-top:10px;">
+      <a href="Ra%C3%A7as%26Run.html" class="btn" style="background:linear-gradient(135deg,#ff00aa,#7c4dff);color:#fff;padding:10px 22px;border-radius:20px;font-weight:900;text-decoration:none;display:inline-block;">
+        ✨ Trilhar meu caminho
+      </a>
+    </div>
+  </div>
+
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn active"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+
+</div>
+<script>document.write('<script src="gamedata-crafting.js?v=' + (window.CF_BUILD||Date.now()) + '"><\/script>');</script>
+
+<script>
+  var CF_BUILD_A = window.CF_BUILD || Date.now();
+  ["gamedata.js","gamedata2.js","gamedata3.js","gamedata-aldeia-patch.js","gamedata-academia-patch.js","gamedata-racas-patch.js"].forEach(function(src){
+    document.write('<scr'+'ipt src="'+src+'?v='+CF_BUILD_A+'"></scr'+'ipt>');
+  });
+</script>
+</body>
+</html>

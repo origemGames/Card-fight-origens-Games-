@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Trocas – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+.trocas-hero {
+  background:linear-gradient(135deg,#001a2e,#002d4e,#001a2e);
+  border:2px solid #29b6f6; border-radius:16px;
+  padding:20px 16px; margin-bottom:14px; text-align:center;
+  position:relative; overflow:hidden;
+}
+.trocas-hero::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(41,182,246,0.14) 0%,transparent 60%);
+  pointer-events:none;
+}
+.trocas-hero .icon { font-size:52px; display:block; margin-bottom:8px;
+  animation:float 2.5s ease-in-out infinite; filter:drop-shadow(0 0 16px rgba(41,182,246,0.5)); }
+.trocas-hero .title { font-family:'Cinzel',serif; font-size:20px; font-weight:900; color:#29b6f6; margin-bottom:4px; }
+.trocas-hero .sub { font-size:12px; color:#9e9e9e; }
+
+.trade-tabs { display:flex; background:#0e0e1c; border-radius:12px; padding:3px; gap:3px; margin-bottom:14px; }
+.trade-tab { flex:1; padding:9px 4px; border:none; border-radius:9px; background:transparent; color:#9e9e9e;
+  font-family:'Rajdhani',sans-serif; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.2s; }
+.trade-tab.active { background:linear-gradient(135deg,#0d47a1,#1565c0); color:#fff; }
+
+.offer-card {
+  background:var(--bg-card); border:2px solid #1a2a3e; border-radius:14px;
+  padding:14px; margin-bottom:10px; transition:all 0.2s; position:relative; overflow:hidden;
+}
+.offer-card:hover { border-color:#29b6f6; transform:translateY(-2px); box-shadow:0 6px 20px rgba(41,182,246,0.12); }
+.offer-card.my-offer { border-color:#66bb6a; background:linear-gradient(135deg,#0a1a0a,#0d200d); }
+.offer-card.compatible { border-color:#ffc107; background:linear-gradient(135deg,#1a1400,#201800); }
+.offer-card.verified-offer { border-color:#ce93d8; background:linear-gradient(135deg,#0d0020,#180030); }
+.offer-card.incoming-offer { border-color:#00e5ff; background:linear-gradient(135deg,#001a20,#002830); }
+
+/* ── Badges ── */
+.offer-badge {
+  position:absolute; top:8px; right:8px;
+  font-size:9px; font-weight:700; padding:2px 8px; border-radius:10px; color:#fff;
+}
+.offer-badge.live { background:linear-gradient(135deg,#1b5e20,#388e3c); animation:glow-pulse 1.5s infinite; }
+.offer-badge.new  { background:linear-gradient(135deg,#0d47a1,#1565c0); }
+.offer-badge.match { background:linear-gradient(135deg,#b8730a,#e65100); animation:glow-pulse 1.5s infinite; }
+.offer-badge.verified { background:linear-gradient(135deg,#4a0072,#9c27b0); }
+.offer-badge.incoming { background:linear-gradient(135deg,#004d40,#00695c); animation:glow-pulse 1.2s infinite; }
+
+.verified-star { color:#ce93d8; font-size:12px; }
+
+/* ── Card chips ── */
+.card-chip {
+  display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:10px;
+  font-size:12px; font-weight:700;
+}
+.card-chip.offer-item { background:rgba(41,182,246,0.12); border:1px solid #29b6f6; color:#80deea; }
+.card-chip.want-item  { background:rgba(255,193,7,0.12);  border:1px solid #ffc107; color:#ffe082; }
+
+/* ── Rarity indicator ── */
+.rarity-badge-inline {
+  display:inline-block; font-size:8px; font-weight:700; padding:1px 5px;
+  border-radius:6px; margin-left:3px; vertical-align:middle;
+}
+
+.trade-arrow { font-size:24px; text-align:center; margin:8px 0; color:#9e9e9e; }
+
+.player-info-row {
+  display:flex; align-items:center; gap:8px; margin-bottom:10px;
+}
+.player-avatar-sm { font-size:24px; }
+.player-name-sm { font-weight:700; font-size:13px; }
+.player-rank-sm { font-size:10px; color:#9e9e9e; }
+
+.my-cards-grid {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px;
+}
+.select-card-box {
+  background:#0e0e1c; border:2px dashed #2a2a4a; border-radius:10px;
+  padding:10px; text-align:center; cursor:pointer; transition:all 0.2s;
+  min-height:80px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+}
+.select-card-box:hover { border-color:#29b6f6; }
+.select-card-box.selected { border-color:#29b6f6; background:rgba(41,182,246,0.08); }
+.select-card-box.want-selected { border-color:#ffc107; background:rgba(255,193,7,0.08); }
+
+.live-pulse {
+  display:inline-block; width:8px; height:8px; border-radius:50%;
+  background:#4CAF50; margin-right:4px;
+  animation:glow-pulse 1s infinite;
+}
+
+.timer-chip {
+  font-size:10px; color:#9e9e9e; display:flex; align-items:center; gap:4px;
+}
+.timer-chip span { font-family:'Cinzel',serif; color:#29b6f6; font-weight:700; }
+
+/* ── Rarity lock warning ── */
+.rarity-lock-box {
+  background:rgba(244,67,54,0.09); border:1px solid #f44336; border-radius:10px;
+  padding:10px 12px; margin-bottom:10px; font-size:12px; color:#ef9a9a; line-height:1.7;
+  display:none;
+}
+.rarity-lock-box.show { display:block; animation:slide-in 0.3s ease; }
+
+/* ── Incoming offers tab inside "Minha Oferta" ── */
+.incoming-section-title {
+  font-size:12px; font-weight:700; color:#00e5ff;
+  margin:14px 0 8px; display:flex; align-items:center; gap:6px;
+}
+
+/* ── Market stats bar ── */
+.market-stats-bar {
+  display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;
+}
+.market-stat {
+  flex:1; min-width:70px; background:#0e0e1c; border:1px solid #1e1e30;
+  border-radius:10px; padding:7px 8px; text-align:center;
+}
+.market-stat .ms-val { font-size:16px; font-weight:900; }
+.market-stat .ms-lbl { font-size:9px; color:#9e9e9e; margin-top:2px; }
+
+/* ── Trade ranking ── */
+.trade-rank-row {
+  display:flex; align-items:center; gap:10px; padding:8px 10px;
+  background:#0e0e1c; border-radius:10px; margin-bottom:6px;
+  border-left:3px solid #29b6f6;
+}
+.trade-rank-num { font-family:'Cinzel',serif; font-weight:900; color:#ffc107; font-size:13px; width:20px; }
+.trade-rank-name { flex:1; font-size:12px; font-weight:700; }
+.trade-rank-count { font-size:11px; color:#9e9e9e; }
+
+@keyframes slide-in {
+  from { transform:translateX(-20px); opacity:0; }
+  to   { transform:translateX(0); opacity:1; }
+}
+.offer-card { animation:slide-in 0.3s ease; }
+
+@keyframes shimmer-border {
+  0%,100% { border-color:#29b6f6; }
+  50%      { border-color:#00e5ff; box-shadow:0 0 16px rgba(0,229,255,0.3); }
+}
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title" style="background:linear-gradient(135deg,#29b6f6,#0d47a1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">🔄 TROCAS</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content">
+
+  <div class="trocas-hero">
+    <span class="icon">🔄</span>
+    <div class="title">Sistema de Trocas</div>
+    <div class="sub">Troque cartas com outros jogadores · Apenas raridades iguais!</div>
+  </div>
+
+  <!-- Info banner -->
+  <div style="background:rgba(41,182,246,0.06);border:1px solid #0d47a1;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#c0c0d0;line-height:1.8;">
+    <span class="live-pulse"></span><strong style="color:#29b6f6;">Ao vivo!</strong>
+    As ofertas dos jogadores são atualizadas dinamicamente. Quando você tiver uma carta que alguém quer,
+    verá o aviso <strong style="color:#ffc107;">✨ COMBINAÇÃO!</strong><br>
+    <strong style="color:#ffd700;">⚖️ Regra de Raridade Justa:</strong> Só é permitido trocar carta por carta de <strong>mesma raridade</strong>.<br>
+    Cartas de evento <strong>não podem ser trocadas</strong>.
+  </div>
+
+  <!-- Tabs -->
+  <div class="trade-tabs">
+    <button class="trade-tab active" onclick="switchTab('market',this)">🏪 Mercado</button>
+    <button class="trade-tab" onclick="switchTab('offer',this)">📤 Minha Oferta</button>
+    <button class="trade-tab" onclick="switchTab('history',this)">📋 Histórico</button>
+    <button class="trade-tab" onclick="switchTab('ranking',this)">🏅 Ranking</button>
+  </div>
+
+  <!-- ═══ MERCADO ═══ -->
+  <div id="tab-market">
+    <!-- Estatísticas do mercado -->
+    <div class="market-stats-bar">
+      <div class="market-stat">
+        <div class="ms-val" style="color:#29b6f6;" id="market-count">0</div>
+        <div class="ms-lbl">ofertas ativas</div>
+      </div>
+      <div class="market-stat">
+        <div class="ms-val" style="color:#66bb6a;" id="market-compat">0</div>
+        <div class="ms-lbl">combinações</div>
+      </div>
+      <div class="market-stat">
+        <div class="ms-val" style="color:#ce93d8;" id="market-verified">0</div>
+        <div class="ms-lbl">verificados</div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div style="font-size:12px;color:#9e9e9e;">
+        <span class="live-pulse"></span>Mercado ao vivo
+      </div>
+      <div class="timer-chip">Atualiza em <span id="refresh-timer">15</span>s</div>
+    </div>
+    <div id="market-list"></div>
+  </div>
+
+  <!-- ═══ MINHA OFERTA ═══ -->
+  <div id="tab-offer" style="display:none;">
+    <div id="my-offer-display" style="display:none;"></div>
+
+    <div id="offer-builder">
+      <div class="panel" style="margin-bottom:12px;">
+        <div class="panel-title">🃏 Carta que você OFERECE</div>
+        <p style="font-size:12px;color:#9e9e9e;margin-bottom:10px;line-height:1.6;">
+          Selecione uma carta do seu cofre. Cartas de evento não podem ser trocadas.
+        </p>
+        <div id="offer-card-selector" class="my-cards-grid"></div>
+        <div id="offer-selected" style="display:none;margin-top:10px;"></div>
+      </div>
+
+      <div class="panel" style="margin-bottom:12px;">
+        <div class="panel-title">🎯 Carta que você QUER</div>
+        <div id="rarity-lock-warning" class="rarity-lock-box">
+          ⚖️ <strong>Troca de Raridade Justa!</strong><br>
+          Você só pode pedir cartas da <strong id="offer-rarity-name">mesma raridade</strong> que a carta que está oferecendo.
+          Isso garante que nenhuma troca seja injusta para nenhum dos lados!
+        </div>
+        <p style="font-size:12px;color:#9e9e9e;margin-bottom:10px;line-height:1.6;">
+          Escolha uma carta específica para receber em troca.
+          <span id="want-rarity-hint" style="color:#ffc107;font-weight:700;"></span>
+        </p>
+        <select id="want-select" class="input" style="margin-bottom:8px;">
+          <option value="">— Selecione uma carta para oferecer primeiro —</option>
+        </select>
+        <div id="want-preview" style="display:none;"></div>
+      </div>
+
+      <button class="btn btn-primary btn-block btn-lg" onclick="publishOffer()">
+        📤 Publicar Oferta
+      </button>
+    </div>
+
+    <!-- Ofertas recebidas (quando player tem oferta ativa) -->
+    <div id="incoming-offers-section" style="display:none;margin-top:16px;"></div>
+  </div>
+
+  <!-- ═══ HISTÓRICO ═══ -->
+  <div id="tab-history" style="display:none;">
+    <div id="history-list"></div>
+  </div>
+
+  <!-- ═══ RANKING DE TROCAS ═══ -->
+  <div id="tab-ranking" style="display:none;">
+    <div id="ranking-list"></div>
+  </div>
+
+  <div style="height:70px;"></div>
+</main>
+
+<!-- Modal de troca -->
+<div class="modal-overlay hidden" id="trade-modal">
+  <div class="modal-box">
+    <div id="trade-modal-content"></div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">
+      <button class="btn btn-primary btn-block" id="btn-accept-trade" onclick="acceptTrade()">🤝 Aceitar Troca</button>
+      <button class="btn btn-outline btn-block" onclick="document.getElementById('trade-modal').classList.add('hidden')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js"></script>
+<script src="gamedata2.js"></script>
+<script>
+"use strict";
+let save, currentTab = "market", myOffer = null, selectedTradeOffer = null;
+let refreshTimer = 15;
+
+// ── JOGADORES EXPANDIDOS (60+) ─────────────────────────────────
+const TRADE_PLAYERS = [
+  // Jogadores comuns
+  "KairoMaster","VoidHunterX","ShadowOrigens","BladeEternal","FrostReaper",
+  "DragonSlayerZ","NightVandal","IronStorm99","CrimsonFang","StarForged",
+  "RuneMaster7","GrimWatcher","PhoenixRising","SilverEdge","NovaBlade",
+  "YoungKnight","IronGuard01","EclipseWarden","ShadowTitan","FrostEmperor",
+  "StormChaser","BlazeFury","CrystalMage","ThunderLord","DuskBlade",
+  "SolarKnight","MoonStrider","DarkProphet","FireVeil","StoneGuard",
+  "ArcaneWitch","TwilightFang","CosmicBlade","VenomArcher","IronMonk",
+  "GhostRider77","LunarMage","OceanTide","VolcanicFire","TempestRose",
+  "DawnBreaker","SpiritWalker","ChaosLord","EmberKnight","SerpentEye",
+  "StarlightX","AbyssWarden","NorthernWolf","CinderBlaze","PrismGuard",
+  "HollowKing","VoidSerpent","SteelPhoenix","GoldenDusk","NightOwl99",
+  "ThornBloom","DesertFang","FrostWarden","StormCaller","DarkFlame",
+  "MirrorSoul","EchoKnight","TideWatcher","BoneCrusherX","RadiantEdge",
+];
+
+// ── JOGADORES VERIFICADOS (ofertas maiores) ────────────────────
+const VERIFIED_PLAYERS = [
+  { name:"★ VoidKingCreator", emoji:"👑" },
+  { name:"★ OrigensTV",       emoji:"🎬" },
+  { name:"★ CardFightPro",    emoji:"🏆" },
+  { name:"★ LegendaryGuild",  emoji:"⚜️" },
+  { name:"★ MasterBlader",    emoji:"⚔️" },
+  { name:"★ UltraCollector",  emoji:"💎" },
+  { name:"★ PhoenixContent",  emoji:"🔥" },
+  { name:"★ RaidLeader",      emoji:"💀" },
+];
+
+const TRADE_MSGS = [
+  "Quero trocar urgente!","Oferta justa, garanto!","Negociando agora!","Alguém topa?",
+  "Troca garantida!","Preciso muito dessa carta!","Quem topar, me chama!",
+  "Boa oferta aqui!","Vem trocar comigo!","Aceito proposta igual!",
+  "Melhor oferta do mercado!","Procuro há dias, alguém?","Oferta honesta!",
+  "Veteran trader aqui!","DM aberto para trades!","Troco agora mesmo!",
+  "Raridade justa garantida!","Top oferta do dia!","Confiável, venho de longa data!",
+];
+
+// Semente pseudo-aleatória
+function tradeHash(seed) {
+  let h = seed;
+  h = ((h >> 16) ^ h) * 0x45d9f3b; h = ((h >> 16) ^ h) * 0x45d9f3b; h = (h >> 16) ^ h;
+  return Math.abs(h) / 2147483647;
+}
+
+// ── RARIDADE ─────────────────────────────────────────────────
+function rarityOf(card) {
+  if (typeof RARITY !== "undefined" && card && RARITY[card.rarity]) return RARITY[card.rarity];
+  return { name:"Comum", color:"#9e9e9e", weight:60 };
+}
+
+function rarityWeight(card) {
+  const r = rarityOf(card);
+  return r.weight || 60;
+}
+
+// Filtra cartas por raridade igual
+function sameRarity(cardA, cardB) {
+  return cardA && cardB && cardA.rarity === cardB.rarity;
+}
+
+// ── OFERTAS SIMULADAS (mesma raridade forçada) ───────────────
+function getSimulatedOffers() {
+  const slot  = Math.floor(Date.now() / 10000); // muda a cada 10s
+  const offers = [];
+  const cards  = (typeof ALL_CARDS !== "undefined") ? ALL_CARDS.filter(c => !c.id.startsWith("ev")) : [];
+  if (cards.length < 4) return [];
+
+  // Agrupa cartas por raridade
+  const byRarity = {};
+  cards.forEach(c => {
+    if (!byRarity[c.rarity]) byRarity[c.rarity] = [];
+    byRarity[c.rarity].push(c);
+  });
+  const rarityKeys = Object.keys(byRarity).filter(k => byRarity[k].length >= 2);
+
+  const count = 18 + Math.floor(tradeHash(slot * 7) * 10); // 18-27 ofertas
+  for (let i = 0; i < count; i++) {
+    const seed = slot * 1000 + i;
+
+    // Escolhe raridade aleatória para esta oferta
+    const rarKey = rarityKeys[Math.floor(tradeHash(seed + 99) * rarityKeys.length)];
+    const pool   = byRarity[rarKey] || cards;
+    if (pool.length < 2) continue;
+
+    // Jogador verificado ou comum
+    const isVerified = tradeHash(seed + 77) < 0.12; // 12% de chance de ser verificado
+    let player, playerEmoji = "👤", playerTag = "";
+    if (isVerified) {
+      const vp  = VERIFIED_PLAYERS[Math.floor(tradeHash(seed + 78) * VERIFIED_PLAYERS.length)];
+      player     = vp.name;
+      playerEmoji= vp.emoji;
+      playerTag  = "verified";
+    } else {
+      player = TRADE_PLAYERS[Math.floor(tradeHash(seed + 1) * TRADE_PLAYERS.length)];
+    }
+
+    const offerCardIdx = Math.floor(tradeHash(seed + 2) * pool.length);
+    let   wantCardIdx  = Math.floor(tradeHash(seed + 3) * pool.length);
+    if (wantCardIdx === offerCardIdx) wantCardIdx = (wantCardIdx + 1) % pool.length;
+
+    const msgIdx  = Math.floor(tradeHash(seed + 4) * TRADE_MSGS.length);
+    const timeAgo = Math.floor(tradeHash(seed + 5) * 58) + 1;
+    const isNew   = timeAgo < 5;
+
+    offers.push({
+      id:          `offer_${seed}`,
+      player,
+      playerEmoji,
+      playerTag,
+      isVerified,
+      offerCard:   pool[offerCardIdx],
+      wantCard:    pool[wantCardIdx],
+      msg:         TRADE_MSGS[msgIdx],
+      timeAgo,
+      isNew,
+    });
+  }
+
+  // Inclui oferta ativa do próprio jogador no mercado (corrige bug: jogador não via a própria oferta)
+  if (save && save.activeTradeOffer) {
+    const oc = cards.find(c => c.id === save.activeTradeOffer.offerCardId);
+    const wc = cards.find(c => c.id === save.activeTradeOffer.wantCardId);
+    if (oc && wc) {
+      offers.unshift({
+        id:          "my_active_offer",
+        player:      save.playerName || "Você",
+        playerEmoji: "⭐",
+        playerTag:   "",
+        isVerified:  false,
+        isMyOwn:     true,
+        offerCard:   oc,
+        wantCard:    wc,
+        msg:         "Esta é minha oferta — esperando alguém interessado!",
+        timeAgo:     Math.max(1, Math.floor((Date.now() - (save.activeTradeOffer.ts||Date.now())) / 60000)),
+        isNew:       true,
+      });
+    }
+  }
+
+  return offers;
+}
+
+function playerHasCard(cardId) {
+  return save.vault && save.vault.includes(cardId);
+}
+
+// ── RENDERIZAR MERCADO ────────────────────────────────────────
+function renderMarket() {
+  const offers = getSimulatedOffers();
+
+  const compatible = offers.filter(o => !o.isMyOwn && playerHasCard(o.wantCard.id) && !playerHasCard(o.offerCard.id));
+  const verified   = offers.filter(o => !o.isMyOwn && o.isVerified && !compatible.includes(o));
+  const myOwn      = offers.filter(o => o.isMyOwn);
+  const normal     = offers.filter(o => !o.isMyOwn && !o.isVerified && !compatible.includes(o));
+
+  const sorted = [...myOwn, ...compatible, ...verified, ...normal];
+
+  document.getElementById("market-count").textContent   = offers.length;
+  document.getElementById("market-compat").textContent  = compatible.length;
+  document.getElementById("market-verified").textContent= offers.filter(o => o.isVerified).length;
+
+  const list = document.getElementById("market-list");
+  list.innerHTML = sorted.map(o => {
+    const isCompat = !o.isMyOwn && playerHasCard(o.wantCard.id) && !playerHasCard(o.offerCard.id);
+    const or = rarityOf(o.offerCard);
+    const wr = rarityOf(o.wantCard);
+
+    let cardClass = "";
+    if (o.isMyOwn)    cardClass = "my-offer";
+    else if (isCompat) cardClass = "compatible";
+    else if (o.isVerified) cardClass = "verified-offer";
+
+    let badge = `<div class="offer-badge live">🟢 AO VIVO</div>`;
+    if (o.isMyOwn)    badge = `<div class="offer-badge live">⭐ SUA OFERTA</div>`;
+    else if (isCompat) badge = `<div class="offer-badge match">✨ COMBINAÇÃO!</div>`;
+    else if (o.isVerified) badge = `<div class="offer-badge verified">✅ VERIFICADO</div>`;
+    else if (o.isNew)  badge = `<div class="offer-badge new">🆕 NOVO</div>`;
+
+    const clickAttr = o.isMyOwn ? `onclick="showToast('⭐ Esta é a sua própria oferta no mercado!','info')"` : `onclick="openTradeModal('${o.id}')"`;
+
+    return `<div class="offer-card ${cardClass}" ${clickAttr}>
+      ${badge}
+      <div class="player-info-row">
+        <div class="player-avatar-sm">${o.playerEmoji}</div>
+        <div>
+          <div class="player-name-sm">${o.player}${o.isVerified?` <span class="verified-star">✅</span>`:`}`}</div>
+          <div class="player-rank-sm">há ${o.timeAgo} min · "${o.msg}"</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:10px;color:#9e9e9e;margin-bottom:3px;">Oferece</div>
+          <div class="card-chip offer-item">
+            <span>${o.offerCard.img}</span>
+            <span style="color:${or.color};">${o.offerCard.name}</span>
+            <span style="font-size:9px;color:${or.color};opacity:0.8;">${or.name}</span>
+          </div>
+        </div>
+        <div class="trade-arrow">⇄</div>
+        <div>
+          <div style="font-size:10px;color:#9e9e9e;margin-bottom:3px;">Quer</div>
+          <div class="card-chip want-item">
+            <span>${o.wantCard.img}</span>
+            <span style="color:${wr.color};">${o.wantCard.name}</span>
+            <span style="font-size:9px;color:${wr.color};opacity:0.8;">${wr.name}</span>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <div style="font-size:9px;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,0.04);color:#666;">
+          ⚖️ Raridade: ${or.name} ↔ ${wr.name}
+        </div>
+        ${isCompat ? `<div style="font-size:11px;color:#ffc107;font-weight:700;">⚡ Você tem "${o.wantCard.name}"!</div>` : ""}
+        ${o.isVerified && !isCompat ? `<div style="font-size:10px;color:#ce93d8;">💎 Jogador verificado</div>` : ""}
+      </div>
+    </div>`;
+  }).join("");
+
+  window._currentOffers = sorted;
+}
+
+// ── MODAL DE TROCA ────────────────────────────────────────────
+function openTradeModal(offerId) {
+  const o = (window._currentOffers||[]).find(x => x.id === offerId);
+  if (!o) return;
+  selectedTradeOffer = o;
+
+  const or = rarityOf(o.offerCard);
+  const wr = rarityOf(o.wantCard);
+  const hasWant       = playerHasCard(o.wantCard.id);
+  const alreadyHasOffer = playerHasCard(o.offerCard.id);
+  const rarityMismatch  = !sameRarity(o.offerCard, o.wantCard);
+
+  document.getElementById("trade-modal-content").innerHTML = `
+    <div class="modal-title" style="color:#29b6f6;">🤝 Proposta de Troca</div>
+    <div style="text-align:center;margin-bottom:8px;font-size:12px;color:#9e9e9e;">
+      Oferta de <strong style="color:#fff;">${o.playerEmoji} ${o.player}</strong>
+      ${o.isVerified ? `<br><span style="color:#ce93d8;font-size:10px;">✅ Jogador verificado</span>` : ""}
+    </div>
+
+    <div style="background:#0a0a1e;border-radius:12px;padding:14px;margin-bottom:12px;">
+      <div style="text-align:center;margin-bottom:12px;">
+        <div style="font-size:11px;color:#9e9e9e;margin-bottom:4px;">Ele te dá</div>
+        <div style="font-size:40px;">${o.offerCard.img}</div>
+        <div style="font-family:'Cinzel',serif;font-weight:700;font-size:14px;color:${or.color};">${o.offerCard.name}</div>
+        <div style="font-size:10px;color:${or.color};">${or.name} · ATK:${o.offerCard.atk} HP:${o.offerCard.hp}</div>
+        ${alreadyHasOffer ? `<div style="font-size:10px;color:#9e9e9e;margin-top:4px;">Você já tem esta carta</div>` : ""}
+      </div>
+      <div style="text-align:center;font-size:22px;color:#9e9e9e;margin:8px 0;">⇅</div>
+      <div style="text-align:center;">
+        <div style="font-size:11px;color:#9e9e9e;margin-bottom:4px;">Você dá</div>
+        <div style="font-size:40px;">${o.wantCard.img}</div>
+        <div style="font-family:'Cinzel',serif;font-weight:700;font-size:14px;color:${wr.color};">${o.wantCard.name}</div>
+        <div style="font-size:10px;color:${wr.color};">${wr.name} · ATK:${o.wantCard.atk} HP:${o.wantCard.hp}</div>
+        ${hasWant
+          ? `<div style="font-size:11px;color:#a5d6a7;font-weight:700;margin-top:4px;">✅ Você tem esta carta!</div>`
+          : `<div style="font-size:11px;color:#ef9a9a;font-weight:700;margin-top:4px;">❌ Você não tem esta carta</div>`}
+      </div>
+    </div>
+
+    <!-- Verificação de raridade -->
+    <div style="background:${rarityMismatch?'rgba(244,67,54,0.08)':'rgba(76,175,80,0.08)'};border:1px solid ${rarityMismatch?'#f44336':'#4CAF50'};border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:11px;color:${rarityMismatch?'#ef9a9a':'#a5d6a7'};text-align:center;">
+      ⚖️ Raridade: <strong>${or.name}</strong> ↔ <strong>${wr.name}</strong>
+      ${rarityMismatch ? " — ⚠️ Raridades diferentes! Esta troca é inválida." : " — ✅ Raridades iguais!"}
+    </div>
+
+    <div style="font-size:11px;color:#9e9e9e;text-align:center;line-height:1.6;">
+      💬 "${o.msg}"<br>
+      <span style="color:#555;">Oferta publicada há ${o.timeAgo} min</span>
+    </div>
+  `;
+
+  const btn = document.getElementById("btn-accept-trade");
+  if (!hasWant) {
+    btn.textContent = "❌ Você não tem esta carta";
+    btn.disabled = true; btn.style.opacity = "0.5";
+  } else if (rarityMismatch) {
+    btn.textContent = "⚠️ Raridades diferentes — Proibido";
+    btn.disabled = true; btn.style.opacity = "0.5";
+  } else {
+    btn.textContent = "🤝 Aceitar Troca";
+    btn.disabled = false; btn.style.opacity = "1";
+  }
+
+  document.getElementById("trade-modal").classList.remove("hidden");
+}
+
+function acceptTrade() {
+  if (!selectedTradeOffer) return;
+  const o = selectedTradeOffer;
+
+  if (!playerHasCard(o.wantCard.id)) { showToast("❌ Você não tem a carta necessária!", "error"); return; }
+  if (playerHasCard(o.offerCard.id)) { showToast("ℹ️ Você já possui esta carta!", "info"); return; }
+
+  // ── VALIDAÇÃO DE RARIDADE JUSTA ──────────────────────────
+  if (!sameRarity(o.offerCard, o.wantCard)) {
+    showToast("⚖️ Troca bloqueada! Raridades diferentes não são permitidas.", "error", 4000);
+    return;
+  }
+
+  // Remove a carta que o jogador dá, adiciona a que recebe
+  save.vault = save.vault.filter(id => id !== o.wantCard.id);
+  save.vault.push(o.offerCard.id);
+
+  if (!save.tradeHistory) save.tradeHistory = [];
+  save.tradeHistory.unshift({
+    ts:        Date.now(),
+    gave:      o.wantCard.name,
+    gaveEmoji: o.wantCard.img,
+    gaveRarity:rarityOf(o.wantCard).name,
+    got:       o.offerCard.name,
+    gotEmoji:  o.offerCard.img,
+    gotRarity: rarityOf(o.offerCard).name,
+    with:      o.player,
+  });
+  if (!save.tradeCount) save.tradeCount = 0;
+  save.tradeCount++;
+  if (save.tradeHistory.length > 100) save.tradeHistory = save.tradeHistory.slice(0,100);
+
+  writeSave(save);
+  document.getElementById("trade-modal").classList.add("hidden");
+  showToast(`✅ Troca feita! Você recebeu ${o.offerCard.img} ${o.offerCard.name}!`, "gold", 4000);
+  renderMarket();
+}
+
+// ── MINHA OFERTA ─────────────────────────────────────────────
+function renderMyOffer() {
+  const display   = document.getElementById("my-offer-display");
+  const builder   = document.getElementById("offer-builder");
+  const incoming  = document.getElementById("incoming-offers-section");
+
+  if (save.activeTradeOffer) {
+    const offer    = save.activeTradeOffer;
+    const offerCard= typeof ALL_CARDS !== "undefined" ? ALL_CARDS.find(c => c.id === offer.offerCardId) : null;
+    const wantCard = typeof ALL_CARDS !== "undefined" ? ALL_CARDS.find(c => c.id === offer.wantCardId)  : null;
+    if (!offerCard || !wantCard) { display.style.display="none"; builder.style.display="block"; return; }
+    const or = rarityOf(offerCard);
+    const wr = rarityOf(wantCard);
+
+    display.style.display = "block";
+    builder.style.display = "none";
+    display.innerHTML = `
+      <div class="offer-card my-offer" style="margin-bottom:12px;">
+        <div class="offer-badge live">🟢 ATIVA</div>
+        <div class="panel-title" style="color:#66bb6a;">📤 Sua Oferta Ativa</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <div>
+            <div style="font-size:10px;color:#9e9e9e;margin-bottom:3px;">Você oferece</div>
+            <div class="card-chip offer-item"><span>${offerCard.img}</span><span style="color:${or.color};">${offerCard.name}</span><span style="font-size:9px;opacity:0.7;"> (${or.name})</span></div>
+          </div>
+          <div class="trade-arrow">⇄</div>
+          <div>
+            <div style="font-size:10px;color:#9e9e9e;margin-bottom:3px;">Você quer</div>
+            <div class="card-chip want-item"><span>${wantCard.img}</span><span style="color:${wr.color};">${wantCard.name}</span><span style="font-size:9px;opacity:0.7;"> (${wr.name})</span></div>
+          </div>
+        </div>
+        <div style="font-size:11px;color:#9e9e9e;margin-bottom:10px;">
+          <span class="live-pulse"></span>Visível para todos os jogadores do mercado
+        </div>
+        <button class="btn btn-sm btn-block" style="background:#b71c1c;color:#fff;border:none;" onclick="cancelOffer()">
+          🗑️ Cancelar Oferta
+        </button>
+      </div>`;
+
+    // ── OFERTAS RECEBIDAS (bug fix: mostrar quem quer sua carta) ──
+    incoming.style.display = "block";
+    renderIncomingOffers(offerCard, wantCard);
+  } else {
+    display.style.display   = "none";
+    builder.style.display   = "block";
+    incoming.style.display  = "none";
+    renderOfferBuilder();
+  }
+}
+
+// Simula jogadores interessados na carta que o player oferece
+function renderIncomingOffers(offerCard, wantCard) {
+  const inc = document.getElementById("incoming-offers-section");
+  const cards = (typeof ALL_CARDS !== "undefined") ? ALL_CARDS.filter(c => !c.id.startsWith("ev")) : [];
+  const slot  = Math.floor(Date.now() / 12000);
+  const incomingOffers = [];
+  const incomingCount  = 3 + Math.floor(tradeHash(slot * 999 + offerCard.id.length) * 4); // 3-6 ofertas recebidas
+
+  for (let i = 0; i < incomingCount; i++) {
+    const seed    = slot * 500 + i + 77;
+    const isVer   = tradeHash(seed + 55) < 0.25;
+    const player  = isVer
+      ? VERIFIED_PLAYERS[Math.floor(tradeHash(seed+56)*VERIFIED_PLAYERS.length)].name
+      : TRADE_PLAYERS[Math.floor(tradeHash(seed+1)*TRADE_PLAYERS.length)];
+    const emoji   = isVer ? "✅" : "👤";
+
+    // Jogador quer a carta que você está oferecendo
+    // E te oferece uma carta de mesma raridade de volta
+    const sameRarPool = cards.filter(c => c.rarity === offerCard.rarity && c.id !== offerCard.id && c.id !== wantCard.id);
+    if (sameRarPool.length < 1) continue;
+    const counterCard = sameRarPool[Math.floor(tradeHash(seed+2)*sameRarPool.length)];
+    const timeAgo     = Math.floor(tradeHash(seed+5)*30)+1;
+
+    incomingOffers.push({ player, emoji, isVer, counterCard, timeAgo });
+  }
+
+  const or = rarityOf(offerCard);
+  inc.innerHTML = `
+    <div class="incoming-section-title">
+      <span class="live-pulse" style="background:#00e5ff;"></span>
+      📩 Interesse na sua oferta (${incomingOffers.length})
+    </div>
+    <p style="font-size:11px;color:#9e9e9e;margin-bottom:10px;line-height:1.6;">
+      Estes jogadores viram sua oferta de <strong style="color:${or.color};">${offerCard.img} ${offerCard.name}</strong>
+      e querem negociar. Aceite ou ignore — sua oferta principal continua ativa!
+    </p>
+    ${incomingOffers.map(io => {
+      const cr = rarityOf(io.counterCard);
+      return `<div class="offer-card incoming-offer">
+        <div class="offer-badge incoming">📩 INTERESSE</div>
+        <div class="player-info-row">
+          <div class="player-avatar-sm">${io.emoji}</div>
+          <div>
+            <div class="player-name-sm">${io.player}</div>
+            <div class="player-rank-sm">há ${io.timeAgo} min${io.isVer?" · ✅ Verificado":""}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:#9e9e9e;margin-bottom:6px;">
+          Quer sua <strong style="color:${or.color};">${offerCard.img} ${offerCard.name}</strong> e oferece:
+        </div>
+        <div class="card-chip offer-item">
+          <span>${io.counterCard.img}</span>
+          <span style="color:${cr.color};">${io.counterCard.name}</span>
+          <span style="font-size:9px;color:${cr.color};opacity:0.8;">${cr.name}</span>
+        </div>
+        <div style="margin-top:8px;">
+          <button class="btn btn-sm" style="background:rgba(0,229,255,0.1);border:1px solid #00e5ff;color:#00e5ff;"
+            onclick="acceptIncomingOffer('${io.counterCard.id}','${io.player}')">
+            🤝 Aceitar esta proposta
+          </button>
+        </div>
+      </div>`;
+    }).join("")}`;
+}
+
+function acceptIncomingOffer(counterCardId, playerName) {
+  const offer     = save.activeTradeOffer;
+  if (!offer) return;
+  const offerCard = typeof ALL_CARDS !== "undefined" ? ALL_CARDS.find(c => c.id === offer.offerCardId) : null;
+  const counterCard = typeof ALL_CARDS !== "undefined" ? ALL_CARDS.find(c => c.id === counterCardId) : null;
+  if (!offerCard || !counterCard) return;
+  if (!playerHasCard(offer.offerCardId)) { showToast("❌ Você não tem mais essa carta!", "error"); return; }
+
+  // Raridade justa
+  if (!sameRarity(offerCard, counterCard)) {
+    showToast("⚖️ Raridades diferentes — troca bloqueada!", "error"); return;
+  }
+
+  save.vault = save.vault.filter(id => id !== offer.offerCardId);
+  save.vault.push(counterCardId);
+  if (!save.tradeHistory) save.tradeHistory = [];
+  save.tradeHistory.unshift({
+    ts: Date.now(), gave: offerCard.name, gaveEmoji: offerCard.img,
+    got: counterCard.name, gotEmoji: counterCard.img, with: playerName,
+  });
+  if (!save.tradeCount) save.tradeCount = 0;
+  save.tradeCount++;
+  save.activeTradeOffer = null;
+  myOffer = null;
+  writeSave(save);
+  showToast(`✅ Troca aceita! Recebeu ${counterCard.img} ${counterCard.name}!`, "gold", 4000);
+  renderMyOffer();
+}
+
+let selectedOfferCardId = null;
+
+function renderOfferBuilder() {
+  const cards = (typeof ALL_CARDS !== "undefined")
+    ? ALL_CARDS.filter(c => save.vault && save.vault.includes(c.id) && !c.id.startsWith("ev"))
+    : [];
+
+  const grid = document.getElementById("offer-card-selector");
+  if (cards.length === 0) {
+    grid.innerHTML = `<div style="grid-column:span 3;text-align:center;padding:20px;color:#555;font-size:12px;">
+      Você não tem cartas para trocar. Ganhe mais batalhas!
+    </div>`;
+  } else {
+    grid.innerHTML = cards.slice(0,9).map(c => {
+      const r = rarityOf(c);
+      return `<div class="select-card-box" id="sc-${c.id}" onclick="selectOfferCard('${c.id}')">
+        <div style="font-size:28px;">${c.img}</div>
+        <div style="font-size:9px;font-weight:700;color:${r.color};margin-top:3px;text-align:center;line-height:1.3;">${c.name}</div>
+        <div style="font-size:8px;color:${r.color};opacity:0.7;">${r.name}</div>
+      </div>`;
+    }).join("");
+  }
+
+  // Want-select vazia até selecionar carta
+  const select = document.getElementById("want-select");
+  select.innerHTML = `<option value="">— Selecione uma carta para oferecer primeiro —</option>`;
+  select.onchange  = () => previewWantCard(select.value);
+  document.getElementById("want-preview").style.display = "none";
+  document.getElementById("rarity-lock-warning").classList.remove("show");
+}
+
+function selectOfferCard(id) {
+  selectedOfferCardId = id;
+  document.querySelectorAll(".select-card-box").forEach(el => el.classList.remove("selected"));
+  const el = document.getElementById("sc-"+id);
+  if (el) el.classList.add("selected");
+
+  const card = typeof ALL_CARDS !== "undefined" ? ALL_CARDS.find(c => c.id === id) : null;
+  if (!card) return;
+  const r    = rarityOf(card);
+
+  const display = document.getElementById("offer-selected");
+  display.style.display = "block";
+  display.innerHTML = `<div class="card-chip offer-item">✅ Selecionado: ${card.img} <strong style="color:${r.color};">${card.name}</strong> <em style="font-size:9px;color:${r.color};">(${r.name})</em></div>`;
+
+  // Atualiza o select de "want" filtrando pela mesma raridade
+  const allTradeable = (typeof ALL_CARDS !== "undefined") ? ALL_CARDS.filter(c => !c.id.startsWith("ev") && c.rarity === card.rarity && c.id !== id) : [];
+  const select = document.getElementById("want-select");
+  select.innerHTML = `<option value="">— Cartas ${r.name} disponíveis (${allTradeable.length}) —</option>` +
+    allTradeable.map(c => {
+      const cr = rarityOf(c);
+      return `<option value="${c.id}">${c.img} ${c.name} (ATK:${c.atk} HP:${c.hp})</option>`;
+    }).join("");
+  select.onchange = () => previewWantCard(select.value);
+
+  // Mostra aviso de raridade justa
+  const lockWarn = document.getElementById("rarity-lock-warning");
+  document.getElementById("offer-rarity-name").textContent = r.name;
+  document.getElementById("want-rarity-hint").textContent  = `Mostrando apenas cartas ${r.name} (mesma raridade ⚖️)`;
+  lockWarn.classList.add("show");
+
+  document.getElementById("want-preview").style.display = "none";
+}
+
+function previewWantCard(id) {
+  const card    = typeof ALL_CARDS !== "undefined" ? ALL_CARDS.find(c => c.id === id) : null;
+  const preview = document.getElementById("want-preview");
+  if (!card) { preview.style.display = "none"; return; }
+  const r = rarityOf(card);
+  preview.style.display = "block";
+  preview.innerHTML = `<div style="background:#0a0a1e;border-radius:10px;padding:10px;display:flex;align-items:center;gap:10px;">
+    <div style="font-size:32px;">${card.img}</div>
+    <div>
+      <div style="font-weight:700;font-size:13px;color:${r.color};">${card.name}</div>
+      <div style="font-size:11px;color:#9e9e9e;">${r.name} · ATK: ${card.atk} · HP: ${card.hp}</div>
+      <div style="font-size:11px;color:#9e9e9e;margin-top:3px;">${card.desc||""}</div>
+    </div>
+  </div>`;
+}
+
+function publishOffer() {
+  const wantId = document.getElementById("want-select").value;
+  if (!selectedOfferCardId) { showToast("⚠️ Selecione uma carta para oferecer!", "error"); return; }
+  if (!wantId)               { showToast("⚠️ Selecione uma carta que deseja receber!", "error"); return; }
+  if (selectedOfferCardId === wantId) { showToast("❌ Não pode trocar a carta por ela mesma!", "error"); return; }
+
+  // Validação de raridade na publicação
+  const offerCard = typeof ALL_CARDS !== "undefined" ? ALL_CARDS.find(c => c.id === selectedOfferCardId) : null;
+  const wantCard  = typeof ALL_CARDS !== "undefined" ? ALL_CARDS.find(c => c.id === wantId) : null;
+  if (offerCard && wantCard && !sameRarity(offerCard, wantCard)) {
+    showToast("⚖️ Troca bloqueada! Só é permitido trocar cartas da mesma raridade.", "error", 4000);
+    return;
+  }
+
+  save.activeTradeOffer = { offerCardId:selectedOfferCardId, wantCardId:wantId, ts:Date.now() };
+  writeSave(save);
+  myOffer = save.activeTradeOffer;
+  showToast("📤 Oferta publicada! Visível para todos no mercado.", "gold", 3000);
+  renderMyOffer();
+}
+
+function cancelOffer() {
+  save.activeTradeOffer = null;
+  myOffer               = null;
+  selectedOfferCardId   = null;
+  writeSave(save);
+  showToast("🗑️ Oferta cancelada.", "info");
+  renderMyOffer();
+}
+
+// ── HISTÓRICO ────────────────────────────────────────────────
+function renderHistory() {
+  const hist = save.tradeHistory || [];
+  const list = document.getElementById("history-list");
+  const total= save.tradeCount || hist.length;
+
+  if (hist.length === 0) {
+    list.innerHTML = `
+      <div style="text-align:center;padding:40px 20px;color:#555;font-size:12px;line-height:1.8;">
+        Nenhuma troca realizada ainda.<br>
+        Vá ao Mercado e faça sua primeira troca!<br><br>
+        <span style="font-size:28px;">🔄</span>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = `
+    <div style="background:#0e0e1c;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;gap:16px;justify-content:center;">
+      <div style="text-align:center;"><div style="font-size:20px;font-weight:900;color:#29b6f6;">${total}</div><div style="font-size:10px;color:#9e9e9e;">Trocas Totais</div></div>
+      <div style="text-align:center;"><div style="font-size:20px;font-weight:900;color:#66bb6a;">${hist.length}</div><div style="font-size:10px;color:#9e9e9e;">No Histórico</div></div>
+    </div>` +
+    hist.map(h => {
+      const d       = new Date(h.ts);
+      const dateStr = `${d.toLocaleDateString("pt-BR")} ${d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}`;
+      return `<div class="offer-card" style="padding:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div style="font-size:11px;color:#9e9e9e;">🤝 Troca com <strong style="color:#fff;">${h.with}</strong></div>
+          <div style="font-size:10px;color:#555;">${dateStr}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div class="card-chip" style="background:rgba(244,67,54,0.1);border:1px solid #f44336;color:#ef9a9a;">
+            📤 ${h.gaveEmoji} ${h.gave}${h.gaveRarity?` <em style="font-size:9px;">(${h.gaveRarity})</em>`:""}
+          </div>
+          <div style="color:#9e9e9e;">→</div>
+          <div class="card-chip" style="background:rgba(76,175,80,0.1);border:1px solid #4CAF50;color:#a5d6a7;">
+            📥 ${h.gotEmoji} ${h.got}${h.gotRarity?` <em style="font-size:9px;">(${h.gotRarity})</em>`:""}
+          </div>
+        </div>
+      </div>`;
+    }).join("");
+}
+
+// ── RANKING DE TROCAS ────────────────────────────────────────
+function renderTradingRanking() {
+  const list = document.getElementById("ranking-list");
+  // Simula ranking com jogadores verificados no topo
+  const slot = Math.floor(Date.now() / 3600000); // muda a cada hora
+  const topTraders = [
+    ...VERIFIED_PLAYERS.map((p,i) => ({ name:p.name, emoji:p.emoji, count: 80+Math.floor(tradeHash(slot*100+i)*120), isVer:true })),
+    ...TRADE_PLAYERS.slice(0,12).map((p,i) => ({ name:p, emoji:"👤", count: 10+Math.floor(tradeHash(slot*200+i)*70), isVer:false })),
+  ].sort((a,b)=>b.count-a.count);
+
+  const myCount = save.tradeCount || 0;
+
+  list.innerHTML = `
+    <div style="font-family:'Cinzel',serif;font-size:13px;font-weight:700;color:#ffc107;margin-bottom:12px;text-align:center;">
+      🏅 Ranking de Trocas — Esta Semana
+    </div>
+    <div style="background:rgba(41,182,246,0.06);border:1px solid #0d47a1;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#9e9e9e;">
+      Suas trocas este mês: <strong style="color:#29b6f6;">${myCount}</strong>
+    </div>` +
+    topTraders.slice(0,15).map((t,i) => {
+      const medals = ["🥇","🥈","🥉"];
+      const medal  = i < 3 ? medals[i] : `#${i+1}`;
+      return `<div class="trade-rank-row" ${t.isVer?'style="border-left-color:#ce93d8;"':""}>
+        <div class="trade-rank-num">${medal}</div>
+        <div class="trade-rank-name">${t.emoji} ${t.name}${t.isVer?` <span style="font-size:9px;color:#ce93d8;">✅ verificado</span>`:""}</div>
+        <div class="trade-rank-count">${t.count} trocas</div>
+      </div>`;
+    }).join("");
+}
+
+// ── TABS ─────────────────────────────────────────────────────
+function switchTab(tab, btn) {
+  currentTab = tab;
+  ["market","offer","history","ranking"].forEach(t => {
+    document.getElementById("tab-"+t).style.display = t === tab ? "block" : "none";
+  });
+  document.querySelectorAll(".trade-tab").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+
+  if (tab === "offer")   renderMyOffer();
+  if (tab === "history") renderHistory();
+  if (tab === "ranking") renderTradingRanking();
+}
+
+// ── TIMER ────────────────────────────────────────────────────
+function startRefreshTimer() {
+  setInterval(() => {
+    refreshTimer--;
+    const el = document.getElementById("refresh-timer");
+    if (el) el.textContent = refreshTimer;
+    if (refreshTimer <= 0) {
+      refreshTimer = 15; // BUG FIX: era "15<" (sintaxe inválida)
+      if (currentTab === "market") renderMarket();
+    }
+  }, 1000);
+}
+
+function init() {
+  save = getOrCreateSave();
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+  myOffer = save.activeTradeOffer || null;
+
+  renderMarket();
+  startRefreshTimer();
+
+  setInterval(() => { if (currentTab === "market") renderMarket(); }, 6000);
+  if (typeof startAutoSave === "function") startAutoSave(() => save);
+}
+
+init();
+</script>
+</body>
+</html>

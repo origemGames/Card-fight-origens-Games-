@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Sobrevivência – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+.surv-hero {
+  background:linear-gradient(135deg,#1a0010,#2d0020,#1a0010);
+  border:2px solid #ff0044; border-radius:16px;
+  padding:18px 14px; margin-bottom:14px; text-align:center;
+  position:relative; overflow:hidden;
+}
+.surv-hero::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(255,0,68,0.12) 0%,transparent 65%);
+  pointer-events:none;
+}
+.surv-hero .icon { font-size:52px; display:block; margin-bottom:8px;
+  animation:float 2.5s ease-in-out infinite; filter:drop-shadow(0 0 16px rgba(255,0,68,0.5)); }
+.surv-hero .title { font-family:'Cinzel',serif; font-size:20px; font-weight:900;
+  background:linear-gradient(135deg,#ff4488,#ff0044);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.surv-hero .sub { font-size:12px; color:#9e9e9e; margin-top:4px; }
+
+.wave-badge {
+  display:inline-block; font-family:'Cinzel',serif; font-size:32px; font-weight:900;
+  color:#ff0044; text-shadow:0 0 20px rgba(255,0,68,0.6);
+}
+.wave-label { font-size:10px; color:#9e9e9e; text-transform:uppercase; letter-spacing:1px; }
+
+.hp-bar-wrap { margin:6px 0; }
+.hp-bar-bg   { background:#1a0a0a; border-radius:8px; height:14px; overflow:hidden; border:1px solid #3a1a1a; }
+.hp-bar-fill { height:100%; border-radius:8px; transition:width 0.4s; background:linear-gradient(90deg,#ff0044,#ff4488); }
+.hp-bar-fill.bot { background:linear-gradient(90deg,#7c4dff,#ce93d8); }
+
+.surv-stat-row {
+  display:flex; justify-content:space-between; align-items:center;
+  font-size:12px; color:#9e9e9e; margin-bottom:3px;
+}
+.surv-stat-val { font-weight:700; color:#c0c0d0; }
+
+.card-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:5px; margin:10px 0; }
+.s-card {
+  background:#0a0a1e; border:1.5px solid #2a2a4a; border-radius:8px;
+  padding:6px 3px; text-align:center; cursor:pointer; transition:all 0.15s;
+  position:relative; overflow:hidden;
+}
+.s-card:hover:not(.dead):not(.used)  { border-color:#ff4488; transform:translateY(-2px); }
+.s-card.selected { border-color:#ff0044; background:rgba(255,0,68,0.12); box-shadow:0 0 10px rgba(255,0,68,0.3); }
+.s-card.dead     { opacity:0.3; filter:grayscale(1); cursor:not-allowed; }
+.s-card.used     { opacity:0.5; cursor:not-allowed; }
+.s-card .em  { font-size:18px; display:block; }
+.s-card .nm  { font-size:8px; color:#9e9e9e; margin:2px 0; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.s-card .at  { font-size:10px; font-weight:700; color:#ff4488; }
+/* Carta viva e usada nesta onda — aparece em roxo para indicar "usada mas sobreviveu" */
+.s-card.used-alive { opacity:0.6; cursor:not-allowed; border-color:#7c4dff; }
+
+.battle-log {
+  background:#070712; border:1px solid #1a1a2e; border-radius:10px;
+  height:120px; overflow-y:auto; padding:8px; font-size:11px; line-height:1.8;
+}
+.log-info   { color:#9e9e9e; }
+.log-good   { color:#66bb6a; }
+.log-bad    { color:#ef5350; }
+.log-gold   { color:#ffc107; }
+.log-wave   { color:#ff4488; font-weight:700; }
+.log-surv   { color:#ce93d8; }
+
+.reward-chip {
+  display:inline-flex; align-items:center; gap:4px; font-size:11px;
+  background:rgba(255,193,7,0.08); border:1px solid #ffc107; border-radius:6px;
+  padding:2px 8px; margin:2px;
+}
+
+#screen-result { display:none; }
+.result-panel {
+  background:linear-gradient(135deg,#0a0010,#1a001a);
+  border:2px solid #ff0044; border-radius:16px; padding:20px; text-align:center;
+}
+.result-panel.victory { border-color:#ffc107; background:linear-gradient(135deg,#0a0a00,#1a1800); }
+
+.record-badge {
+  display:inline-flex; align-items:center; gap:6px; font-size:11px;
+  background:linear-gradient(135deg,rgba(255,193,7,0.1),rgba(255,193,7,0.05));
+  border:1px solid #ffc107; border-radius:8px; padding:4px 10px; margin-top:6px;
+}
+
+/* Tela inicial */
+#screen-start .record-row {
+  display:flex; justify-content:space-between; align-items:center; padding:8px 0;
+  border-bottom:1px solid var(--border); font-size:12px;
+}
+#screen-start .record-row:last-child { border-bottom:none; }
+#screen-start .record-val { font-weight:700; color:#ffc107; font-family:'Cinzel',serif; font-size:14px; }
+
+.creator-surv-badge {
+  background:linear-gradient(135deg,rgba(41,182,246,0.08),rgba(41,182,246,0.03));
+  border:1px solid #29b6f6; border-radius:10px; padding:8px 12px;
+  font-size:11px; color:#80deea; display:flex; align-items:center; gap:8px;
+  margin-bottom:10px;
+}
+
+/* Indicador de carta que sobreviveu */
+.survivor-tag {
+  font-size:8px; color:#66bb6a; font-weight:700; margin-top:1px;
+}
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title" style="background:linear-gradient(135deg,#ff4488,#ff0044);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">💀 SOBREVIVÊNCIA</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content">
+
+  <!-- ═══ TELA INICIAL ═══ -->
+  <div id="screen-start">
+    <div class="surv-hero">
+      <span class="icon">💀</span>
+      <div class="title">Modo Sobrevivência</div>
+      <div class="sub">Ondas infinitas de inimigos. Até onde você vai?</div>
+    </div>
+
+    <!-- Record pessoal -->
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="panel-title">🏆 Seu Recorde</div>
+      <div id="record-display">
+        <div class="record-row">
+          <span>🌊 Ondas sobrevividas</span>
+          <span class="record-val" id="rec-waves">0</span>
+        </div>
+        <div class="record-row">
+          <span>⚔️ Batalhas vencidas</span>
+          <span class="record-val" id="rec-battles">0</span>
+        </div>
+        <div class="record-row">
+          <span>🪙 Ouro total acumulado</span>
+          <span class="record-val" id="rec-gold">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Badge de criador -->
+    <div class="creator-surv-badge" id="creator-badge" style="display:none;">
+      🎬 <span><strong>Criador Verificado</strong> — você ganha <strong style="color:#29b6f6;">1.5× de recompensas</strong> em todas as ondas!</span>
+    </div>
+
+    <!-- Como funciona -->
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="panel-title">📖 Como Funciona</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:flex-start;gap:10px;font-size:12px;color:#c0c0d0;line-height:1.6;">
+          <span style="font-size:16px;flex-shrink:0;">🌊</span>
+          <span>Enfrente ondas de inimigos em sequência. O bot fica <strong>mais forte a cada onda</strong>.</span>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px;font-size:12px;color:#c0c0d0;line-height:1.6;">
+          <span style="font-size:16px;flex-shrink:0;">❤️</span>
+          <span>Sua HP <strong>não regenera</strong> entre ondas (apenas +3% por onda vencida). Gerencie bem suas cartas!</span>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px;font-size:12px;color:#c0c0d0;line-height:1.6;">
+          <span style="font-size:16px;flex-shrink:0;">⚔️</span>
+          <span><strong>Carta vencedora SOBREVIVE</strong> ao combate — apenas a carta perdedora é destruída. Empates destroem ambas.</span>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px;font-size:12px;color:#c0c0d0;line-height:1.6;">
+          <span style="font-size:16px;flex-shrink:0;">💰</span>
+          <span>Recompensas por onda: ouro, XP e XPP que <strong>aumentam progressivamente</strong>.</span>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px;font-size:12px;color:#c0c0d0;line-height:1.6;">
+          <span style="font-size:16px;flex-shrink:0;">💀</span>
+          <span>Quando sua HP chegar a 0, a partida termina. Seu recorde é salvo automaticamente.</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-block" style="background:linear-gradient(135deg,#b71c1c,#d32f2f);font-size:16px;padding:14px;"
+            onclick="startSurvival()">💀 Começar Sobrevivência</button>
+    <div style="height:10px;"></div>
+  </div>
+
+  <!-- ═══ TELA DE BATALHA ═══ -->
+  <div id="screen-battle" style="display:none;">
+
+    <!-- Onda atual -->
+    <div style="text-align:center;margin-bottom:10px;">
+      <div class="wave-label">ONDA</div>
+      <div class="wave-badge" id="wave-num">1</div>
+    </div>
+
+    <!-- HP do Jogador -->
+    <div class="panel" style="margin-bottom:8px;padding:10px 12px;">
+      <div class="surv-stat-row">
+        <span>⚔️ <strong id="player-name-disp">Você</strong></span>
+        <span class="surv-stat-val"><span id="player-hp">1000</span> HP</span>
+      </div>
+      <div class="hp-bar-wrap">
+        <div class="hp-bar-bg"><div class="hp-bar-fill" id="player-hp-bar" style="width:100%;"></div></div>
+      </div>
+    </div>
+
+    <!-- HP do Bot -->
+    <div class="panel" style="margin-bottom:8px;padding:10px 12px;">
+      <div class="surv-stat-row">
+        <span>💀 <strong id="bot-name-disp">Inimigo</strong></span>
+        <span class="surv-stat-val"><span id="bot-hp">1000</span> HP</span>
+      </div>
+      <div class="hp-bar-wrap">
+        <div class="hp-bar-bg"><div class="hp-bar-fill bot" id="bot-hp-bar" style="width:100%;"></div></div>
+      </div>
+    </div>
+
+    <!-- Suas cartas -->
+    <div class="panel" style="margin-bottom:8px;padding:10px 12px;">
+      <div style="font-size:11px;color:#9e9e9e;margin-bottom:6px;">Sua mão — clique para jogar (🟢 viva · 🟣 usada mas sobreviveu):</div>
+      <div class="card-grid" id="player-hand"></div>
+    </div>
+
+    <!-- Cartas do bot -->
+    <div class="panel" style="margin-bottom:8px;padding:10px 12px;">
+      <div style="font-size:11px;color:#9e9e9e;margin-bottom:6px;">Cartas do inimigo:</div>
+      <div class="card-grid" id="bot-hand"></div>
+    </div>
+
+    <!-- Log -->
+    <div class="battle-log" id="battle-log"></div>
+
+    <!-- Ações -->
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <button id="btn-play" class="btn btn-primary" style="flex:2;background:linear-gradient(135deg,#b71c1c,#d32f2f);" onclick="playSelected()">⚔️ Atacar</button>
+      <button class="btn btn-outline" style="flex:1;" onclick="surrenderSurvival()">🏳️ Desistir</button>
+    </div>
+  </div>
+
+  <!-- ═══ TELA DE RESULTADO ═══ -->
+  <div id="screen-result">
+    <div class="result-panel" id="result-panel">
+      <div id="res-icon" style="font-size:52px;margin-bottom:8px;">💀</div>
+      <div id="res-title" style="font-family:'Cinzel',serif;font-size:22px;font-weight:900;margin-bottom:4px;">FIM</div>
+      <div id="res-wave" style="font-size:14px;color:#9e9e9e;margin-bottom:12px;"></div>
+
+      <div id="res-rewards" style="background:rgba(0,0,0,0.3);border-radius:10px;padding:12px;margin-bottom:12px;text-align:left;"></div>
+
+      <div id="res-record" class="record-badge" style="display:none;">
+        🏆 <span>NOVO RECORDE!</span>
+      </div>
+
+      <div style="height:12px;"></div>
+      <button class="btn btn-primary btn-block" onclick="restartSurvival()">🔁 Jogar Novamente</button>
+      <a href="index.html" class="btn btn-outline btn-block" style="margin-top:8px;display:inline-block;">🏠 Início</a>
+    </div>
+  </div>
+
+  <div style="height:70px;"></div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js"></script>
+<script src="gamedata2.js"></script>
+<script src="gamedata3.js"></script>
+<script src="gamedata-v7-patch.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════════
+// MODO SOBREVIVÊNCIA — Ondas infinitas escaláveis
+// FIX v11: carta vencedora SOBREVIVE ao combate (pedido #1)
+// ══════════════════════════════════════════════════════════════
+
+let save;
+let surv = null; // estado da partida atual
+
+const MAX_PLAYER_HP = 1000;
+const BOT_BASE_HP   = 800;
+
+// Recompensas por onda (escalam linearmente)
+function calcWaveReward(wave, isCreator) {
+  const base = {
+    gold: 200 + wave * 80,
+    xp:   15  + wave * 8,
+    xpp:  3   + wave * 2,
+  };
+  const mult = isCreator ? 1.5 : 1.0;
+  return {
+    gold: Math.round(base.gold * mult),
+    xp:   Math.round(base.xp   * mult),
+    xpp:  Math.round(base.xpp  * mult),
+  };
+}
+
+// Força do bot aumenta por onda: começa fraco, vai subindo
+function getBotXppForWave(wave, playerXpp) {
+  const frac = Math.min(0.10 + (wave - 1) * 0.035, 0.95);
+  return Math.max(0, playerXpp * frac);
+}
+
+function startSurvival() {
+  save = getOrCreateSave();
+
+  if (!save.vault || save.vault.length === 0) {
+    showToast("⚠️ Cofre vazio! Abra pacotes primeiro.", "error");
+    return;
+  }
+
+  surv = {
+    wave:        1,
+    playerHp:    MAX_PLAYER_HP,
+    playerMaxHp: MAX_PLAYER_HP,
+    totalGold:   0,
+    totalXp:     0,
+    totalXpp:    0,
+    totalBattles:0,
+    selectedIdx: null,
+    over:        false,
+    playerHand:  null,
+    botHand:     null,
+    botHp:       BOT_BASE_HP,
+    botMaxHp:    BOT_BASE_HP,
+    botName:     "",
+  };
+
+  showScreen("screen-battle");
+  startWave();
+}
+
+function startWave() {
+  // Gera mão do jogador (cartas do cofre)
+  const playerCards = getHandFromVault(save.vault).map(c => {
+    const buff    = (typeof getMaestriaBuff === "function") ? getMaestriaBuff(save, c.id) : 1;
+    const compAtk = (typeof getCompanionAtkMult === "function") ? getCompanionAtkMult(save) : 1;
+    return { ...c, atk: Math.round(c.atk * buff * compAtk), hp: Math.round((c.hp || c.atk) * buff), alive: true, used: false };
+  });
+
+  // Bot escala com a onda
+  const botXpp   = getBotXppForWave(surv.wave, save.xpp);
+  const botCards = getBotHand(botXpp).map(c => ({ ...c, alive: true }));
+  const botNames = ["Espectro", "Sombra", "Terror", "Abismo", "Caos", "Tormento", "Destruidor", "Maldição",
+                    "Aniquilador", "Vazio", "Trevas", "Pesadelo", "Flagelo", "Devasta", "Silêncio",
+                    "Ruína", "Obliterador", "Necrômante", "Devorador", "Apocalipse"];
+
+  // HP do bot cresce com a onda
+  const waveHp = Math.round(BOT_BASE_HP * (1 + (surv.wave - 1) * 0.15));
+
+  surv.playerHand = playerCards;
+  surv.botHand    = botCards;
+  surv.botHp      = waveHp;
+  surv.botMaxHp   = waveHp;
+  surv.botName    = botNames[(surv.wave - 1) % botNames.length] + " Nível " + surv.wave;
+  surv.selectedIdx = null;
+
+  document.getElementById("wave-num").textContent         = surv.wave;
+  document.getElementById("player-name-disp").textContent = save.playerName;
+  document.getElementById("bot-name-disp").textContent    = surv.botName;
+
+  updateHpBars();
+  renderHands();
+
+  addLog(`<span class="log-wave">🌊 ONDA ${surv.wave} — ${surv.botName} aparece!</span>`);
+  if (surv.wave > 1) addLog(`<span class="log-good">❤️ HP restante: ${surv.playerHp}</span>`);
+}
+
+function renderHands() {
+  // Mão do jogador
+  const phDiv = document.getElementById("player-hand");
+  phDiv.innerHTML = "";
+  surv.playerHand.forEach((c, i) => {
+    const rarColor = (RARITY[c.rarity] || {}).color || "#666";
+    let cls = "s-card";
+    if (!c.alive) {
+      cls += " dead";
+    } else if (c.used) {
+      // Carta viva mas já usada nesta onda (sobreviveu ao combate)
+      cls += " used-alive";
+    }
+    if (surv.selectedIdx === i && c.alive && !c.used) cls += " selected";
+    const div = document.createElement("div");
+    div.className = cls;
+    div.style.setProperty("--rarity-color", rarColor);
+    div.style.borderColor = (surv.selectedIdx === i && c.alive && !c.used) ? "#ff0044" : "";
+    div.onclick = () => selectCard(i);
+    div.innerHTML = `<span class="em">${c.img}</span>
+      <span class="nm">${c.name}</span>
+      <span class="at">⚔ ${c.atk}</span>
+      ${c.alive && c.used ? '<span class="survivor-tag">✅ sobreviveu</span>' : ''}`;
+    phDiv.appendChild(div);
+  });
+
+  // Mão do bot (oculta, mostra apenas símbolo se vivo)
+  const bhDiv = document.getElementById("bot-hand");
+  bhDiv.innerHTML = "";
+  surv.botHand.forEach((c) => {
+    const div = document.createElement("div");
+    div.className = "s-card" + (!c.alive ? " dead" : "");
+    div.innerHTML = c.alive
+      ? `<span class="em">🃏</span><span class="nm">???</span><span class="at">⚔?</span>`
+      : `<span class="em">💀</span><span class="nm">—</span><span class="at">—</span>`;
+    bhDiv.appendChild(div);
+  });
+}
+
+function selectCard(i) {
+  if (surv.over) return;
+  const c = surv.playerHand[i];
+  // Só permite selecionar cartas vivas E não usadas nesta onda
+  if (!c || !c.alive || c.used) return;
+  surv.selectedIdx = i;
+  renderHands();
+}
+
+function playSelected() {
+  if (surv.over) return;
+  if (surv.selectedIdx === null) {
+    showToast("Selecione uma carta primeiro!", "info");
+    return;
+  }
+
+  const pCard = surv.playerHand[surv.selectedIdx];
+  if (!pCard || !pCard.alive || pCard.used) {
+    showToast("Carta inválida!", "error");
+    return;
+  }
+
+  // Marca carta do jogador como usada nesta onda (mas ainda viva por enquanto)
+  pCard.used = true;
+
+  // Bot escolhe carta aleatória viva
+  const aliveBotCards = surv.botHand.filter(c => c.alive);
+  if (aliveBotCards.length === 0) {
+    // Bot sem cartas — jogador vence esta troca sem perder carta
+    dealDamageToBot(pCard.atk);
+    addLog(`<span class="log-good">💥 ${pCard.name} atacou! Dano: ${pCard.atk} — sem oponente, carta sobrevive!</span>`);
+    surv.selectedIdx = null;
+    renderHands();
+    checkWaveEnd();
+    return;
+  }
+
+  const bCard = aliveBotCards[Math.floor(Math.random() * aliveBotCards.length)];
+
+  // Resolve a troca
+  addLog(`<span class="log-info">⚔️ ${pCard.img} ${pCard.name} (${pCard.atk} ATK) vs ${bCard.img} ${bCard.name} (${bCard.atk} ATK)</span>`);
+
+  if (pCard.atk > bCard.atk) {
+    // ══ FIX (v11): carta vencedora SOBREVIVE ══
+    // Jogador vence: pCard sobrevive, bCard morre
+    const dmgToBot = pCard.atk;
+    dealDamageToBot(dmgToBot);
+    bCard.alive = false;
+    addLog(`<span class="log-good">✅ Você venceu! Dano ao bot: ${dmgToBot}. Carta inimiga destruída! <span class="log-surv">Sua carta sobrevive!</span></span>`);
+    // pCard permanece alive = true (SOBREVIVE)
+  } else if (pCard.atk === bCard.atk) {
+    // Empate: ambas morrem
+    const dmgToBot = pCard.atk;
+    const dmgToPlayer = Math.floor(bCard.atk * 0.5); // empate = dano reduzido ao jogador
+    dealDamageToBot(dmgToBot);
+    dealDamageToPlayer(dmgToPlayer);
+    bCard.alive = false;
+    pCard.alive = false; // empate = ambas as cartas destruídas
+    addLog(`<span class="log-gold">⚡ EMPATE! Ambas as cartas destruídas. Dano mútuo: ${dmgToBot} / ${dmgToPlayer}</span>`);
+  } else {
+    // ══ Bot vence: pCard morre, bCard SOBREVIVE ══
+    const dmgToPlayer = bCard.atk - pCard.atk;
+    dealDamageToPlayer(dmgToPlayer);
+    pCard.alive = false; // carta do jogador destruída
+    // bCard permanece alive = true (SOBREVIVE)
+    addLog(`<span class="log-bad">❌ Perdeu! Dano recebido: ${dmgToPlayer}. Sua carta foi destruída! Carta inimiga sobrevive.</span>`);
+  }
+
+  surv.selectedIdx = null;
+  updateHpBars();
+  renderHands();
+
+  if (surv.over) return;
+
+  // Checa fim da onda
+  setTimeout(() => checkWaveEnd(), 400);
+}
+
+function dealDamageToBot(dmg) {
+  surv.botHp = Math.max(0, surv.botHp - dmg);
+}
+
+function dealDamageToPlayer(dmg) {
+  surv.playerHp = Math.max(0, surv.playerHp - dmg);
+  if (surv.playerHp <= 0) {
+    setTimeout(() => endSurvival(false), 400);
+  }
+}
+
+function checkWaveEnd() {
+  if (surv.over) return;
+
+  // Bot sem HP
+  if (surv.botHp <= 0) {
+    waveVictory();
+    return;
+  }
+
+  // Jogador sem cartas disponíveis (vivas + não usadas)
+  const aliveUsable = surv.playerHand.filter(c => c.alive && !c.used);
+  if (aliveUsable.length === 0) {
+    // Bot ataca com todas as cartas vivas restantes
+    const aliveBotCards = surv.botHand.filter(c => c.alive);
+    let totalDmg = 0;
+    aliveBotCards.forEach(c => { totalDmg += Math.floor(c.atk * 0.4); }); // dano residual
+    if (totalDmg > 0) {
+      addLog(`<span class="log-bad">⚠️ Sem cartas disponíveis! Bot ataca com tudo — dano residual: ${totalDmg}</span>`);
+      dealDamageToPlayer(totalDmg);
+      updateHpBars();
+      if (surv.over) return;
+    }
+    // Se bot ainda tem HP, jogador falhou em derrotá-lo
+    if (surv.botHp > 0 && surv.playerHp > 0) {
+      addLog(`<span class="log-bad">💔 Suas cartas acabaram antes de derrotar o inimigo. Onda perdida!</span>`);
+      endSurvival(false);
+    }
+  }
+}
+
+function waveVictory() {
+  if (surv.over) return;
+  const isCreator = save.isVerifiedCreator;
+  const rw = calcWaveReward(surv.wave, isCreator);
+
+  surv.totalGold  += rw.gold;
+  surv.totalXp    += rw.xp;
+  surv.totalXpp   += rw.xpp;
+  surv.totalBattles++;
+
+  // Evento: conta batalha em todos os eventos ativos
+  if (save.events && typeof GAME_EVENTS !== "undefined") {
+    GAME_EVENTS.forEach(evt => {
+      if (isEventActive(evt, save) && save.events[evt.id] !== undefined) {
+        save.events[evt.id].battles = (save.events[evt.id].battles || 0) + 1;
+      }
+    });
+  }
+
+  const creatorTag = isCreator ? " <span style='color:#29b6f6;font-size:9px;'>×1.5 criador</span>" : "";
+  addLog(`<span class="log-wave">🏆 ONDA ${surv.wave} VENCIDA! +${fmtNum(rw.gold)}🪙 +${rw.xp}⭐ +${rw.xpp}🎖️${creatorTag}</span>`);
+
+  surv.wave++;
+  surv.selectedIdx = null;
+
+  // Pequena regeneração de HP por onda (3% do máximo)
+  const regen = Math.round(surv.playerMaxHp * 0.03);
+  surv.playerHp = Math.min(surv.playerMaxHp, surv.playerHp + regen);
+  if (regen > 0) addLog(`<span class="log-good">💚 Regeneração: +${regen} HP</span>`);
+
+  setTimeout(() => startWave(), 800);
+}
+
+function endSurvival(natural) {
+  if (surv.over) return;
+  surv.over = true;
+
+  // Dar todas as recompensas acumuladas
+  earnGold(save, surv.totalGold);
+  save.xp  = (save.xp  || 0) + surv.totalXp;
+  save.xpp = (save.xpp || 0) + surv.totalXpp;
+  save.wins = (save.wins || 0) + surv.totalBattles;
+  save.totalBattles = (save.totalBattles || 0) + surv.totalBattles;
+
+  // Missões
+  if (typeof updateMissionProgress === "function") {
+    for (let i = 0; i < surv.totalBattles; i++) updateMissionProgress(save, "battles");
+  }
+
+  // Recorde
+  const wavesCompleted = surv.wave - 1; // ondas completas
+  const isNewRecord    = !save.survivalRecord || wavesCompleted > save.survivalRecord;
+  if (isNewRecord && wavesCompleted > 0) {
+    save.survivalRecord = wavesCompleted;
+    save.survivalRecordGold    = (save.survivalRecordGold    || 0) + surv.totalGold;
+    save.survivalRecordBattles = (save.survivalRecordBattles || 0) + surv.totalBattles;
+  }
+  save.survivalGoldTotal    = (save.survivalGoldTotal    || 0) + surv.totalGold;
+  save.survivalBattlesTotal = (save.survivalBattlesTotal || 0) + surv.totalBattles;
+
+  writeSave(save);
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+
+  // Mostrar resultado
+  showScreen("screen-result");
+
+  const won = wavesCompleted > 0;
+  const panel = document.getElementById("result-panel");
+  panel.className = "result-panel" + (won ? " victory" : "");
+  panel.style.borderColor = won ? "#ffc107" : "#ff0044";
+
+  document.getElementById("res-icon").textContent = won ? "🏆" : "💀";
+  document.getElementById("res-title").textContent = won
+    ? (wavesCompleted >= 10 ? "LENDÁRIO!" : wavesCompleted >= 5 ? "IMPRESSIONANTE!" : "BOM JOGO!")
+    : "FIM DE JOGO";
+  document.getElementById("res-title").style.color = won ? "#ffc107" : "#ef5350";
+  document.getElementById("res-wave").textContent = won
+    ? `Você sobreviveu ${wavesCompleted} onda${wavesCompleted > 1 ? "s" : ""}!`
+    : "A primeira onda te derrotou...";
+
+  const creatorTag = save.isVerifiedCreator ? " <span style='color:#29b6f6;font-size:10px;'>(×1.5 criador)</span>" : "";
+  document.getElementById("res-rewards").innerHTML = `
+    <div style="font-size:11px;font-weight:700;color:#9e9e9e;margin-bottom:8px;text-transform:uppercase;">Recompensas ganhas:</div>
+    <div style="display:flex;flex-direction:column;gap:5px;">
+      <div class="surv-stat-row"><span>🌊 Ondas vencidas</span><span class="surv-stat-val">${wavesCompleted}</span></div>
+      <div class="surv-stat-row"><span>🪙 Ouro${creatorTag}</span><span class="surv-stat-val" style="color:#ffc107;">+${fmtNum(surv.totalGold)}</span></div>
+      <div class="surv-stat-row"><span>⭐ XP</span><span class="surv-stat-val" style="color:#90caf9;">+${fmtNum(surv.totalXp)}</span></div>
+      <div class="surv-stat-row"><span>🎖️ XPP</span><span class="surv-stat-val" style="color:#ce93d8;">+${fmtNum(surv.totalXpp)}</span></div>
+    </div>`;
+
+  if (isNewRecord && wavesCompleted > 0) {
+    document.getElementById("res-record").style.display = "inline-flex";
+    document.getElementById("res-record").innerHTML = `🏆 <span>NOVO RECORDE: ${wavesCompleted} onda${wavesCompleted > 1 ? "s" : ""}!</span>`;
+    spawnParticles();
+  }
+}
+
+function surrenderSurvival() {
+  if (!surv || surv.over) return;
+  if (surv.wave === 1 && surv.totalBattles === 0) {
+    showScreen("screen-start");
+    surv = null;
+    return;
+  }
+  if (confirm("Desistir da sobrevivência? As recompensas acumuladas serão salvas.")) {
+    endSurvival(false);
+  }
+}
+
+function restartSurvival() {
+  surv = null;
+  showScreen("screen-start");
+  renderStart();
+}
+
+function showScreen(id) {
+  ["screen-start","screen-battle","screen-result"].forEach(s => {
+    document.getElementById(s).style.display = (s === id) ? "block" : "none";
+  });
+}
+
+function updateHpBars() {
+  if (!surv) return;
+  const pPct = Math.max(0, (surv.playerHp / surv.playerMaxHp) * 100);
+  const bPct = Math.max(0, (surv.botHp    / surv.botMaxHp)    * 100);
+  document.getElementById("player-hp").textContent = surv.playerHp;
+  document.getElementById("bot-hp").textContent    = surv.botHp;
+  document.getElementById("player-hp-bar").style.width = pPct + "%";
+  document.getElementById("bot-hp-bar").style.width    = bPct + "%";
+  // Cor da barra do jogador muda conforme HP
+  const fill = document.getElementById("player-hp-bar");
+  if (pPct > 60) fill.style.background = "linear-gradient(90deg,#66bb6a,#a5d6a7)";
+  else if (pPct > 30) fill.style.background = "linear-gradient(90deg,#ffa726,#ffcc80)";
+  else fill.style.background = "linear-gradient(90deg,#ff0044,#ff4488)";
+}
+
+function addLog(html) {
+  const log = document.getElementById("battle-log");
+  const p = document.createElement("p");
+  p.innerHTML = html;
+  p.style.margin = "1px 0";
+  log.appendChild(p);
+  log.scrollTop = log.scrollHeight;
+}
+
+function spawnParticles() {
+  const cont = document.getElementById("toast-container");
+  if (!cont) return;
+  const colors = ["#ffc107","#ff4488","#66bb6a","#29b6f6","#ce93d8"];
+  for (let i = 0; i < 20; i++) {
+    const p = document.createElement("div");
+    p.style.cssText = `position:fixed;left:${Math.random()*100}%;top:${Math.random()*100}%;
+      width:8px;height:8px;border-radius:50%;pointer-events:none;z-index:9999;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation:float 1.5s ease-out forwards;opacity:0.8;`;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 1600);
+  }
+}
+
+function renderStart() {
+  save = getOrCreateSave();
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+  document.getElementById("rec-waves").textContent   = fmtNum(save.survivalRecord || 0);
+  document.getElementById("rec-battles").textContent = fmtNum(save.survivalBattlesTotal || 0);
+  document.getElementById("rec-gold").textContent    = fmtNum(save.survivalGoldTotal || 0);
+
+  if (save.isVerifiedCreator) {
+    document.getElementById("creator-badge").style.display = "flex";
+  }
+}
+
+// ── Init ──
+renderStart();
+</script>
+</body>
+</html>

@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Admin – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+.admin-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+.admin-btn {
+  background:#0e0e1c; border:1px solid #2a2a4a; border-radius:12px;
+  padding:14px; text-align:center; cursor:pointer;
+  transition:all 0.2s; display:flex; flex-direction:column; align-items:center; gap:6px;
+  color:inherit; text-decoration:none;
+}
+.admin-btn:hover { border-color:#ffc107; transform:translateY(-2px); }
+.admin-btn .icon { font-size:28px; }
+.admin-btn .label { font-size:12px; font-weight:700; }
+.admin-section { font-family:'Cinzel',serif; font-size:14px; font-weight:700; color:#ff4444;
+  margin:14px 0 10px; display:flex; align-items:center; gap:8px; }
+.admin-section::after { content:''; flex:1; height:1px;
+  background:linear-gradient(90deg,#ff444444,transparent); }
+.admin-input-row { display:flex; gap:8px; margin-bottom:8px; align-items:center; }
+.admin-input-row label { font-size:12px; color:#9e9e9e; min-width:80px; }
+.admin-number { background:#0e0e1c; border:1px solid #2a2a4a; border-radius:8px;
+  color:#fff; padding:8px 10px; flex:1; font-family:'Rajdhani',sans-serif; font-size:14px; }
+.save-viewer { background:#070712; border:1px solid #1e1e30; border-radius:8px;
+  padding:10px; font-size:10px; font-family:monospace; color:#9e9e9e;
+  max-height:160px; overflow-y:auto; word-break:break-all; line-height:1.5; }
+.danger-zone { background:linear-gradient(135deg,#1a0000,#2d0000);
+  border:2px solid #f44336; border-radius:14px; padding:14px; margin-bottom:14px; }
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Início</a>
+  <span class="logo-title" style="color:#ff4444;">🔧 ADMIN</span>
+  <span></span>
+</header>
+
+<!-- LOGIN SCREEN -->
+<div id="screen-login" style="padding:20px;">
+  <div style="text-align:center;padding:40px 0 30px;">
+    <div style="font-size:48px;margin-bottom:12px;">🔒</div>
+    <div style="font-family:'Cinzel',serif;font-size:20px;font-weight:900;color:#ff4444;margin-bottom:6px;">
+      Painel Admin
+    </div>
+    <div style="font-size:12px;color:#9e9e9e;margin-bottom:20px;">Acesso restrito</div>
+  </div>
+  <div style="max-width:300px;margin:0 auto;">
+    <input type="password" id="pwd-input" class="input" placeholder="Senha de Admin"
+           onkeydown="if(event.key==='Enter')tryLogin()"
+           style="margin-bottom:10px;width:100%;box-sizing:border-box;"/>
+    <button class="btn btn-primary btn-block" onclick="tryLogin()">🔓 Entrar</button>
+    <div id="pwd-error" style="display:none;color:#ef9a9a;font-size:12px;text-align:center;margin-top:8px;">
+      ❌ Senha incorreta!
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<main class="content" id="screen-admin" style="display:none;">
+
+  <div class="panel" style="background:linear-gradient(135deg,#1a0000,#2d0000);border-color:#ff4444;margin-bottom:14px;">
+    <div style="font-size:12px;color:#ef9a9a;line-height:1.7;">
+      ⚠️ <strong>Painel de Administração</strong><br>
+      Modificações aqui afetam o save do jogador atual.<br>
+      Use com responsabilidade!
+    </div>
+  </div>
+
+  <!-- Info do jogador -->
+  <div class="panel" style="margin-bottom:14px;">
+    <div class="panel-title">👤 Jogador Atual</div>
+    <div class="stat-row"><span class="stat-label">Nome</span><span class="stat-value" id="a-name">—</span></div>
+    <div class="stat-row"><span class="stat-label">Ouro</span><span class="stat-value" style="color:#ffc107;" id="a-gold">0</span></div>
+    <div class="stat-row"><span class="stat-label">XP</span><span class="stat-value" id="a-xp">0</span></div>
+    <div class="stat-row"><span class="stat-label">XPP</span><span class="stat-value" id="a-xpp">0</span></div>
+    <div class="stat-row"><span class="stat-label">Patente</span><span class="stat-value" id="a-rank">—</span></div>
+    <div class="stat-row"><span class="stat-label">Vitórias</span><span class="stat-value" id="a-wins">0</span></div>
+    <div class="stat-row"><span class="stat-label">Cartas no Cofre</span><span class="stat-value" id="a-cards">0</span></div>
+    <div class="stat-row"><span class="stat-label">Versão do Save</span><span class="stat-value" id="a-ver">—</span></div>
+    <div class="stat-row"><span class="stat-label">Criador Verificado</span><span class="stat-value" id="a-verified">—</span></div>
+    <div class="stat-row"><span class="stat-label">Cartas no Correio</span><span class="stat-value" id="a-correio">0</span></div>
+  </div>
+
+  <!-- Ações rápidas -->
+  <div class="admin-section">⚡ Ações Rápidas</div>
+  <div class="admin-grid">
+    <button class="admin-btn" onclick="giveGold(10000)"><span class="icon">🪙</span><span class="label">+10k Ouro</span></button>
+    <button class="admin-btn" onclick="giveGold(100000)"><span class="icon">💰</span><span class="label">+100k Ouro</span></button>
+    <button class="admin-btn" onclick="giveXP(50000)"><span class="icon">⭐</span><span class="label">+50k XP</span></button>
+    <button class="admin-btn" onclick="giveXPP(500000)"><span class="icon">🎖️</span><span class="label">+500k XPP</span></button>
+    <button class="admin-btn" onclick="giveAllCards()"><span class="icon">🃏</span><span class="label">Todas Cartas</span></button>
+    <button class="admin-btn" onclick="giveAllProfileItems()"><span class="icon">🎨</span><span class="label">Todos Itens</span></button>
+    <button class="admin-btn" onclick="expandVaultMax()"><span class="icon">📦</span><span class="label">Cofre Max</span></button>
+    <button class="admin-btn" onclick="giveWins(100)"><span class="icon">🏆</span><span class="label">+100 Vitórias</span></button>
+  </div>
+
+  <!-- Ouro personalizado -->
+  <div class="admin-section">🪙 Dar Ouro Personalizado</div>
+  <div class="admin-input-row">
+    <label>Quantidade</label>
+    <input type="number" id="custom-gold" class="admin-number" value="1000" min="1"/>
+    <button class="btn btn-gold btn-sm" onclick="giveCustomGold()">Dar</button>
+  </div>
+
+  <!-- XP personalizado -->
+  <div class="admin-section">⭐ Dar XP/XPP Personalizado</div>
+  <div class="admin-input-row">
+    <label>XP</label>
+    <input type="number" id="custom-xp" class="admin-number" value="10000" min="1"/>
+    <button class="btn btn-outline btn-sm" onclick="giveCustomXP()">Dar</button>
+  </div>
+  <div class="admin-input-row">
+    <label>XPP</label>
+    <input type="number" id="custom-xpp" class="admin-number" value="10000" min="1"/>
+    <button class="btn btn-outline btn-sm" onclick="giveCustomXPP()">Dar</button>
+  </div>
+
+  <!-- Carta específica -->
+  <div class="admin-section">🃏 Adicionar Carta Específica</div>
+  <div class="admin-input-row">
+    <label>ID</label>
+    <input type="text" id="card-id-input" class="admin-number" placeholder="ex: o001"/>
+    <button class="btn btn-outline btn-sm" onclick="giveCard()">Adicionar</button>
+  </div>
+  <div style="font-size:11px;color:#9e9e9e;margin-bottom:8px;">
+    Exemplos: c001, r001, e001, l001, m001, u001, o001, ev001
+  </div>
+
+  <!-- Boosts -->
+  <div class="admin-section">⚡ Dar Todos os Boosts (2h)</div>
+  <button class="btn btn-outline btn-block" style="margin-bottom:14px;" onclick="giveAllBoosts()">
+    ⚡ Ativar todos os boosts por 2 horas
+  </button>
+
+  <!-- Criador Verificado -->
+  <div class="admin-section" style="color:#29b6f6;">🎬 Criador Verificado</div>
+  <div class="admin-grid">
+    <button class="admin-btn" onclick="grantVerified()"><span class="icon">✅</span><span class="label">Verificar</span></button>
+    <button class="admin-btn" onclick="revokeVerified()"><span class="icon">🚫</span><span class="label">Revogar</span></button>
+    <button class="admin-btn" onclick="forceCorreioLetter()"><span class="icon">📬</span><span class="label">+1 Carta Correio</span></button>
+    <button class="admin-btn" onclick="clearCorreio()"><span class="icon">🗑️</span><span class="label">Limpar Correio</span></button>
+  </div>
+
+  <!-- Data do último conteúdo do criador (inatividade) -->
+  <div class="admin-section" style="color:#29b6f6;margin-top:4px;">📅 Inatividade do Criador</div>
+  <div style="font-size:12px;color:#9e9e9e;margin-bottom:8px;line-height:1.7;">
+    Informe a data do último conteúdo postado pelo criador para controlar o alerta de inatividade (aviso depois de 25 dias, perda de status após 30+).<br>
+    <strong style="color:#ef9a9a;">Deixe em branco para "hoje".</strong>
+  </div>
+  <div class="admin-input-row">
+    <label>Data (dd/mm/aaaa)</label>
+    <input type="date" id="last-content-date" class="admin-number"/>
+    <button class="btn btn-outline btn-sm" onclick="setLastContent()">Salvar</button>
+  </div>
+  <div id="inactivity-status" style="font-size:12px;color:#9e9e9e;margin-bottom:10px;"></div>
+
+  <!-- COMPRAS (fulfillment via ticket) -->
+  <div class="admin-section" style="color:#ffc107;margin-top:6px;">💳 Compras — Fulfillment de Ticket</div>
+  <div class="panel" style="background:linear-gradient(135deg,#1a0a00,#2d1500);border-color:#ffc107;margin-bottom:14px;">
+    <p style="font-size:12px;color:#ffe082;line-height:1.7;margin-bottom:10px;">
+      Cole o ticket do jogador (obtido no Discord) e selecione os itens comprados.
+      Clique em <strong>"Entregar via Correio"</strong> para enviar os produtos ao Correio do jogador.
+    </p>
+
+    <div class="admin-section" style="margin:0 0 8px;font-size:12px;">📋 Ticket do Jogador</div>
+    <textarea id="compra-ticket" class="admin-number" rows="4"
+      placeholder="Cole aqui o ticket copiado pelo jogador no comprar.html..."
+      style="width:100%;resize:vertical;font-size:10px;font-family:monospace;box-sizing:border-box;"></textarea>
+    <button class="btn btn-outline btn-sm" style="margin:6px 0 12px;" onclick="decodeTicket()">
+      🔍 Decodificar Ticket
+    </button>
+    <div id="ticket-decoded" style="background:#070712;border:1px solid #2a2a4a;border-radius:8px;padding:10px;font-size:11px;font-family:monospace;color:#a5d6a7;display:none;margin-bottom:12px;line-height:1.7;"></div>
+
+    <div class="admin-section" style="margin:0 0 8px;font-size:12px;">📦 Produto a Entregar</div>
+    <div class="admin-input-row">
+      <label>Título</label>
+      <input type="text" id="compra-titulo" class="admin-number" placeholder="ex: 3.000.000 de Ouro"/>
+    </div>
+    <div class="admin-input-row">
+      <label>Ouro</label>
+      <input type="number" id="compra-gold" class="admin-number" value="0" min="0"/>
+    </div>
+    <div class="admin-input-row">
+      <label>XP</label>
+      <input type="number" id="compra-xp" class="admin-number" value="0" min="0"/>
+    </div>
+    <div class="admin-input-row">
+      <label>XPP</label>
+      <input type="number" id="compra-xpp" class="admin-number" value="0" min="0"/>
+    </div>
+    <div class="admin-input-row">
+      <label>ID Carta (opt.)</label>
+      <input type="text" id="compra-carta" class="admin-number" placeholder="ex: vc001 (ou vazio)"/>
+    </div>
+    <button class="btn btn-gold btn-block" style="margin-top:6px;" onclick="entregarCompra()">
+      📬 Entregar via Correio
+    </button>
+    <div id="compra-status" style="margin-top:8px;font-size:12px;"></div>
+  </div>
+
+  <!-- PRESENTES (compra com ticket de terceiro) -->
+  <div class="admin-section" style="color:#e040fb;margin-top:6px;">🎁 Presentes — Compra para Outro Jogador</div>
+  <div class="panel" style="background:linear-gradient(135deg,#0a0020,#2d0060);border-color:#7c4dff;margin-bottom:14px;">
+    <p style="font-size:12px;color:#d0c0ff;line-height:1.7;margin-bottom:10px;">
+      Quando um jogador compra um produto usando o ticket de <strong>outra pessoa</strong>,
+      o presente é entregue no Correio do jogador que gerou o ticket (o destinatário).
+      Cole o ticket do destinatário abaixo.
+    </p>
+
+    <div class="admin-section" style="margin:0 0 8px;font-size:12px;">🎁 Ticket do Destinatário</div>
+    <textarea id="presente-ticket" class="admin-number" rows="4"
+      placeholder="Cole aqui o ticket da pessoa que vai RECEBER o presente..."
+      style="width:100%;resize:vertical;font-size:10px;font-family:monospace;box-sizing:border-box;"></textarea>
+    <button class="btn btn-outline btn-sm" style="margin:6px 0 12px;" onclick="decodeGiftTicket()">
+      🔍 Decodificar Ticket do Destinatário
+    </button>
+    <div id="presente-decoded" style="background:#070712;border:1px solid #2a2a4a;border-radius:8px;padding:10px;font-size:11px;font-family:monospace;color:#ce93d8;display:none;margin-bottom:12px;line-height:1.7;"></div>
+
+    <div class="admin-section" style="margin:0 0 8px;font-size:12px;">🎁 Presente a Entregar</div>
+    <div class="admin-input-row">
+      <label>Título</label>
+      <input type="text" id="presente-titulo" class="admin-number" placeholder="ex: Presente de [Remetente]"/>
+    </div>
+    <div class="admin-input-row">
+      <label>Ouro</label>
+      <input type="number" id="presente-gold" class="admin-number" value="0" min="0"/>
+    </div>
+    <div class="admin-input-row">
+      <label>XP</label>
+      <input type="number" id="presente-xp" class="admin-number" value="0" min="0"/>
+    </div>
+    <div class="admin-input-row">
+      <label>XPP</label>
+      <input type="number" id="presente-xpp" class="admin-number" value="0" min="0"/>
+    </div>
+    <div class="admin-input-row">
+      <label>ID Carta (opt.)</label>
+      <input type="text" id="presente-carta" class="admin-number" placeholder="ex: vc001 (ou vazio)"/>
+    </div>
+    <button class="btn btn-gold btn-block" style="margin-top:6px;background:linear-gradient(135deg,#4a0072,#7c4dff);border-color:#7c4dff;" onclick="entregarPresente()">
+      🎁 Entregar Presente via Correio
+    </button>
+    <div id="presente-status" style="margin-top:8px;font-size:12px;"></div>
+  </div>
+
+  <!-- Nome -->
+  <div class="admin-section">✏️ Alterar Nome</div>
+  <div class="admin-input-row">
+    <label>Nome</label>
+    <input type="text" id="name-input" class="admin-number" placeholder="Novo nome"/>
+    <button class="btn btn-outline btn-sm" onclick="changeName()">Salvar</button>
+  </div>
+
+  <!-- Save viewer -->
+  <div class="admin-section">💾 Visualizar Save (Raw)</div>
+  <div class="save-viewer" id="save-viewer"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+    <button class="btn btn-outline btn-sm" onclick="copySave()">📋 Copiar Save</button>
+    <button class="btn btn-outline btn-sm" onclick="refreshAdmin()">🔄 Atualizar</button>
+  </div>
+
+  <!-- Danger zone -->
+  <div class="admin-section" style="color:#f44336;">☠️ Zona de Perigo</div>
+  <div class="danger-zone">
+    <p style="font-size:12px;color:#ef9a9a;margin-bottom:10px;">
+      ⚠️ Estas ações são IRREVERSÍVEIS. Tenha certeza antes de continuar!
+    </p>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn btn-sm" style="background:#b71c1c;color:#fff;border:none;"
+              onclick="resetWins()">🗑️ Zerar Vitórias/Derrotas</button>
+      <button class="btn btn-sm" style="background:#b71c1c;color:#fff;border:none;"
+              onclick="clearVault()">🗑️ Esvaziar Cofre</button>
+      <button class="btn btn-sm" style="background:#b71c1c;color:#fff;border:none;"
+              onclick="fullReset()">💀 RESET TOTAL DO SAVE</button>
+    </div>
+  </div>
+
+  <div style="height:70px;"></div>
+</main>
+
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js"></script>
+<script src="gamedata2.js"></script>
+<script>
+const ADMIN_PASSWORD = "0oxxjw08892smo";
+let save = null;
+
+function tryLogin() {
+  const pwd = document.getElementById("pwd-input").value;
+  if (pwd === ADMIN_PASSWORD) {
+    document.getElementById("screen-login").style.display = "none";
+    document.getElementById("screen-admin").style.display = "block";
+    save = getOrCreateSave();
+    refreshAdmin();
+    startAutoSave(() => save);
+  } else {
+    document.getElementById("pwd-error").style.display = "block";
+    setTimeout(() => document.getElementById("pwd-error").style.display = "none", 2000);
+  }
+}
+
+function refreshAdmin() {
+  save = getOrCreateSave();
+  const rank = getRank(save.xpp);
+  document.getElementById("a-name").textContent  = save.playerName;
+  document.getElementById("a-gold").textContent  = fmtNum(save.gold);
+  document.getElementById("a-xp").textContent    = fmtNum(save.xp);
+  document.getElementById("a-xpp").textContent   = fmtNum(save.xpp);
+  document.getElementById("a-rank").textContent  = rank.name;
+  document.getElementById("a-wins").textContent  = fmtNum(save.wins);
+  document.getElementById("a-cards").textContent = save.vault.length;
+  document.getElementById("a-ver").textContent   = save.version || "—";
+  document.getElementById("a-verified").textContent = save.isVerifiedCreator ? "✅ Sim" : "❌ Não";
+  document.getElementById("a-verified").style.color = save.isVerifiedCreator ? "#29b6f6" : "";
+  document.getElementById("a-correio").textContent = (save.correioInbox || []).length;
+
+  // Mostra save decodificado (sem hash)
+  const preview = { ...save }; delete preview.goldHash;
+  document.getElementById("save-viewer").textContent = JSON.stringify(preview, null, 2);
+}
+
+function giveGold(amount) {
+  earnGold(save, amount);
+  writeSave(save); refreshAdmin();
+  showToast(`🪙 +${fmtNum(amount)} ouro dado!`, "gold");
+}
+
+function giveCustomGold() {
+  const n = parseInt(document.getElementById("custom-gold").value) || 0;
+  if (n <= 0) { showToast("⚠️ Valor inválido", "error"); return; }
+  giveGold(n);
+}
+
+function giveXP(n) { save.xp += n; writeSave(save); refreshAdmin(); showToast(`⭐ +${fmtNum(n)} XP!`, "gold"); }
+function giveXPP(n){ save.xpp += n; writeSave(save); refreshAdmin(); showToast(`🎖️ +${fmtNum(n)} XPP!`, "gold"); }
+function giveWins(n){ save.wins += n; save.totalBattles = (save.totalBattles||0)+n; writeSave(save); refreshAdmin(); showToast(`🏆 +${n} vitórias!`, "gold"); }
+
+function giveCustomXP()  { const n = parseInt(document.getElementById("custom-xp").value)||0;  giveXP(n); }
+function giveCustomXPP() { const n = parseInt(document.getElementById("custom-xpp").value)||0; giveXPP(n); }
+
+function giveAllCards() {
+  const all = [...ALL_CARDS, ...EVENT_CARDS];
+  let added = 0;
+  all.forEach(c => {
+    if (save.vault.length < save.vaultLimit) { save.vault.push(c.id); added++; }
+  });
+  writeSave(save); refreshAdmin();
+  showToast(`🃏 +${added} cartas no cofre!`, "gold");
+}
+
+function giveAllProfileItems() {
+  const all = [...PROFILE_ITEMS, ...SHOWCASE_POOL];
+  let added = 0;
+  all.forEach(item => {
+    if (!save.ownedProfileItems.includes(item.id)) { save.ownedProfileItems.push(item.id); added++; }
+  });
+  writeSave(save); refreshAdmin();
+  showToast(`🎨 +${added} itens de perfil!`, "gold");
+}
+
+function expandVaultMax() {
+  save.vaultLimit = 500;
+  writeSave(save); refreshAdmin();
+  showToast("📦 Cofre expandido ao máximo (500)!", "gold");
+}
+
+function giveCard() {
+  const id   = document.getElementById("card-id-input").value.trim();
+  const card = getCardById(id) || EVENT_CARDS?.find(c => c.id === id);
+  if (!card) { showToast("❌ Carta não encontrada: " + id, "error"); return; }
+  if (save.vault.length >= save.vaultLimit) { showToast("⚠️ Cofre cheio!", "error"); return; }
+  save.vault.push(id);
+  writeSave(save); refreshAdmin();
+  showToast(`✅ Carta adicionada: ${card.name}`, "gold");
+}
+
+function giveAllBoosts() {
+  if (!save.activeBoosts) save.activeBoosts = [];
+  const end = Date.now() + 7200000;
+  ["xp","xpp","gold","luck","combo"].forEach(type => {
+    save.activeBoosts = save.activeBoosts.filter(b => b.type !== type);
+    save.activeBoosts.push({ type, mult:3, endTime:end, name:"Admin Boost" });
+  });
+  writeSave(save); refreshAdmin();
+  showToast("⚡ Todos os boosts ativados por 2 horas!", "gold");
+}
+
+// ── INATIVIDADE CRIADOR ──────────────────────────────────────
+function setLastContent() {
+  const val = document.getElementById("last-content-date").value;
+  if (!val) {
+    save.lastContentDate = Date.now();
+    writeSave(save); refreshAdmin();
+    showToast("📅 Data do último conteúdo definida como HOJE.", "gold");
+    return;
+  }
+  const ts = new Date(val).getTime();
+  if (isNaN(ts)) { showToast("⚠️ Data inválida.", "error"); return; }
+  save.lastContentDate = ts;
+  writeSave(save); refreshAdmin();
+  const days = Math.floor((Date.now() - ts) / 86400000);
+  const el = document.getElementById("inactivity-status");
+  el.textContent = days + " dias sem postar. " +
+    (days >= 30 ? "⚠️ ALERTA ATIVO!" : days >= 25 ? "⚠️ Próximo do alerta" : "✅ OK");
+  el.style.color = days >= 30 ? "#f44336" : days >= 25 ? "#ffc107" : "#66bb6a";
+  showToast(`📅 Data de último conteúdo: ${days} dia(s) atrás.`, days >= 25 ? "error" : "gold");
+}
+
+// ── DECODIFICAR TICKET ────────────────────────────────────────
+function _decodeTicket(raw) {
+  try {
+    const deobf = raw.trim().replace(/[A-Za-z]/g, ch => String.fromCharCode(
+      ch.charCodeAt(0) + (ch <= 'Z' ? 13 : 13) > (ch <= 'Z' ? 90 : 122)
+        ? ch.charCodeAt(0) - 13 : ch.charCodeAt(0) + 13
+    ));
+    const json = decodeURIComponent(atob(deobf));
+    return JSON.parse(json);
+  } catch(e) { return null; }
+}
+
+function decodeTicket() {
+  const raw = document.getElementById("compra-ticket").value;
+  const data = _decodeTicket(raw);
+  const el = document.getElementById("ticket-decoded");
+  if (!data) {
+    el.style.display = "block"; el.style.color = "#ef9a9a";
+    el.textContent = "❌ Ticket inválido ou corrompido. Peça ao jogador para gerar novamente.";
+    return;
+  }
+  el.style.display = "block"; el.style.color = "#a5d6a7";
+  const items = (data.items||[]).map(i => `  • ${i.name} — ${data.currency || "BRL"} ${i.price}`).join("\n");
+  el.textContent =
+    `Jogador: ${data.player}\nMoeda: ${data.currency}\nTotal: ${data.total}\nTimestamp: ${new Date(data.ts).toLocaleString("pt-BR")}\n\nItens:\n${items}`;
+  document.getElementById("compra-titulo").value   = "Compra: " + (data.items||[]).map(i=>i.name).join(", ");
+}
+
+function decodeGiftTicket() {
+  const raw = document.getElementById("presente-ticket").value;
+  const data = _decodeTicket(raw);
+  const el = document.getElementById("presente-decoded");
+  if (!data) {
+    el.style.display = "block"; el.style.color = "#ef9a9a";
+    el.textContent = "❌ Ticket inválido. Peça ao destinatário para copiar o ticket corretamente.";
+    return;
+  }
+  el.style.display = "block"; el.style.color = "#ce93d8";
+  el.textContent = `Destinatário: ${data.player}\nMoeda: ${data.currency}\nTicket gerado em: ${new Date(data.ts).toLocaleString("pt-BR")}`;
+  document.getElementById("presente-titulo").value = `Presente para ${data.player}`;
+}
+
+function _buildPurchaseLetter(title, gold, xp, xpp, cartaId, emoji) {
+  return {
+    id:       "letter_purchase_" + Date.now(),
+    date:     new Date().toDateString(),
+    title:    title || "Compra Realizada",
+    emoji:    emoji || "💳",
+    verified: false,
+    claimed:  false,
+    rewards: {
+      gold:  parseInt(gold)  || 0,
+      xp:    parseInt(xp)    || 0,
+      xpp:   parseInt(xpp)   || 0,
+      boost: null,
+      carta: cartaId || null,
+    },
+  };
+}
+
+function entregarCompra() {
+  const titulo  = document.getElementById("compra-titulo").value.trim();
+  const gold    = parseInt(document.getElementById("compra-gold").value)  || 0;
+  const xp      = parseInt(document.getElementById("compra-xp").value)    || 0;
+  const xpp     = parseInt(document.getElementById("compra-xpp").value)   || 0;
+  const cartaId = document.getElementById("compra-carta").value.trim();
+  const el      = document.getElementById("compra-status");
+
+  if (!titulo) { el.innerHTML = '<span style="color:#ef9a9a;">⚠️ Informe o título do produto.</span>'; return; }
+
+  const letter = _buildPurchaseLetter(titulo, gold, xp, xpp, cartaId, "💳");
+
+  // Adicionar carta ao cofre (se informada)
+  if (cartaId) {
+    const card = typeof getCardById === "function" ? getCardById(cartaId) : null;
+    const evCard = (typeof EVENT_CARDS !== "undefined") ? EVENT_CARDS.find(c => c.id === cartaId) : null;
+    if (!card && !evCard) {
+      el.innerHTML = `<span style="color:#ffc107;">⚠️ Carta "${cartaId}" não encontrada. Outros produtos serão entregues normalmente.</span>`;
+    } else if (save.vault.length < save.vaultLimit) {
+      save.vault.push(cartaId);
+    } else {
+      el.innerHTML = '<span style="color:#ffc107;">⚠️ Cofre cheio! A carta não pôde ser adicionada.</span>';
+    }
+  }
+
+  if (!save.correioInbox) save.correioInbox = [];
+  save.correioInbox.unshift(letter);
+  writeSave(save); refreshAdmin();
+  el.innerHTML = `<span style="color:#a5d6a7;">✅ Produto entregue ao Correio do jogador!</span>`;
+  showToast("📬 Compra entregue via Correio!", "gold");
+}
+
+function entregarPresente() {
+  const titulo  = document.getElementById("presente-titulo").value.trim();
+  const gold    = parseInt(document.getElementById("presente-gold").value)  || 0;
+  const xp      = parseInt(document.getElementById("presente-xp").value)    || 0;
+  const xpp     = parseInt(document.getElementById("presente-xpp").value)   || 0;
+  const cartaId = document.getElementById("presente-carta").value.trim();
+  const el      = document.getElementById("presente-status");
+
+  if (!titulo) { el.innerHTML = '<span style="color:#ef9a9a;">⚠️ Informe o título do presente.</span>'; return; }
+  const raw = document.getElementById("presente-ticket").value;
+  const data = _decodeTicket(raw);
+  if (!data) { el.innerHTML = '<span style="color:#ef9a9a;">❌ Decodifique o ticket do destinatário primeiro.</span>'; return; }
+
+  // Verificar se o jogador logado é o destinatário
+  if (data.player !== save.playerName) {
+    el.innerHTML = `<span style="color:#ffc107;">⚠️ O destinatário é <strong>${data.player}</strong>, mas o save atual é de <strong>${save.playerName}</strong>.<br>O destinatário precisa estar logado para receber o presente.</span>`;
+    return;
+  }
+
+  const letter = _buildPurchaseLetter(titulo, gold, xp, xpp, cartaId, "🎁");
+  letter.title = "🎁 " + titulo;
+
+  if (cartaId) {
+    if (save.vault.length < save.vaultLimit) save.vault.push(cartaId);
+  }
+
+  if (!save.correioInbox) save.correioInbox = [];
+  save.correioInbox.unshift(letter);
+  writeSave(save); refreshAdmin();
+  el.innerHTML = `<span style="color:#ce93d8;">🎁 Presente entregue ao Correio de ${data.player}!</span>`;
+  showToast("🎁 Presente entregue!", "gold");
+}
+
+function grantVerified() {
+  const result = applyCreatorVerification(save, CREATOR_KEY);
+  if (!result.ok && result.reason === "already") {
+    showToast("✅ Jogador já é verificado.", "info");
+  } else {
+    writeSave(save); refreshAdmin();
+    showToast("🎬 Jogador verificado como Criador!", "gold");
+  }
+}
+
+function revokeVerified() {
+  if (!confirm("Revogar status de Criador Verificado deste jogador?")) return;
+  save.isVerifiedCreator = false;
+  save.verifiedSince = 0;
+  if (save.profileBadge === "badge_verified") save.profileBadge = "";
+  writeSave(save); refreshAdmin();
+  showToast("🚫 Status de criador revogado.", "info");
+}
+
+function forceCorreioLetter() {
+  save.lastCorreioGenerated = ""; // força gerar de novo
+  const letter = generateDailyCorreioLetter(save);
+  writeSave(save); refreshAdmin();
+  showToast(letter ? `📬 Carta gerada: ${letter.title}` : "⚠️ Nenhuma carta desta vez (chance normal).", letter?"gold":"info");
+}
+
+function clearCorreio() {
+  if (!confirm("Limpar todas as cartas do correio deste jogador?")) return;
+  save.correioInbox = [];
+  writeSave(save); refreshAdmin();
+  showToast("🗑️ Correio esvaziado.", "info");
+}
+
+function changeName() {
+  const n = document.getElementById("name-input").value.trim().slice(0,20);
+  if (!n) { showToast("⚠️ Nome inválido", "error"); return; }
+  save.playerName = n;
+  writeSave(save); refreshAdmin();
+  showToast("✅ Nome alterado para: " + n, "gold");
+}
+
+function copySave() {
+  try {
+    navigator.clipboard.writeText(JSON.stringify(save));
+    showToast("📋 Save copiado!", "info");
+  } catch(e) {
+    showToast("❌ Falha ao copiar", "error");
+  }
+}
+
+function resetWins() {
+  if (!confirm("Zerar vitórias e derrotas?")) return;
+  save.wins = 0; save.losses = 0; save.totalBattles = 0;
+  writeSave(save); refreshAdmin();
+  showToast("🗑️ Vitórias/Derrotas zeradas!", "info");
+}
+
+function clearVault() {
+  if (!confirm("Esvaziar o cofre? Todas as cartas serão perdidas!")) return;
+  save.vault = [];
+  writeSave(save); refreshAdmin();
+  showToast("🗑️ Cofre esvaziado!", "info");
+}
+
+function fullReset() {
+  if (!confirm("⚠️ RESET TOTAL? Isso apaga TODO o progresso!")) return;
+  if (!confirm("Tem CERTEZA ABSOLUTA? Não há como desfazer!")) return;
+  localStorage.removeItem(SAVE_KEY);
+  showToast("💀 Save apagado. Recarregando...", "error");
+  setTimeout(() => location.href = "index.html", 1500);
+}
+</script>
+</body>
+</html>

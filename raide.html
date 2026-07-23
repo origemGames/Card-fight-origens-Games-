@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Raide de Guilda – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+.raid-hero {
+  background:linear-gradient(135deg,#1a0000,#2d0000,#1a0010);
+  border:2px solid #ff4444; border-radius:16px;
+  padding:20px 16px; margin-bottom:14px; text-align:center;
+  position:relative; overflow:hidden;
+}
+.raid-hero::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(255,68,68,0.12) 0%,transparent 60%);
+  pointer-events:none;
+}
+.raid-hero .boss-emoji {
+  font-size:72px; display:block; margin-bottom:8px;
+  animation:float 2.5s ease-in-out infinite;
+  filter:drop-shadow(0 0 24px rgba(255,68,68,0.6));
+}
+.raid-title {
+  font-family:'Cinzel',serif; font-size:20px; font-weight:900;
+  background:linear-gradient(135deg,#ff4444,#ff6d00,#ffc107);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  margin-bottom:4px;
+}
+.raid-sub { font-size:12px; color:#9e9e9e; }
+
+/* HP Bar */
+.boss-hp-wrap {
+  background:#0e0e1c; border:1px solid #2a2a4a; border-radius:12px;
+  padding:14px; margin-bottom:12px;
+}
+.boss-hp-label {
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:8px; font-size:12px;
+}
+.boss-hp-name { font-family:'Cinzel',serif; font-weight:700; color:#ff4444; font-size:14px; }
+.boss-hp-val { font-weight:700; color:#ffc107; }
+.hp-track { background:#1e1e30; border-radius:20px; height:18px; overflow:hidden; position:relative; }
+.hp-fill {
+  height:100%; border-radius:20px;
+  background:linear-gradient(90deg,#b71c1c,#ff4444,#ff6d00);
+  transition:width 0.6s ease;
+  position:relative; overflow:hidden;
+}
+.hp-fill::after {
+  content:''; position:absolute; top:0; left:-100%;
+  width:100%; height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);
+  animation:shimmer 2s linear infinite;
+}
+@keyframes shimmer { 0%{left:-100%} 100%{left:100%} }
+.hp-pct {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  font-size:10px; font-weight:700; color:#fff; text-shadow:0 0 4px rgba(0,0,0,0.8);
+}
+
+/* Offering panel */
+.offering-box {
+  background:linear-gradient(135deg,#0d0010,#1a0025);
+  border:2px solid #7c4dff; border-radius:14px;
+  padding:14px; margin-bottom:12px;
+}
+.offering-title {
+  font-family:'Cinzel',serif; font-size:13px; font-weight:700;
+  color:#ce93d8; margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+.offering-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 0; border-bottom:1px solid #2a2a4a; font-size:13px;
+}
+.offering-row:last-child { border-bottom:none; }
+.offering-item { display:flex; align-items:center; gap:8px; }
+.offering-check { font-size:16px; }
+
+.fragment-badge {
+  display:inline-flex; align-items:center; gap:4px;
+  background:linear-gradient(135deg,rgba(0,229,255,0.12),rgba(124,77,255,0.12));
+  border:1px solid #00e5ff; border-radius:20px;
+  padding:3px 12px; font-size:12px; font-weight:700; color:#00e5ff;
+}
+
+/* Damage attack button */
+.attack-btn-wrap { margin-bottom:12px; }
+.attack-btn {
+  width:100%; padding:18px; font-family:'Cinzel',serif; font-size:16px; font-weight:900;
+  border:none; border-radius:14px; cursor:pointer;
+  background:linear-gradient(135deg,#8b0000,#c62828);
+  color:#fff; letter-spacing:0.5px;
+  box-shadow:0 4px 24px rgba(198,40,40,0.4);
+  transition:all 0.2s; position:relative; overflow:hidden;
+}
+.attack-btn::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(180deg,rgba(255,255,255,0.06) 0%,transparent 100%);
+}
+.attack-btn:active { transform:scale(0.97); }
+.attack-btn:disabled { background:linear-gradient(135deg,#2a1a1a,#3a2020); color:#666; box-shadow:none; cursor:not-allowed; }
+.cooldown-bar {
+  height:4px; background:#1e1e30; border-radius:4px;
+  margin-top:6px; overflow:hidden;
+}
+.cooldown-fill {
+  height:100%; background:linear-gradient(90deg,#ff4444,#ffc107);
+  transition:width 1s linear;
+}
+
+/* Ranking */
+.damage-rank-item {
+  display:flex; align-items:center; gap:10px;
+  padding:8px 10px; background:#0e0e1c; border-radius:10px;
+  margin-bottom:6px; font-size:12px;
+}
+.damage-rank-pos { font-family:'Cinzel',serif; font-size:14px; font-weight:900; min-width:26px; }
+.damage-rank-name { flex:1; font-weight:700; }
+.damage-rank-val { color:#ffc107; font-weight:700; }
+.damage-rank-bar { height:3px; background:#1e1e30; border-radius:3px; margin-top:3px; overflow:hidden; }
+.damage-rank-bar-fill { height:100%; background:linear-gradient(90deg,#ff4444,#ffc107); border-radius:3px; }
+
+/* Boss theme variants */
+.boss-fire   { border-color:#ff6d00!important; }
+.boss-shadow { border-color:#9c27b0!important; }
+.boss-ice    { border-color:#00e5ff!important; }
+.boss-storm  { border-color:#2196F3!important; }
+.boss-void   { border-color:#7c4dff!important; }
+
+/* Reward banner */
+.reward-banner {
+  background:linear-gradient(135deg,#1a1400,#2d2200);
+  border:2px solid #ffc107; border-radius:14px;
+  padding:14px; margin-bottom:12px; text-align:center;
+}
+.reward-title {
+  font-family:'Cinzel',serif; font-size:16px; font-weight:900;
+  background:linear-gradient(135deg,#ffc107,#66bb6a);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text; margin-bottom:8px;
+}
+.reward-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.reward-item {
+  background:rgba(0,0,0,0.3); border:1px solid #2a2a4a; border-radius:8px;
+  padding:8px; text-align:center; font-size:12px;
+}
+.reward-item .ri-icon { font-size:22px; margin-bottom:4px; }
+.reward-item .ri-label { font-size:10px; color:#9e9e9e; }
+
+/* Warning box */
+.warn-box {
+  background:rgba(244,67,54,0.08); border:1px solid #f44336;
+  border-radius:10px; padding:12px; font-size:12px;
+  color:#ef9a9a; line-height:1.7; margin-bottom:10px;
+}
+.req-box {
+  background:rgba(255,193,7,0.06); border:1px solid #ffc107;
+  border-radius:10px; padding:12px; font-size:12px;
+  color:#ffe082; line-height:1.8; margin-bottom:10px;
+}
+.locked-overlay {
+  background:rgba(0,0,0,0.85); border-radius:14px;
+  padding:24px; text-align:center; margin-bottom:12px;
+}
+.locked-overlay .lock-icon { font-size:52px; margin-bottom:10px; }
+.locked-overlay p { font-size:13px; color:#9e9e9e; line-height:1.8; }
+
+/* Week timer */
+.week-timer {
+  background:#0e0e1c; border:1px solid #2a2a4a; border-radius:10px;
+  padding:10px 14px; margin-bottom:12px; display:flex;
+  align-items:center; justify-content:space-between; font-size:12px;
+}
+.week-timer .wt-label { color:#9e9e9e; }
+.week-timer .wt-val { font-weight:700; color:#ce93d8; font-family:'Cinzel',serif; }
+
+/* Tabs */
+.raid-tabs { display:flex; background:#0e0e1c; border-radius:12px; padding:4px; margin-bottom:14px; gap:3px; }
+.raid-tab { flex:1; padding:8px 4px; border:none; border-radius:9px; background:transparent;
+  color:#9e9e9e; font-family:'Rajdhani',sans-serif; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.2s; }
+.raid-tab.active { background:linear-gradient(135deg,#8b0000,#c62828); color:#fff; }
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title" style="background:linear-gradient(135deg,#ff4444,#ffc107);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">💀 RAIDE</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content">
+
+  <!-- Hero Banner -->
+  <div class="raid-hero" id="boss-hero-card">
+    <span class="boss-emoji" id="boss-emoji">💀</span>
+    <div class="raid-title" id="boss-name">Chefe de Raide</div>
+    <div class="raid-sub" id="boss-sub">Batalha semanal da guilda</div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="raid-tabs">
+    <button class="raid-tab active" onclick="switchTab('raid',this)">⚔️ Raide</button>
+    <button class="raid-tab" onclick="switchTab('ranking',this)">🏆 Ranking</button>
+    <button class="raid-tab" onclick="switchTab('rewards',this)">🎁 Recompensas</button>
+  </div>
+
+  <!-- TAB: RAIDE -->
+  <div id="tab-raid">
+
+    <!-- Botão de convocação — visível apenas no dia designado da semana -->
+    <div id="invoke-section" style="display:none;">
+      <div class="warn-box" style="border-color:#ff4444;background:rgba(255,68,68,0.08);">
+        🚨 <strong>ALERTA DE RAIDE!</strong> O Chefe surgiu neste mundo! Você tem <strong id="invoke-countdown">--:--:--</strong> para convocá-lo antes que desapareça!
+      </div>
+      <button class="attack-btn" style="background:linear-gradient(135deg,#4a0072,#7c4dff);box-shadow:0 4px 24px rgba(124,77,255,0.4);margin-bottom:12px;" onclick="openConvocarModal()">
+        🔔 CONVOCAR MEMBROS DA GUILDA
+      </button>
+    </div>
+
+    <!-- Seção Principal da Raide (visível quando raide está ativa) -->
+    <div id="raid-active-section" style="display:none;">
+
+      <!-- HP Bar do Boss -->
+      <div class="boss-hp-wrap">
+        <div class="boss-hp-label">
+          <span class="boss-hp-name" id="hp-boss-name">???</span>
+          <span class="boss-hp-val"><span id="hp-current">0</span> / <span id="hp-max">50.000.000</span></span>
+        </div>
+        <div class="hp-track">
+          <div class="hp-fill" id="hp-bar" style="width:100%;"></div>
+          <div class="hp-pct" id="hp-pct-label">100%</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#9e9e9e;margin-top:6px;">
+          <span>🗡️ Dano total: <strong style="color:#ffc107;" id="total-dmg-label">0</strong></span>
+          <span>👤 Meu dano: <strong style="color:#66bb6a;" id="my-dmg-label">0</strong></span>
+        </div>
+      </div>
+
+      <!-- Semana restante -->
+      <div class="week-timer">
+        <span class="wt-label">⏰ Tempo restante da semana:</span>
+        <span class="wt-val" id="week-countdown">--d --h</span>
+      </div>
+
+      <!-- Botão de Ataque -->
+      <div class="attack-btn-wrap">
+        <button class="attack-btn" id="attack-btn" onclick="attackBoss()">
+          ⚔️ ATACAR O CHEFE!
+        </button>
+        <div id="cooldown-info" style="text-align:center;font-size:11px;color:#9e9e9e;margin-top:4px;display:none;">
+          ⏳ Próximo ataque em: <span id="cooldown-timer" style="color:#ffc107;font-weight:700;">--:--</span>
+        </div>
+        <div class="cooldown-bar"><div class="cooldown-fill" id="cooldown-fill" style="width:0%;"></div></div>
+      </div>
+
+      <!-- Meu dano detalhado -->
+      <div class="panel" style="margin-bottom:10px;">
+        <div class="panel-title">⚡ Minha Contribuição</div>
+        <div class="stat-row">
+          <span class="stat-label">Dano total causado</span>
+          <span class="stat-value text-gold" id="my-total-dmg">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Ataques realizados</span>
+          <span class="stat-value" id="my-attacks">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Dano por ataque</span>
+          <span class="stat-value text-green" id="dmg-per-attack">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Posição no ranking</span>
+          <span class="stat-value text-blue" id="my-rank-pos">#?</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Estado: sem guilda -->
+    <div id="no-guild-section" style="display:none;">
+      <div class="locked-overlay">
+        <div class="lock-icon">⚜️</div>
+        <div style="font-family:'Cinzel',serif;font-size:16px;font-weight:700;color:#666;margin-bottom:8px;">Guilda Necessária</div>
+        <p>Você precisa estar em uma <strong style="color:#ffc107;">guilda</strong> para participar de Raides.<br>Entre em uma guilda e aguarde o próximo Chefe!</p>
+        <a href="guilda.html" class="btn btn-gold btn-block" style="margin-top:14px;">⚜️ Ver Guildas</a>
+      </div>
+    </div>
+
+    <!-- Estado: aguardando raide aparecer -->
+    <div id="waiting-section" style="display:none;">
+      <div class="req-box" style="text-align:center;">
+        <div style="font-size:40px;margin-bottom:8px;">🔮</div>
+        <div style="font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:#ffc107;margin-bottom:6px;">Aguardando o Chefe...</div>
+        A cada semana, um dia <strong>aleatório</strong> o botão de convocação aparece.<br>
+        Fique atento — quando o Chefe surgir, você terá poucas horas para convocar!
+      </div>
+      <div class="panel" style="margin-bottom:10px;">
+        <div class="panel-title">💀 Boss desta Semana</div>
+        <div style="text-align:center;padding:20px 0;">
+          <div style="font-size:52px;margin-bottom:8px;opacity:0.4;filter:grayscale(1);" id="boss-silhouette">❓</div>
+          <div style="font-size:12px;color:#555;">Identidade desconhecida até a convocação</div>
+        </div>
+      </div>
+      <!-- Regras -->
+      <div class="panel" style="margin-bottom:10px;">
+        <div class="panel-title">📜 Regras da Raide</div>
+        <ul style="font-size:12px;color:#c0c0d0;padding-left:16px;line-height:2.2;margin:0;">
+          <li>🔔 Apareça no dia certo e <strong style="color:#ce93d8;">convoque</strong> os membros</li>
+          <li>👥 Mínimo de <strong style="color:#ffc107;">5 membros</strong> da guilda participando</li>
+          <li>💎 Ofereça <strong style="color:#00e5ff;">3× Fragmento de Cards</strong> + ouro como tributo</li>
+          <li>⚔️ Cada membro ataca causando dano baseado no nível/cartas</li>
+          <li>🏆 O dano de todos soma — derrote o boss antes de acabar a semana!</li>
+          <li>🎁 Vitória = recompensas para <strong>toda a guilda</strong></li>
+          <li>👑 Quem causou mais dano ganha bônus extra!</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Estado: vitória! -->
+    <div id="victory-section" style="display:none;">
+      <div class="reward-banner" style="border-color:#66bb6a;background:linear-gradient(135deg,#0a1a00,#1a3000);">
+        <div style="font-size:52px;margin-bottom:8px;">🎉</div>
+        <div class="reward-title" style="font-size:18px;background:linear-gradient(135deg,#66bb6a,#ffc107);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">BOSS DERROTADO!</div>
+        <div style="font-size:12px;color:#9e9e9e;margin-bottom:10px;">Sua guilda foi vitoriosa esta semana!</div>
+        <button class="btn btn-gold btn-block" onclick="claimRaidReward()" id="claim-reward-btn">🎁 Resgatar Recompensas!</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TAB: RANKING -->
+  <div id="tab-ranking" style="display:none;">
+    <div class="panel" style="margin-bottom:10px;">
+      <div class="panel-title">🏆 Ranking de Dano — Semana Atual</div>
+      <div id="damage-ranking-list">
+        <div style="text-align:center;padding:20px;font-size:12px;color:#555;">Nenhum ataque registrado ainda.</div>
+      </div>
+    </div>
+    <div style="background:rgba(255,193,7,0.06);border:1px solid #ffc107;border-radius:10px;padding:10px 12px;font-size:12px;color:#ffe082;line-height:1.8;margin-bottom:10px;">
+      👑 <strong>Bônus do MVP:</strong> Quem causar mais dano no boss ganha <strong>+500K ouro extra</strong> e o título especial <strong>"Algoz do Boss"</strong>!
+    </div>
+  </div>
+
+  <!-- TAB: RECOMPENSAS -->
+  <div id="tab-rewards" style="display:none;">
+    <div class="reward-banner">
+      <div class="reward-title">🎁 Recompensas da Raide</div>
+      <div style="font-size:12px;color:#9e9e9e;margin-bottom:12px;">Ao derrotar o boss, <strong>todos os membros</strong> da guilda recebem:</div>
+      <div class="reward-grid">
+        <div class="reward-item">
+          <div class="ri-icon">🪙</div>
+          <div style="font-weight:700;color:#ffc107;font-size:13px;">2.000.000</div>
+          <div class="ri-label">Ouro</div>
+        </div>
+        <div class="reward-item">
+          <div class="ri-icon">⭐</div>
+          <div style="font-weight:700;color:#66bb6a;font-size:13px;">100.000</div>
+          <div class="ri-label">XP</div>
+        </div>
+        <div class="reward-item">
+          <div class="ri-icon">🎖️</div>
+          <div style="font-weight:700;color:#2196F3;font-size:13px;">50.000</div>
+          <div class="ri-label">XPP</div>
+        </div>
+        <div class="reward-item">
+          <div class="ri-icon">🃏</div>
+          <div style="font-weight:700;color:#9c27b0;font-size:13px;">1× Carta</div>
+          <div class="ri-label">Ultra Raro garantido</div>
+        </div>
+      </div>
+    </div>
+    <div style="background:rgba(255,68,68,0.08);border:1px solid #ff4444;border-radius:10px;padding:12px;font-size:12px;color:#ef9a9a;line-height:1.8;margin-bottom:10px;">
+      👑 <strong>Bônus MVP (1º lugar no ranking de dano):</strong><br>
+      +500.000 ouro extra · Título exclusivo "Algoz do Boss" · Carta Mítica garantida
+    </div>
+    <div class="panel" style="margin-bottom:10px;">
+      <div class="panel-title">💎 Fragmento de Cards</div>
+      <div style="font-size:12px;color:#c0c0d0;line-height:1.8;margin-bottom:10px;">
+        Para convocar a Raide você precisa de <strong style="color:#00e5ff;">3× Fragmento de Cards</strong>.<br>
+        Este é o item mais raro do jogo — só pode ser obtido no <strong style="color:#ff4444;">Mercado Negro</strong>, por <strong>10.000.000 de ouro</strong> cada. O Mercado Negro aparece apenas <strong>1× por semana durante 10 minutos</strong>.
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;background:#070712;border-radius:8px;padding:10px 12px;">
+        <span style="font-size:28px;">💎</span>
+        <div>
+          <div style="font-family:'Cinzel',serif;font-weight:700;color:#00e5ff;font-size:13px;">Fragmento de Cards</div>
+          <div style="font-size:11px;color:#9e9e9e;">Você possui: <span style="color:#00e5ff;font-weight:700;" id="frag-count-rewards">0</span></div>
+        </div>
+        <a href="mercado-negro.html" class="btn btn-sm" style="margin-left:auto;background:linear-gradient(135deg,#1a0000,#2d0000);border:1px solid #ff4444;color:#ff4444;">🕶️ Mercado Negro</a>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:70px;"></div>
+</main>
+
+<!-- Modal: Convocar + Oferenda -->
+<div class="modal-overlay hidden" id="convocar-modal">
+  <div class="modal-box" style="max-width:380px;">
+    <div class="modal-title" style="color:#ff4444;">💀 Convocar a Raide</div>
+
+    <div style="text-align:center;margin-bottom:14px;">
+      <span style="font-size:52px;" id="modal-boss-emoji">💀</span>
+      <div style="font-family:'Cinzel',serif;font-weight:700;font-size:15px;color:#ff4444;margin-top:6px;" id="modal-boss-name">???</div>
+      <div style="font-size:11px;color:#9e9e9e;margin-top:3px;" id="modal-boss-desc">O boss mais temível já visto</div>
+    </div>
+
+    <div class="warn-box" style="margin-bottom:10px;">
+      ⚠️ Este boss é <strong>extremamente poderoso</strong>. Não é para iniciantes!<br>Você precisará de membros da guilda e grandes oferendas.
+    </div>
+
+    <div class="offering-box">
+      <div class="offering-title">🔮 Tributo aos Cristais Mágicos</div>
+      <div class="offering-row">
+        <div class="offering-item">
+          <span style="font-size:20px;">💎</span>
+          <div>
+            <div style="font-weight:700;font-size:12px;color:#00e5ff;">Fragmento de Cards</div>
+            <div style="font-size:11px;color:#9e9e9e;">Você tem: <span id="modal-frag-count" style="color:#00e5ff;font-weight:700;">0</span></div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#ffc107;">3× necessários</div>
+          <div id="frag-ok" style="font-size:11px;color:#ef9a9a;">❌ Insuficiente</div>
+        </div>
+      </div>
+      <div class="offering-row">
+        <div class="offering-item">
+          <span style="font-size:20px;">🪙</span>
+          <div>
+            <div style="font-weight:700;font-size:12px;">Ouro (tributo)</div>
+            <div style="font-size:11px;color:#9e9e9e;">Você tem: <span id="modal-gold-val" style="color:#ffc107;font-weight:700;">0</span></div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#ffc107;">5.000.000 ouro</div>
+          <div id="gold-ok" style="font-size:11px;color:#ef9a9a;">❌ Insuficiente</div>
+        </div>
+      </div>
+      <div class="offering-row">
+        <div class="offering-item">
+          <span style="font-size:20px;">👥</span>
+          <div>
+            <div style="font-weight:700;font-size:12px;">Membros da Guilda</div>
+            <div style="font-size:11px;color:#9e9e9e;">Mínimo 5 membros</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#66bb6a;" id="members-simulated">Verificando...</div>
+          <div id="members-ok" style="font-size:11px;color:#ef9a9a;">❌ Insuficiente</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="requirements-met-msg" style="display:none;background:rgba(102,187,106,0.1);border:1px solid #66bb6a;border-radius:10px;padding:10px;font-size:12px;color:#a5d6a7;margin-bottom:12px;line-height:1.7;">
+      ✅ Todas as oferendas estão prontas! A raide será iniciada para todos os membros da sua guilda.
+    </div>
+    <div id="requirements-fail-msg" style="background:rgba(244,67,54,0.08);border:1px solid #f44336;border-radius:10px;padding:10px;font-size:12px;color:#ef9a9a;margin-bottom:12px;line-height:1.7;">
+      ❌ Requisitos não cumpridos. Verifique suas oferendas e tente novamente.
+    </div>
+
+    <button class="btn btn-primary btn-block" id="confirm-convocar-btn" onclick="confirmarConvocar()" disabled style="opacity:0.5;margin-bottom:8px;">
+      💀 Iniciar Convocação
+    </button>
+    <button class="btn btn-outline btn-block" onclick="document.getElementById('convocar-modal').classList.add('hidden')">Cancelar</button>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js"></script>
+<script src="gamedata2.js"></script>
+<script src="gamedata3.js"></script>
+<script src="gamedata-v7-patch.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   RAIDE DE GUILDA — Card Fight v7.0
+   Sistema de Chefe Semanal da Guilda
+═══════════════════════════════════════════════════════════ */
+
+const BOSSES = [
+  { id:0, name:"Rei Dragão Ignis",    emoji:"🐉", desc:"Senhor das chamas eternas, destrói mundos com um sopro",  theme:"boss-fire",   color:"#ff6d00", hp:50000000, bg:"linear-gradient(135deg,#1a0500,#2d0a00)" },
+  { id:1, name:"Titan das Sombras",   emoji:"🌑", desc:"Nascido da escuridão absoluta, não reflete nem a luz",    theme:"boss-shadow", color:"#9c27b0", hp:60000000, bg:"linear-gradient(135deg,#0a001a,#1a0030)" },
+  { id:2, name:"Golem de Cristal",    emoji:"💎", desc:"Colosso de gelo vivo, cada toque congela a alma",         theme:"boss-ice",    color:"#00e5ff", hp:55000000, bg:"linear-gradient(135deg,#001a2a,#002d40)" },
+  { id:3, name:"Deus da Tempestade",  emoji:"⚡", desc:"Raios que partem montanhas, trovões que partem o céu",    theme:"boss-storm",  color:"#2196F3", hp:65000000, bg:"linear-gradient(135deg,#00112a,#001f45)" },
+  { id:4, name:"Demônio do Void",     emoji:"🌀", desc:"Entidade do vazio, consome realidades inteiras",          theme:"boss-void",   color:"#7c4dff", hp:70000000, bg:"linear-gradient(135deg,#0d0025,#1a003a)" },
+];
+
+const BOSS_HP_MAX     = 50000000;
+const ATTACK_COOLDOWN = 3600000; // 1 hora em ms
+const GOLD_OFFERING   = 5000000;
+const FRAG_OFFERING   = 3;
+const MIN_MEMBERS     = 5;
+
+let save, currentTab = "raid";
+
+/* ── Semana corrente ── */
+function getWeekKey() {
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const week = Math.ceil(((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
+  return `${now.getFullYear()}-W${String(week).padStart(2,'0')}`;
+}
+
+/* ── Qual dia da semana a raide aparece (0=Dom,1=Seg,...,6=Sab) ── */
+function getRaidDayForWeek(weekKey) {
+  let hash = 0;
+  for (let c of weekKey) hash = (hash * 31 + c.charCodeAt(0)) & 0xffffffff;
+  return Math.abs(hash) % 7; // dia 0-6
+}
+
+/* ── Boss da semana ── */
+function getBossForWeek(weekKey) {
+  let hash = 0;
+  for (let c of weekKey) hash = (hash * 17 + c.charCodeAt(0)) & 0xffffffff;
+  return BOSSES[Math.abs(hash) % BOSSES.length];
+}
+
+/* ── Calcula dano por ataque baseado no nível ── */
+function calcDamage() {
+  const level    = getLevel ? getLevel(save.xp) : 1;
+  const cards    = save.vault ? save.vault.length : 0;
+  const base     = level * 80000;
+  const bonus    = Math.floor(cards / 10) * 15000;
+  const atkMult  = typeof getCompanionAtkMult === "function" ? getCompanionAtkMult(save) : 1;
+  return Math.round((base + bonus) * atkMult);
+}
+
+/* ── NPC guild members auto-attack (simulado, baseado no tempo passado) ── */
+function simulateNpcDamage(raid, now) {
+  if (!raid.started || raid.conquered) return 0;
+  const lastSim    = raid.lastNpcSim || raid.startTime;
+  const elapsed    = now - lastSim;
+  const cycles     = Math.floor(elapsed / 1800000); // a cada 30min NPCs atacam
+  if (cycles <= 0) return 0;
+  const npcNames   = ["KairoMaster","VoidHunterX","ShadowOrigens","BladeEternal","FrostReaper","NightVandal","DragonSlayerZ"];
+  let totalNpc     = 0;
+  for (let i = 0; i < cycles; i++) {
+    npcNames.forEach((nm, idx) => {
+      const dmg = (20 + idx * 8) * 50000 + Math.floor(Math.random() * 200000);
+      raid.memberDamages = raid.memberDamages || {};
+      raid.memberDamages[nm] = (raid.memberDamages[nm] || 0) + dmg;
+      totalNpc += dmg;
+    });
+  }
+  raid.lastNpcSim  = lastSim + cycles * 1800000;
+  raid.totalDamage = (raid.totalDamage || 0) + totalNpc;
+  return totalNpc;
+}
+
+/* ── Init ── */
+function init() {
+  save = getOrCreateSave();
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+
+  const weekKey = getWeekKey();
+  const boss    = getBossForWeek(weekKey);
+  const raidDay = getRaidDayForWeek(weekKey);
+  const now     = Date.now();
+  const today   = new Date().getDay();
+
+  // Renderiza boss hero
+  renderBossHero(boss);
+
+  if (!save.guildaId) {
+    showSection("no-guild");
+    return;
+  }
+
+  // Garante estrutura de raide salva
+  if (!save.weeklyRaid || save.weeklyRaid.weekKey !== weekKey) {
+    save.weeklyRaid = {
+      weekKey, bossId: boss.id,
+      started: false, conquered: false, rewardClaimed: false,
+      totalDamage: 0, myDamage: 0, myAttacks: 0,
+      memberDamages: {}, startTime: null, lastPlayerAttack: null, lastNpcSim: null,
+      raidDay: raidDay
+    };
+    writeSave(save);
+  }
+
+  const raid = save.weeklyRaid;
+
+  // Simula dano NPC
+  if (raid.started && !raid.conquered) {
+    simulateNpcDamage(raid, now);
+    checkVictory(raid);
+    writeSave(save);
+  }
+
+  updateFragCount();
+
+  if (raid.conquered) {
+    if (raid.rewardClaimed) {
+      renderRaidActive(raid, boss);
+      showSection("raid-active");
+      document.getElementById("attack-btn").disabled = true;
+      document.getElementById("attack-btn").textContent = "✅ Boss derrotado esta semana!";
+    } else {
+      showSection("victory");
+    }
+  } else if (raid.started) {
+    renderRaidActive(raid, boss);
+    showSection("raid-active");
+    checkCooldown(raid);
+  } else if (today === raidDay) {
+    // É o dia da raide!
+    showSection("invoke");
+    startInvokeCountdown();
+  } else {
+    showSection("waiting");
+  }
+
+  updateRankingTab();
+  startWeekCountdown();
+  startCooldownTimer();
+}
+
+function showSection(name) {
+  ["no-guild","invoke","raid-active","waiting","victory"].forEach(s => {
+    const el = document.getElementById(s + "-section");
+    if (el) el.style.display = "none";
+  });
+  const target = document.getElementById(name + "-section");
+  if (target) target.style.display = "block";
+}
+
+function renderBossHero(boss) {
+  document.getElementById("boss-emoji").textContent   = boss.emoji;
+  document.getElementById("boss-name").textContent    = boss.name;
+  document.getElementById("boss-sub").textContent     = boss.desc;
+  document.getElementById("boss-hero-card").style.background = boss.bg;
+  document.getElementById("boss-hero-card").style.borderColor = boss.color;
+  document.getElementById("boss-silhouette").textContent = boss.emoji;
+
+  // Aplicar no modal
+  document.getElementById("modal-boss-emoji").textContent = boss.emoji;
+  document.getElementById("modal-boss-name").textContent  = boss.name;
+  document.getElementById("modal-boss-desc").textContent  = boss.desc;
+}
+
+function renderRaidActive(raid, boss) {
+  const maxHp    = boss.hp || BOSS_HP_MAX;
+  const curHp    = Math.max(0, maxHp - (raid.totalDamage || 0));
+  const pct      = Math.round((curHp / maxHp) * 100);
+
+  document.getElementById("hp-boss-name").textContent = boss.name;
+  document.getElementById("hp-current").textContent   = fmtNum(curHp);
+  document.getElementById("hp-max").textContent       = fmtNum(maxHp);
+  document.getElementById("hp-bar").style.width       = pct + "%";
+  document.getElementById("hp-pct-label").textContent = pct + "%";
+  document.getElementById("total-dmg-label").textContent = fmtNum(raid.totalDamage || 0);
+  document.getElementById("my-dmg-label").textContent    = fmtNum(raid.myDamage || 0);
+
+  const dmgPerAtk = raid.myAttacks > 0 ? Math.round(raid.myDamage / raid.myAttacks) : calcDamage();
+  document.getElementById("my-total-dmg").textContent = fmtNum(raid.myDamage || 0);
+  document.getElementById("my-attacks").textContent   = raid.myAttacks || 0;
+  document.getElementById("dmg-per-attack").textContent = fmtNum(dmgPerAtk);
+
+  // Rank position
+  const all = getRankingList(raid);
+  const myEntry = all.find(e => e.name === (save.playerName || "Você"));
+  document.getElementById("my-rank-pos").textContent = myEntry ? "#" + (all.indexOf(myEntry) + 1) : "#?";
+
+  // Hp bar color
+  const bar = document.getElementById("hp-bar");
+  if (pct < 25)      bar.style.background = "linear-gradient(90deg,#1b5e20,#4caf50)";
+  else if (pct < 50) bar.style.background = "linear-gradient(90deg,#e65100,#ffc107)";
+  else               bar.style.background = "linear-gradient(90deg,#b71c1c,#ff4444,#ff6d00)";
+}
+
+function getRankingList(raid) {
+  const mem = raid.memberDamages || {};
+  const name = save.playerName || "Você";
+  const all  = Object.entries(mem).map(([n,d]) => ({name:n,dmg:d}));
+  const myEntry = all.find(e => e.name === name);
+  if (!myEntry && raid.myDamage > 0) all.push({name, dmg: raid.myDamage});
+  else if (myEntry) myEntry.dmg = Math.max(myEntry.dmg, raid.myDamage || 0);
+  all.sort((a,b) => b.dmg - a.dmg);
+  return all;
+}
+
+function updateRankingTab() {
+  const raid = save.weeklyRaid;
+  const list = document.getElementById("damage-ranking-list");
+  if (!raid || !raid.started) {
+    list.innerHTML = `<div style="text-align:center;padding:20px;font-size:12px;color:#555;">Nenhum ataque registrado ainda.</div>`;
+    return;
+  }
+  const all    = getRankingList(raid);
+  const maxDmg = all[0]?.dmg || 1;
+  const medals = ["🥇","🥈","🥉"];
+  const myName = save.playerName || "Você";
+  list.innerHTML = all.map((e,i) => `
+    <div class="damage-rank-item" ${e.name===myName?"style='border:1px solid #ffc107;'":""}>
+      <div class="damage-rank-pos" style="color:${i<3?["#ffd700","#c0c0c0","#cd7f32"][i]:"#555"};">${medals[i]||("#"+(i+1))}</div>
+      <div style="flex:1;">
+        <div class="damage-rank-name" ${e.name===myName?"style='color:#ffc107;'":""}>${e.name}${e.name===myName?" 👤":""}</div>
+        <div class="damage-rank-bar"><div class="damage-rank-bar-fill" style="width:${Math.round(e.dmg/maxDmg*100)}%;"></div></div>
+      </div>
+      <div class="damage-rank-val">${fmtNum(e.dmg)}</div>
+    </div>`).join("") || `<div style="text-align:center;padding:20px;font-size:12px;color:#555;">Sem dados.</div>`;
+}
+
+function checkVictory(raid) {
+  const boss = getBossForWeek(getWeekKey());
+  const maxHp = boss.hp || BOSS_HP_MAX;
+  if ((raid.totalDamage || 0) >= maxHp) {
+    raid.conquered = true;
+  }
+}
+
+/* ── Ataque ── */
+function attackBoss() {
+  const raid = save.weeklyRaid;
+  const now  = Date.now();
+  if (!raid || !raid.started || raid.conquered) return;
+
+  if (raid.lastPlayerAttack && (now - raid.lastPlayerAttack) < ATTACK_COOLDOWN) {
+    const rem = ATTACK_COOLDOWN - (now - raid.lastPlayerAttack);
+    const m   = Math.floor(rem / 60000);
+    const s   = Math.floor((rem % 60000) / 1000);
+    showToast(`⏳ Ataque em cooldown! Aguarde ${m}m ${s}s`, "error");
+    return;
+  }
+
+  const dmg = calcDamage();
+  raid.myDamage   = (raid.myDamage || 0) + dmg;
+  raid.myAttacks  = (raid.myAttacks || 0) + 1;
+  raid.totalDamage = (raid.totalDamage || 0) + dmg;
+  raid.lastPlayerAttack = now;
+  raid.memberDamages    = raid.memberDamages || {};
+  raid.memberDamages[save.playerName || "Você"] = raid.myDamage;
+
+  // Simula NPCs
+  simulateNpcDamage(raid, now);
+  checkVictory(raid);
+  writeSave(save);
+
+  const boss = getBossForWeek(getWeekKey());
+  renderRaidActive(raid, boss);
+  updateRankingTab();
+
+  if (raid.conquered) {
+    showToast("🎉 BOSS DERROTADO! Resgate suas recompensas!", "gold", 5000);
+    showSection("victory");
+    return;
+  }
+
+  showToast(`⚔️ CRÍTICO! Você causou ${fmtNum(dmg)} de dano!`, "gold", 3000);
+  checkCooldown(raid);
+}
+
+function checkCooldown(raid) {
+  const now  = Date.now();
+  const btn  = document.getElementById("attack-btn");
+  const info = document.getElementById("cooldown-info");
+  if (!raid.lastPlayerAttack || (now - raid.lastPlayerAttack) >= ATTACK_COOLDOWN) {
+    btn.disabled = false;
+    btn.textContent = "⚔️ ATACAR O CHEFE!";
+    info.style.display = "none";
+    document.getElementById("cooldown-fill").style.width = "0%";
+  } else {
+    btn.disabled = true;
+    info.style.display = "block";
+  }
+}
+
+/* ── Cooldown timer tick ── */
+function startCooldownTimer() {
+  setInterval(() => {
+    const raid = save.weeklyRaid;
+    if (!raid || !raid.started || !raid.lastPlayerAttack) return;
+    const now     = Date.now();
+    const elapsed = now - raid.lastPlayerAttack;
+    if (elapsed >= ATTACK_COOLDOWN) {
+      document.getElementById("attack-btn").disabled = false;
+      document.getElementById("attack-btn").textContent = "⚔️ ATACAR O CHEFE!";
+      document.getElementById("cooldown-info").style.display = "none";
+      document.getElementById("cooldown-fill").style.width = "0%";
+      return;
+    }
+    const rem = ATTACK_COOLDOWN - elapsed;
+    const m   = Math.floor(rem / 60000);
+    const s   = Math.floor((rem % 60000) / 1000);
+    document.getElementById("cooldown-timer").textContent = `${m}m ${s}s`;
+    document.getElementById("cooldown-fill").style.width  = (elapsed / ATTACK_COOLDOWN * 100) + "%";
+  }, 1000);
+}
+
+/* ── Convocação ── */
+function openConvocarModal() {
+  const frags  = save.fragmentoCards || 0;
+  const gold   = save.gold || 0;
+  const weekKey = getWeekKey();
+  const boss    = getBossForWeek(weekKey);
+  const membersOk = true; // Simulado: guilda sempre tem membros suficientes
+
+  document.getElementById("modal-frag-count").textContent = frags;
+  document.getElementById("modal-gold-val").textContent   = fmtNum(gold);
+  document.getElementById("modal-boss-emoji").textContent = boss.emoji;
+  document.getElementById("modal-boss-name").textContent  = boss.name;
+  document.getElementById("modal-boss-desc").textContent  = boss.desc;
+  document.getElementById("members-simulated").textContent = "8 membros prontos";
+
+  const fragOk  = frags >= FRAG_OFFERING;
+  const goldOk  = gold  >= GOLD_OFFERING;
+  const allOk   = fragOk && goldOk && membersOk;
+
+  document.getElementById("frag-ok").textContent      = fragOk  ? "✅ OK" : "❌ Insuficiente";
+  document.getElementById("frag-ok").style.color      = fragOk  ? "#a5d6a7" : "#ef9a9a";
+  document.getElementById("gold-ok").textContent      = goldOk  ? "✅ OK" : "❌ Insuficiente";
+  document.getElementById("gold-ok").style.color      = goldOk  ? "#a5d6a7" : "#ef9a9a";
+  document.getElementById("members-ok").textContent   = membersOk ? "✅ OK" : "❌ Insuficiente";
+  document.getElementById("members-ok").style.color   = membersOk ? "#a5d6a7" : "#ef9a9a";
+
+  document.getElementById("requirements-met-msg").style.display  = allOk ? "block" : "none";
+  document.getElementById("requirements-fail-msg").style.display = allOk ? "none" : "block";
+  document.getElementById("confirm-convocar-btn").disabled        = !allOk;
+  document.getElementById("confirm-convocar-btn").style.opacity   = allOk ? "1" : "0.5";
+
+  document.getElementById("convocar-modal").classList.remove("hidden");
+}
+
+function confirmarConvocar() {
+  const frags = save.fragmentoCards || 0;
+  if (frags < FRAG_OFFERING || save.gold < GOLD_OFFERING) {
+    showToast("❌ Requisitos não cumpridos!", "error"); return;
+  }
+  save.fragmentoCards = frags - FRAG_OFFERING;
+  save.gold -= GOLD_OFFERING;
+
+  const weekKey = getWeekKey();
+  const boss    = getBossForWeek(weekKey);
+  const now     = Date.now();
+  save.weeklyRaid.started   = true;
+  save.weeklyRaid.startTime = now;
+  save.weeklyRaid.lastNpcSim = now;
+  save.weeklyRaid.bossId    = boss.id;
+  writeSave(save);
+
+  document.getElementById("convocar-modal").classList.add("hidden");
+  showToast("💀 RAIDE INICIADA! Os membros foram convocados!", "gold", 4000);
+
+  renderRaidActive(save.weeklyRaid, boss);
+  showSection("raid-active");
+  updateFragCount();
+}
+
+/* ── Recompensas ── */
+function claimRaidReward() {
+  const raid = save.weeklyRaid;
+  if (!raid || !raid.conquered || raid.rewardClaimed) return;
+
+  const baseReward = { gold: 2000000, xp: 100000, xpp: 50000 };
+  const finalReward = typeof applyCompanionRewardBuffs === "function"
+    ? applyCompanionRewardBuffs(save, baseReward)
+    : baseReward;
+
+  save.gold = (save.gold || 0) + finalReward.gold;
+  save.xp   = (save.xp   || 0) + finalReward.xp;
+  save.xpp  = (save.xpp  || 0) + finalReward.xpp;
+
+  // Verifica MVP
+  const all    = getRankingList(raid);
+  const myName = save.playerName || "Você";
+  if (all[0]?.name === myName) {
+    save.gold += 500000;
+    showToast("👑 MVP DA RAIDE! +500K ouro bônus + Título desbloqueado!", "gold", 5000);
+  }
+
+  raid.rewardClaimed = true;
+  writeSave(save);
+
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+  document.getElementById("claim-reward-btn").disabled = true;
+  document.getElementById("claim-reward-btn").textContent = "✅ Recompensas resgatadas!";
+  showToast("🎁 Recompensas de Raide resgatadas!", "gold", 4000);
+
+  renderRaidActive(raid, getBossForWeek(getWeekKey()));
+  showSection("raid-active");
+  document.getElementById("attack-btn").disabled = true;
+  document.getElementById("attack-btn").textContent = "✅ Boss derrotado esta semana!";
+}
+
+/* ── Contagem regressiva da semana ── */
+function startWeekCountdown() {
+  function tick() {
+    const now   = new Date();
+    const next  = new Date(now);
+    next.setDate(now.getDate() + (7 - now.getDay())); // próximo domingo
+    next.setHours(0,0,0,0);
+    const rem   = next - now;
+    const d     = Math.floor(rem / 86400000);
+    const h     = Math.floor((rem % 86400000) / 3600000);
+    const m     = Math.floor((rem % 3600000) / 60000);
+    const el    = document.getElementById("week-countdown");
+    if (el) el.textContent = `${d}d ${h}h ${m}m`;
+  }
+  tick();
+  setInterval(tick, 60000);
+}
+
+/* ── Contagem regressiva da convocação ── */
+function startInvokeCountdown() {
+  const now  = new Date();
+  const end  = new Date(now);
+  end.setHours(23,59,59,999); // termina meia-noite
+  function tick() {
+    const rem = end - new Date();
+    if (rem <= 0) { document.getElementById("invoke-countdown").textContent = "EXPIRADO"; return; }
+    const h = Math.floor(rem / 3600000);
+    const m = Math.floor((rem % 3600000) / 60000);
+    const s = Math.floor((rem % 60000) / 1000);
+    document.getElementById("invoke-countdown").textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+function updateFragCount() {
+  const fc = save.fragmentoCards || 0;
+  const els = document.querySelectorAll("#frag-count-rewards");
+  els.forEach(el => el.textContent = fc);
+}
+
+/* ── Tabs ── */
+function switchTab(tab, btn) {
+  currentTab = tab;
+  ["raid","ranking","rewards"].forEach(t => {
+    document.getElementById("tab-" + t).style.display = "none";
+  });
+  document.querySelectorAll(".raid-tab").forEach(b => b.classList.remove("active"));
+  document.getElementById("tab-" + tab).style.display = "block";
+  btn.classList.add("active");
+  if (tab === "ranking") updateRankingTab();
+}
+
+init();
+</script>
+</body>
+</html>

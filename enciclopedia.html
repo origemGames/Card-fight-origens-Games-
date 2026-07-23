@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Enciclopédia – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+/* ── HERO ── */
+.enc-hero {
+  background:linear-gradient(135deg,#050510,#0a0520,#100015);
+  border:2px solid #7c4dff44; border-radius:20px; padding:24px 16px;
+  margin-bottom:14px; text-align:center; position:relative; overflow:hidden;
+}
+.enc-hero::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% -20%,rgba(124,77,255,0.2) 0%,transparent 70%);
+  pointer-events:none;
+}
+.enc-hero-icon { font-size:56px; display:block; margin-bottom:8px; animation:float 3s ease-in-out infinite; }
+.enc-hero-title {
+  font-family:'Cinzel',serif; font-size:24px; font-weight:900;
+  background:linear-gradient(135deg,#ce93d8,#7c4dff,#29b6f6);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:6px;
+}
+.enc-hero-sub { font-size:12px; color:#9e9e9e; line-height:1.7; }
+
+/* ── NAV ── */
+.enc-nav {
+  display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px;
+}
+.enc-nav-btn {
+  padding:7px 14px; border:1.5px solid #2a2a4a; border-radius:20px;
+  background:transparent; color:#9e9e9e; font-family:'Rajdhani',sans-serif;
+  font-size:12px; font-weight:700; cursor:pointer; transition:all 0.2s; text-align:left;
+}
+.enc-nav-btn.active, .enc-nav-btn:hover { border-color:#7c4dff; color:#e040fb; background:rgba(124,77,255,0.08); }
+
+/* ── SECTIONS ── */
+.enc-section { margin-bottom:6px; }
+
+/* ── LORE CARDS ── */
+.lore-card {
+  background:linear-gradient(135deg,#0a0520,#12082a);
+  border:1px solid #2a1a4a; border-radius:14px; padding:16px; margin-bottom:10px;
+  position:relative; overflow:hidden; transition:border-color 0.2s;
+}
+.lore-card:hover { border-color:#7c4dff55; }
+.lore-card::before {
+  content:''; position:absolute; top:-30px; right:-30px;
+  width:80px; height:80px; border-radius:50%;
+  background:var(--lc-glow,rgba(124,77,255,0.08));
+  pointer-events:none;
+}
+.lore-card-header { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+.lore-card-icon   { font-size:40px; flex-shrink:0; }
+.lore-card-title  { font-family:'Cinzel',serif; font-size:14px; font-weight:700; color:var(--lc-color,#ce93d8); margin-bottom:2px; }
+.lore-card-sub    { font-size:11px; color:#9e9e9e; }
+.lore-body        { font-size:12px; color:#c0c0d0; line-height:1.9; }
+.lore-body strong { color:#fff; }
+.lore-body em     { color:#ce93d8; font-style:normal; }
+.lore-quote {
+  border-left:3px solid var(--lc-color,#7c4dff); padding-left:12px;
+  font-style:italic; font-size:12px; color:#9e9e9e; margin:10px 0;
+}
+
+/* ── FACTION CARDS ── */
+.faction-card {
+  border-radius:14px; padding:16px; margin-bottom:10px; position:relative; overflow:hidden;
+}
+.faction-name  { font-family:'Cinzel',serif; font-size:15px; font-weight:900; margin-bottom:4px; }
+.faction-desc  { font-size:12px; line-height:1.8; }
+.faction-stats { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+.faction-stat  {
+  font-size:10px; font-weight:700; padding:3px 10px; border-radius:20px;
+  border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.05);
+}
+
+/* ── STRATEGY TIPS ── */
+.strat-tip {
+  display:flex; gap:12px; align-items:flex-start; padding:12px 14px;
+  background:#0e0e1c; border-radius:12px; border-left:3px solid var(--st-color,#7c4dff);
+  margin-bottom:8px;
+}
+.strat-tip-icon { font-size:24px; flex-shrink:0; }
+.strat-tip-title { font-weight:700; font-size:13px; color:var(--st-color,#ce93d8); margin-bottom:3px; }
+.strat-tip-desc  { font-size:11.5px; color:#c0c0d0; line-height:1.6; }
+
+/* ── RARITIES GUIDE ── */
+.rar-row {
+  display:flex; align-items:center; gap:12px; padding:10px 12px;
+  background:#0e0e1c; border-radius:10px; margin-bottom:6px;
+  border-left:3px solid var(--rr-color,#9e9e9e);
+}
+.rar-icon  { font-size:24px; flex-shrink:0; }
+.rar-name  { font-weight:700; font-size:13px; color:var(--rr-color,#9e9e9e); min-width:70px; }
+.rar-desc  { font-size:11px; color:#c0c0d0; flex:1; line-height:1.5; }
+.rar-odds  { font-size:10px; color:#555; white-space:nowrap; }
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title" style="background:linear-gradient(135deg,#ce93d8,#7c4dff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">📚 ENCICLOPÉDIA</span>
+  <span id="hdr-rank" class="rank-badge" style="font-size:11px;">Bronze I</span>
+</header>
+
+<main class="content">
+
+  <div class="enc-hero">
+    <span class="enc-hero-icon">📚</span>
+    <div class="enc-hero-title">Enciclopédia de Origens</div>
+    <div class="enc-hero-sub">
+      O repositório de todo o conhecimento do universo Card Fight.<br>
+      Lore · Facções · Raridades · Estratégia Avançada · Glossário
+    </div>
+  </div>
+
+  <!-- NAV -->
+  <div class="enc-nav">
+    <button class="enc-nav-btn active" onclick="showSection('lore',this)">🌌 Lore</button>
+    <button class="enc-nav-btn" onclick="showSection('faccoes',this)">⚔️ Facções</button>
+    <button class="enc-nav-btn" onclick="showSection('raridades',this)">💎 Raridades</button>
+    <button class="enc-nav-btn" onclick="showSection('estrategia',this)">🧠 Estratégia</button>
+    <button class="enc-nav-btn" onclick="showSection('glossario',this)">📖 Glossário</button>
+    <button class="enc-nav-btn" onclick="showSection('historia',this)">📅 História</button>
+  </div>
+
+  <!-- ══ SEÇÃO: LORE ══ -->
+  <div id="sec-lore" class="enc-section">
+
+    <div class="lore-card" style="--lc-color:#ffc107;--lc-glow:rgba(255,193,7,0.1);">
+      <div class="lore-card-header">
+        <span class="lore-card-icon">🌌</span>
+        <div>
+          <div class="lore-card-title">A Origem do Universo</div>
+          <div class="lore-card-sub">Cosmologia • Nível: Fundamentos</div>
+        </div>
+      </div>
+      <div class="lore-body">
+        No princípio, havia apenas o <strong>Vazio Eterno</strong> — um silêncio perfeito que existia antes do tempo e do espaço. Desse silêncio emergiu uma faísca chamada <em>Origens</em>, a primeira força consciente do universo.<br><br>
+        Origens não era um ser, mas uma <strong>vontade pura</strong>. Ela dividiu o Vazio em dois reinos fundamentais: o <em>Éter</em>, mundo da luz e criação, e o <em>Abismo</em>, mundo da escuridão e destruição. Dessa divisão surgiram os primeiros seres — as cartas que você coleciona são seus descendentes diretos.
+        <div class="lore-quote">"Antes da primeira batalha, houve a primeira escolha. Antes da escolha, houve Origens." — Inscrição no Altar Primordial</div>
+        Hoje, os descendentes de Origens disputam um eterno torneio chamado <strong>Card Fight</strong> — uma guerra cósmica onde cada carta é um guerreiro, e cada batalha escreve um novo capítulo na história do universo.
+      </div>
+    </div>
+
+    <div class="lore-card" style="--lc-color:#ef5350;--lc-glow:rgba(239,83,80,0.1);">
+      <div class="lore-card-header">
+        <span class="lore-card-icon">⚔️</span>
+        <div>
+          <div class="lore-card-title">A Grande Guerra das Cartas</div>
+          <div class="lore-card-sub">História Antiga • Nível: Intermediário</div>
+        </div>
+      </div>
+      <div class="lore-body">
+        Há milênios, as facções do Éter e do Abismo travaram a <strong>Guerra das Dez Eras</strong> — um conflito que destruiu e recriou o mundo sete vezes. Cada destruição deixou relíquias que hoje são encontradas na <em>Expedição das Ruínas</em>.<br><br>
+        A guerra terminou com a <strong>Grande Trégua</strong>, quando ambas as facções concordaram em resolver seus conflitos através de duelos formais de cartas. O que era guerra virou arte. O que era morte virou jogo.
+        <div class="lore-quote">"Não destruímos mais mundos. Destruímos adversários." — General Ferro-Sangue, primeiro campeão do Card Fight</div>
+        As cicatrizes da guerra ainda existem: a Arena do Caos é um fragmento de um campo de batalha antigo onde as regras da realidade se dobram. A Expedição das Ruínas atravessa as ruínas de civilizações destruídas durante aquele conflito.
+      </div>
+    </div>
+
+    <div class="lore-card" style="--lc-color:#29b6f6;--lc-glow:rgba(41,182,246,0.1);">
+      <div class="lore-card-header">
+        <span class="lore-card-icon">🌊</span>
+        <div>
+          <div class="lore-card-title">O Lago das Origens</div>
+          <div class="lore-card-sub">Locais • Nível: Fundamentos</div>
+        </div>
+      </div>
+      <div class="lore-body">
+        O <strong>Lago das Origens</strong> é o local mais sagrado do universo Card Fight. Suas águas não são feitas de água comum — são formadas pela <em>essência líquida das primeiras criações</em>. Pescar neste lago é um ato de comunhão com a força criadora original.<br><br>
+        As criaturas que habitam suas profundezas são seres de raridade <strong>ORIGENS</strong> — os mais poderosos e raros do jogo. Elas evoluíram por eras absorvendo a energia pura das origens do universo.
+        <div class="lore-quote">"Pescar no Lago das Origens não é pesca. É invocar o início de todas as coisas." — Mestre Pescador Iku</div>
+      </div>
+    </div>
+
+    <div class="lore-card" style="--lc-color:#ce93d8;--lc-glow:rgba(206,147,216,0.1);">
+      <div class="lore-card-header">
+        <span class="lore-card-icon">🗺️</span>
+        <div>
+          <div class="lore-card-title">As Ruínas Perdidas</div>
+          <div class="lore-card-sub">Expedição • Nível: Avançado</div>
+        </div>
+      </div>
+      <div class="lore-body">
+        As <strong>Ruínas das Dez Eras</strong> são os restos de civilizações que floresceram e pereceram durante a Grande Guerra. Cada andar da Expedição representa uma era diferente — do mais recente (andar 1) ao mais primitivo (andar 10).<br><br>
+        O <em>Chefe do Andar 10</em> é sempre um guardião da era primordial — o guardião que sobreviveu à Grande Guerra porque nenhum guerreiro jamais chegou a ele. Você pode ser o primeiro.
+        <div class="lore-quote">"Dez andares entre você e a verdade. Cada um guarda um segredo que o próximo precisa para abrir." — Cartógrafo Anônimo das Ruínas</div>
+        As <strong>relíquias</strong> encontradas na Expedição são artefatos de guerreiros que tentaram a jornada antes de você — e não voltaram. Ao coletá-las, você herda não só o poder deles, mas também suas memórias fragmentadas.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ SEÇÃO: FACÇÕES ══ -->
+  <div id="sec-faccoes" class="enc-section" style="display:none;">
+
+    <p style="font-size:12px;color:#9e9e9e;margin-bottom:14px;line-height:1.8;">
+      As cartas do universo Card Fight pertencem a uma das cinco grandes facções. Sua raridade indica sua origem e afiliação — mas a lealdade é forjada em batalha.
+    </p>
+
+    <div class="faction-card" style="background:linear-gradient(135deg,#0a0a18,#101030);border:1px solid #9e9e9e33;">
+      <div class="faction-name" style="color:#9e9e9e;">⚪ Humanos do Éter</div>
+      <div class="faction-desc" style="color:#c0c0d0;">
+        Os mortais que aprenderam a canalizar a energia do Éter. São as cartas mais <strong style="color:#9e9e9e;">Comuns</strong> do universo — guerreiros, magos e aventureiros que buscam poder através do esforço. Fracos individualmente, mas imbatíveis quando trabalham juntos.
+      </div>
+      <div class="faction-stats">
+        <span class="faction-stat" style="color:#9e9e9e;">📦 Raridade: Comum</span>
+        <span class="faction-stat" style="color:#9e9e9e;">🎯 Especialidade: Volume</span>
+        <span class="faction-stat" style="color:#9e9e9e;">⚡ Força: Consistência</span>
+      </div>
+    </div>
+
+    <div class="faction-card" style="background:linear-gradient(135deg,#001020,#002040);border:1px solid #2196F344;">
+      <div class="faction-name" style="color:#90caf9;">🔵 Guardiões do Abismo</div>
+      <div class="faction-desc" style="color:#c0c0d0;">
+        Seres que habitam as fronteiras entre o Éter e o Abismo. Têm acesso a poderes das duas naturezas — por isso são <strong style="color:#90caf9;">Raros</strong>. Costumam ser cavaleiros, necromantes e criaturas mágicas que dominaram forças além da compreensão humana.
+      </div>
+      <div class="faction-stats">
+        <span class="faction-stat" style="color:#90caf9;">💎 Raridade: Raro</span>
+        <span class="faction-stat" style="color:#90caf9;">🎯 Especialidade: Equilíbrio</span>
+        <span class="faction-stat" style="color:#90caf9;">⚡ Força: Versatilidade</span>
+      </div>
+    </div>
+
+    <div class="faction-card" style="background:linear-gradient(135deg,#100020,#1a0035);border:1px solid #9c27b044;">
+      <div class="faction-name" style="color:#ce93d8;">🟣 Entidades Épicas</div>
+      <div class="faction-desc" style="color:#c0c0d0;">
+        Seres que transcenderam a mortalidade. Dragões, titãs, deuses menores — as entidades <strong style="color:#ce93d8;">Épicas</strong> são guerreiros cujo poder foi forjado em séculos de batalha. Cada um tem uma história própria que molda sua forma de lutar.
+      </div>
+      <div class="faction-stats">
+        <span class="faction-stat" style="color:#ce93d8;">👑 Raridade: Épico</span>
+        <span class="faction-stat" style="color:#ce93d8;">🎯 Especialidade: Poder bruto</span>
+        <span class="faction-stat" style="color:#ce93d8;">⚡ Força: ATK elevado</span>
+      </div>
+    </div>
+
+    <div class="faction-card" style="background:linear-gradient(135deg,#1a1400,#2a2000);border:1px solid #ffc10744;">
+      <div class="faction-name" style="color:#ffd54f;">🟡 Lendas Imortais</div>
+      <div class="faction-desc" style="color:#c0c0d0;">
+        Heróis e vilões cujos feitos foram tão grandes que o universo os tornou imortais. As cartas <strong style="color:#ffd54f;">Lendárias</strong> são personagens cujos nomes estão inscritos nos Anais do Éter — e que vivem para defender (ou destruir) o legado que criaram.
+      </div>
+      <div class="faction-stats">
+        <span class="faction-stat" style="color:#ffd54f;">⭐ Raridade: Lendário</span>
+        <span class="faction-stat" style="color:#ffd54f;">🎯 Especialidade: Efeitos únicos</span>
+        <span class="faction-stat" style="color:#ffd54f;">⚡ Força: Habilidades especiais</span>
+      </div>
+    </div>
+
+    <div class="faction-card" style="background:linear-gradient(135deg,#1a0000,#300000);border:1px solid #f4433644;">
+      <div class="faction-name" style="color:#ef9a9a;">🔴 Míticos do Caos</div>
+      <div class="faction-desc" style="color:#c0c0d0;">
+        Seres que existem além da compreensão. Os <strong style="color:#ef9a9a;">Míticos</strong> são forças da natureza com consciência — tempestades com vontade, estrelas que respiram, abismos que pensam. Cada um pode remodelar a realidade com sua presença.
+      </div>
+      <div class="faction-stats">
+        <span class="faction-stat" style="color:#ef9a9a;">💀 Raridade: Mítico</span>
+        <span class="faction-stat" style="color:#ef9a9a;">🎯 Especialidade: ATK máximo</span>
+        <span class="faction-stat" style="color:#ef9a9a;">⚡ Força: Poder puro</span>
+      </div>
+    </div>
+
+    <div class="faction-card" style="background:linear-gradient(135deg,#001a1a,#00303a);border:1px solid #00e5ff44;">
+      <div class="faction-name" style="color:#80deea;">🩵 Ultra Entidades</div>
+      <div class="faction-desc" style="color:#c0c0d0;">
+        Aqueles que transcenderam até mesmo a categoria mítica. <strong style="color:#80deea;">Ultra Raros</strong> são conceitos abstratos personificados — o Silêncio Infinito, o Colapso Estelar, a Consciência Cósmica. São tão poderosos que sua existência dobra as regras do universo.
+      </div>
+      <div class="faction-stats">
+        <span class="faction-stat" style="color:#80deea;">🌌 Raridade: Ultra Raro</span>
+        <span class="faction-stat" style="color:#80deea;">🎯 Especialidade: ATK supremo</span>
+        <span class="faction-stat" style="color:#80deea;">⚡ Força: Fora da curva</span>
+      </div>
+    </div>
+
+    <div class="faction-card" style="background:linear-gradient(135deg,#1a0000,#2a0005);border:2px solid #ff444444;box-shadow:0 0 20px rgba(255,68,68,0.1);">
+      <div class="faction-name" style="color:#ff4444;">🔥 Origens — Os Primordiais</div>
+      <div class="faction-desc" style="color:#c0c0d0;">
+        Os descendentes diretos da força criadora. Cartas <strong style="color:#ff4444;">ORIGENS</strong> são os seres mais próximos da divindade original — criadas pelo primeiro sopro de consciência do universo. Existem apenas poucos, e cada um carrega em si uma fração do poder que criou tudo.
+      </div>
+      <div class="faction-stats">
+        <span class="faction-stat" style="color:#ff4444;">♾️ Raridade: ORIGENS</span>
+        <span class="faction-stat" style="color:#ff4444;">🎯 Especialidade: Inigualável</span>
+        <span class="faction-stat" style="color:#ff4444;">⚡ Força: Poder divino</span>
+        <span class="faction-stat" style="color:#ff4444;">📊 Chance: ~0.15%</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ SEÇÃO: RARIDADES ══ -->
+  <div id="sec-raridades" class="enc-section" style="display:none;">
+
+    <p style="font-size:12px;color:#9e9e9e;margin-bottom:14px;line-height:1.8;">
+      Existem <strong>7 raridades</strong> no Card Fight, do mais fraco ao mais poderoso. Cada raridade define o ATK base da carta, a chance de aparição em pacotes, e o visual especial que ela recebe ao atingir Maestria máxima.
+    </p>
+
+    <div class="rar-row" style="--rr-color:#9e9e9e;">
+      <span class="rar-icon">⚪</span>
+      <span class="rar-name">Comum</span>
+      <span class="rar-desc">ATK base: 50–120. O pão-e-manteiga do seu deck. Fácil de obter, essencial para acúmulo de Pontos de Maestria via dupes.</span>
+      <span class="rar-odds">~55%</span>
+    </div>
+    <div class="rar-row" style="--rr-color:#2196F3;">
+      <span class="rar-icon">🔵</span>
+      <span class="rar-name">Raro</span>
+      <span class="rar-desc">ATK base: 120–200. Cartas equilibradas com boa performance em batalha. Primeiros candidatos à Maestria 5★.</span>
+      <span class="rar-odds">~25%</span>
+    </div>
+    <div class="rar-row" style="--rr-color:#9c27b0;">
+      <span class="rar-icon">🟣</span>
+      <span class="rar-name">Épico</span>
+      <span class="rar-desc">ATK base: 200–310. Cartas que dominam partidas. Quando 5★, competem com Lendárias básicas.</span>
+      <span class="rar-odds">~12%</span>
+    </div>
+    <div class="rar-row" style="--rr-color:#ffc107;">
+      <span class="rar-icon">🟡</span>
+      <span class="rar-name">Lendário</span>
+      <span class="rar-desc">ATK base: 310–420. O backbone dos decks competitivos. Visualmente deslumbrantes com borda dourada na Maestria.</span>
+      <span class="rar-odds">~5%</span>
+    </div>
+    <div class="rar-row" style="--rr-color:#f44336;">
+      <span class="rar-icon">🔴</span>
+      <span class="rar-name">Mítico</span>
+      <span class="rar-desc">ATK base: 420–550. Cartas que podem virar sozinhas. Raridade que separa coleções medianas de impressionantes.</span>
+      <span class="rar-odds">~2.5%</span>
+    </div>
+    <div class="rar-row" style="--rr-color:#00e5ff;">
+      <span class="rar-icon">🩵</span>
+      <span class="rar-name">Ultra Raro</span>
+      <span class="rar-desc">ATK base: 550–720. O topo da curva de poder. Uma única carta Ultra Rara pode dominar múltiplas partidas consecutivas.</span>
+      <span class="rar-odds">~0.5%</span>
+    </div>
+    <div class="rar-row" style="--rr-color:#ff4444;background:rgba(255,68,68,0.06);">
+      <span class="rar-icon">🔥</span>
+      <span class="rar-name">ORIGENS</span>
+      <span class="rar-desc">ATK base: 720–999. As cartas mais fortes do jogo. São tão raras que muitos jogadores nunca verão uma na batalha.</span>
+      <span class="rar-odds">~0.05%</span>
+    </div>
+
+    <div class="panel" style="margin-top:14px;">
+      <div class="panel-title" style="color:#ce93d8;">⭐ Maestria e Raridade</div>
+      <div style="font-size:12px;color:#c0c0d0;line-height:1.8;">
+        Cada Maestria bônus (+1% por estrela) se acumula em cima da raridade base. Uma carta <strong>Épica 5★</strong> com <strong>Prestige III</strong> chega a ter +13% ATK/HP bônus total — competindo com Míticos sem Maestria.
+        <br><br>
+        ⭐ O caminho mais eficiente é <strong>Maestrizar cartas de uma raridade abaixo</strong> do topo do seu deck — elas são mais baratas e a diferença com bônus de Maestria se fecha rapidamente.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ SEÇÃO: ESTRATÉGIA ══ -->
+  <div id="sec-estrategia" class="enc-section" style="display:none;">
+
+    <p style="font-size:12px;color:#9e9e9e;margin-bottom:14px;line-height:1.8;">
+      Dicas avançadas de jogadores veteranos. Para os que querem mais do que simplesmente "jogar a carta mais forte".
+    </p>
+
+    <div class="strat-tip" style="--st-color:#ffc107;">
+      <span class="strat-tip-icon">⚡</span>
+      <div>
+        <div class="strat-tip-title">Gestão de Power-ups</div>
+        <div class="strat-tip-desc">Não use power-ups no primeiro turno. Observe o padrão do bot: se ele jogar cartas muito fortes cedo, guarde o <strong>Cristal de Gelo ❄️</strong> para o momento em que a sua carta mais fraca tiver que enfrentar a mais forte dele. Cada power-up economizado é vantagem acumulada.</div>
+      </div>
+    </div>
+
+    <div class="strat-tip" style="--st-color:#e040fb;">
+      <span class="strat-tip-icon">🎲</span>
+      <div>
+        <div class="strat-tip-title">Arena do Caos — Leitura de Eventos</div>
+        <div class="strat-tip-desc">Decore os 10 eventos. <strong>Grande Inversão ⚡</strong> inverte: jogue a MAIS FRACA. <strong>Sorte do Destino 🃏</strong> é aleatório: jogue qualquer carta cara que não usaria em outras rodadas. <strong>Escudo Celestial 🛡️</strong>: jogue a mais forte — você vai querer o escudo na próxima rodada.</div>
+      </div>
+    </div>
+
+    <div class="strat-tip" style="--st-color:#66bb6a;">
+      <span class="strat-tip-icon">🗺️</span>
+      <div>
+        <div class="strat-tip-title">Expedição — Gestão de Recursos</div>
+        <div class="strat-tip-desc">Prioridade de gasto na Loja da Expedição: 1) Poção de HP se abaixo de 30%. 2) Relíquia Rara se tiver ouro sobrando. 3) Revive de carta só se a carta morta for das suas 3 mais fortes. Nunca entre num Nó Elite sem ao menos 3 cartas vivas.</div>
+      </div>
+    </div>
+
+    <div class="strat-tip" style="--st-color:#29b6f6;">
+      <span class="strat-tip-icon">⭐</span>
+      <div>
+        <div class="strat-tip-title">Maestria — Ordem de Investimento</div>
+        <div class="strat-tip-desc">Invista primeiro em cartas que você joga em TODOS os modos. Uma carta Rara 5★ usada em 5 modos rende muito mais que uma Lendária 5★ usada em 1. Só vá para Prestige após ter pelo menos 5 cartas em 4★ ou 5★ — a diferença de ATK composta é o que vence partidas apertadas.</div>
+      </div>
+    </div>
+
+    <div class="strat-tip" style="--st-color:#ff7043;">
+      <span class="strat-tip-icon">💰</span>
+      <div>
+        <div class="strat-tip-title">Economia de Ouro</div>
+        <div class="strat-tip-desc">O Mercado Negro aparece 1× por semana. Mantenha SEMPRE 30M de ouro guardados. Não gaste em boosts pequenos antes de ter isso. Se você perdeu o Mercado Negro por falta de ouro, perdeu pelo menos 3 Fragmentos de Cards — o equivalente a um Raide liberado.</div>
+      </div>
+    </div>
+
+    <div class="strat-tip" style="--st-color:#ce93d8;">
+      <span class="strat-tip-icon">🎣</span>
+      <div>
+        <div class="strat-tip-title">Pesca Eficiente</div>
+        <div class="strat-tip-desc">Use Iscas Lunares exclusivamente no Rio da Lua Cheia para bônus duplo. Para Origens de pesca, o Lago Origens é obrigatório com qualquer isca. Guarde Iscas do Caos para quando quiser pura adrenalina — são ótimas quando o cofre está cheio e você não precisa de cartas específicas.</div>
+      </div>
+    </div>
+
+    <div class="strat-tip" style="--st-color:#ff4444;">
+      <span class="strat-tip-icon">💢</span>
+      <div>
+        <div class="strat-tip-title">Combos de Power-up Avançados</div>
+        <div class="strat-tip-desc"><strong>Combo devastador:</strong> Roubo de Força + Carga de ATK — primeiro copie o ATK inimigo, depois aplique +40% em cima. <strong>Combo defensivo:</strong> Escudo Rúnico + Modo Berserk — o Berserk aumenta o dano que você recebe, mas o Escudo cancela 60% disso, deixando apenas +25%×40% a mais de dano na perda. Arrisque com segurança.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ SEÇÃO: GLOSSÁRIO ══ -->
+  <div id="sec-glossario" class="enc-section" style="display:none;">
+
+    <p style="font-size:12px;color:#9e9e9e;margin-bottom:14px;line-height:1.8;">
+      Termos técnicos do Card Fight explicados em linguagem simples.
+    </p>
+
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <div style="background:#0e0e1c;border-radius:10px;padding:10px 12px;border-left:3px solid #ffc107;font-size:12px;">
+        <strong style="color:#ffc107;">ATK</strong> — Ataque. O valor que sua carta usa no confronto. Quem tem maior ATK vence e continua em campo.
+      </div>
+      <div style="background:#0e0e1c;border-radius:10px;padding:10px 12px;border-left:3px solid #66bb6a;font-size:12px;">
+        <strong style="color:#66bb6a;">Torre (HP)</strong> — Os 1000 pontos de vida de cada jogador/bot. Quando chega a zero, quem tem mais HP vence; se ambos chegam juntos, é empate e ganha quem tinha mais HP.
+      </div>
+      <div style="background:#0e0e1c;border-radius:10px;padding:10px 12px;border-left:3px solid #2196F3;font-size:12px;">
+        <strong style="color:#2196F3;">Cofre</strong> — Onde suas cartas ficam guardadas entre partidas. Limite padrão de 50 cartas, expansível com ouro.
+      </div>
+      <div style="background:#0e0e1c;border-radius:10px;padding:10px 12px;border-left:3px solid #ce93d8;font-size:12px;">
+        <strong style="color:#ce93d8;">Maestria</strong> — Sistema de evolução de cartas de 1★ a 5★, dando bônus de ATK/HP acumulados. Funciona com Pontos de Maestria ganhos abrindo pacotes e fundindo dupes.
+      </div>
+      <div style="background:#0e0e1c;border-radius:10px;padding:10px 12px;border-left:3px solid #e040fb;font-size:12px;">
+        <strong style="color:#e040fb;">Prestige</strong> — Evolução pós-5★. Prestige I, II e III dão bônus extras de ATK/HP além do máximo da Maestria, além de visuais exclusivos.
+      </div>
+      <div style="background:#0e0e1c;border-radius:10px;padding:10px 12px;border-left:3px solid #9c27b0;font-size:12px;">
+        <strong style="color:#9c27b0;">XP / XPP</strong> — Experiência que sobe seu nível (XP) e sua Patente de combate (XPP). XPP determina o rank e quem você enfrenta.
+      </div>
+      <div style="background:#0e0e1c;border-radius:10px;padding:10px 12px;border-left:3px solid #ff9800;font-size:12px;">
+        <strong style="color:#ff9800;">Combo</strong> — Série de vitórias consecutivas. A cada vitória seguida, o bônus de dano cresce. O bot também tem combo — quebrá-lo é essencial em partidas longas.
+      </div>
+      <div style="background:#0e0e1c;border-radius:10px;padding:10px 12px;border-left:3px solid #7c4dff;font-size:12px;">
+        <strong style="color:#7c4dff;">Power-up</strong> — Item consumível usado antes de jogar uma carta na Batalha Clássica. Cada power-up tem um efeito único — de bônus de ATK a cura de HP. Comprado com ouro ou em pacotes VIP.
+      </div>
+      <div style="background:#0e0e1c;border-radius:10px;padding:10px 12px;border-left:3px solid #00e5ff;font-size:12px;">
+        <strong style="color:#00e5ff;">Relíquia</strong> — Artefato coletado na Expedição das Ruínas. Dura apenas durante a run atual. Cada relíquia tem um efeito passivo permanente enquanto estiver equipada.
+      </div>
+      <div style="background:#0e0e1c;border-radius:10px;padding:10px 12px;border-left:3px solid #ef5350;font-size:12px;">
+        <strong style="color:#ef5350;">Permadeath (Expedição)</strong> — Se morrer na Expedição, a run acaba. As cartas voltam para o cofre, mas as recompensas já coletadas ficam. Cada run é única.
+      </div>
+      <div style="background:#0e0e1c;border-radius:10px;padding:10px 12px;border-left:3px solid #4CAF50;font-size:12px;">
+        <strong style="color:#4CAF50;">earnGold</strong> — Função interna que processa ganhos de ouro através do ledger anti-trapaça. Todo ouro ganho passa por essa função. Editar o save diretamente é detectado.
+      </div>
+      <div style="background:#0e0e1c;border-radius:10px;padding:10px 12px;border-left:3px solid #ffc107;font-size:12px;">
+        <strong style="color:#ffc107;">Fragmento de Cards</strong> — Item raro vendido no Mercado Negro (1× por semana). 3 Fragmentos + 5M ouro = Convocar Raide de Guilda para toda a guilda.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ SEÇÃO: HISTÓRIA ══ -->
+  <div id="sec-historia" class="enc-section" style="display:none;">
+
+    <p style="font-size:12px;color:#9e9e9e;margin-bottom:14px;line-height:1.8;">
+      A história do desenvolvimento do Card Fight — como o universo cresceu versão a versão.
+    </p>
+
+    <div style="position:relative;padding-left:24px;">
+      <div style="position:absolute;left:10px;top:0;bottom:0;width:2px;background:linear-gradient(180deg,#ff4444,#ffc107,#66bb6a,#29b6f6,#7c4dff,#e040fb,#ce93d8,#7c4dff);opacity:0.4;"></div>
+
+      <div style="position:relative;margin-bottom:18px;">
+        <div style="position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:#9e9e9e;box-shadow:0 0 8px #9e9e9e;"></div>
+        <div style="font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:#9e9e9e;">v1.0 — O Início</div>
+        <div style="font-size:11px;color:#c0c0d0;line-height:1.7;margin-top:3px;">50 cartas, batalha básica, ranking simples. O universo que se tornaria Card Fight era apenas uma ideia numa lista de cartas e uma mecânica de clash simples.</div>
+      </div>
+
+      <div style="position:relative;margin-bottom:18px;">
+        <div style="position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:#ffc107;box-shadow:0 0 8px #ffc107;"></div>
+        <div style="font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:#ffc107;">v7.0 — A Era das Guildas</div>
+        <div style="font-size:11px;color:#c0c0d0;line-height:1.7;margin-top:3px;">O maior salto social do jogo. Guildas, Guerra, Maestria (evolução de cartas) e Mercado Negro transformaram um jogo de cartas em uma comunidade.</div>
+      </div>
+
+      <div style="position:relative;margin-bottom:18px;">
+        <div style="position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:#00e5ff;box-shadow:0 0 8px #00e5ff;"></div>
+        <div style="font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:#00e5ff;">v10.0 — A Pesca Chega</div>
+        <div style="font-size:11px;color:#c0c0d0;line-height:1.7;margin-top:3px;">Sistema de Pesca completo: 20+ locais, 11 varas, 61 cartas exclusivas. O Lago das Origens e a raridade "ORIGENS" de pesca foram introduzidos.</div>
+      </div>
+
+      <div style="position:relative;margin-bottom:18px;">
+        <div style="position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:#e040fb;box-shadow:0 0 8px #e040fb;"></div>
+        <div style="font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:#e040fb;">v11.0 — O Caos Chega</div>
+        <div style="font-size:11px;color:#c0c0d0;line-height:1.7;margin-top:3px;">Arena do Caos com 10 eventos aleatórios. Sistema Prestige pós-5★. +30 cartas de pesca, 2 novas iscas, 5 novos locais. Fix histórico: carta vencedora sobrevive!</div>
+      </div>
+
+      <div style="position:relative;margin-bottom:18px;">
+        <div style="position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:#ce93d8;box-shadow:0 0 8px #ce93d8;"></div>
+        <div style="font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:#ce93d8;">v12.0 — As Ruínas Falam</div>
+        <div style="font-size:11px;color:#c0c0d0;line-height:1.7;margin-top:3px;">Expedição das Ruínas: roguelike de 10 andares com permadeath, 12 relíquias, 8 eventos de mistério, loja interna e chefe final. O primeiro modo que conta uma história enquanto você joga.</div>
+      </div>
+
+      <div style="position:relative;margin-bottom:18px;">
+        <div style="position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:#7c4dff;box-shadow:0 0 8px #7c4dff;"></div>
+        <div style="font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:#7c4dff;">v13.0 — O Poder é Seu ← ATUAL</div>
+        <div style="font-size:11px;color:#c0c0d0;line-height:1.7;margin-top:3px;">Sistema de Power-ups (8 tipos), Configurações personalizadas, Enciclopédia de Origens. Bug fixes críticos em Arena do Caos e Expedição. O jogo agora se adapta ao jogador.</div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:8px;text-align:center;">
+      <div style="font-size:24px;margin-bottom:6px;">🔮</div>
+      <div style="font-family:'Cinzel',serif;font-size:13px;font-weight:700;color:#ffc107;margin-bottom:6px;">O que vem a seguir?</div>
+      <div style="font-size:11px;color:#9e9e9e;line-height:1.8;">
+        O universo Card Fight continua crescendo. Novos modos de batalha, novas raridades,<br>
+        mais lore, mais cartas, mais possibilidades. A história de Origens ainda está sendo escrita - Origens Games tem apenas 30 desenvolvedores (equipe pequena) infelizmente não tem como trazer atualizações gigantes e perfeitas sem bugs todos os dias, o jogo esta evoluindo e nossa equipe também! Tenham paciência, e obrigado a cada um que ta fazendo parte dessa história incrível🔥 - ⚠️Faça doações no nosso Discord OFICIAL para ajudar o Jogo, Mas so de ter você jogando ja e incrível!
+      </div>
+    </div>
+
+  </div>
+
+  <div style="height:80px;"></div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js?v=13.0"></script>
+<script>
+"use strict";
+function showSection(id, btn) {
+  ["lore","faccoes","raridades","estrategia","glossario","historia"].forEach(s => {
+    const el = document.getElementById("sec-" + s);
+    if (el) el.style.display = s === id ? "block" : "none";
+  });
+  document.querySelectorAll(".enc-nav-btn").forEach(b => b.classList.remove("active"));
+  if (btn) btn.classList.add("active");
+}
+
+function init() {
+  if (typeof getOrCreateSave === "function" && typeof getRank === "function") {
+    const save = getOrCreateSave();
+    const rank = getRank(save.xpp || 0);
+    document.getElementById("hdr-rank").textContent = rank.name;
+  }
+}
+init();
+</script>
+</body>
+</html>

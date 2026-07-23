@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Correio – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+.correio-hero {
+  background:linear-gradient(135deg,#1a1200,#2d1e00,#1a1200);
+  border:2px solid #ffc107; border-radius:16px;
+  padding:20px 16px; margin-bottom:14px; text-align:center;
+  position:relative; overflow:hidden;
+}
+.correio-hero::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(255,193,7,0.08) 0%,transparent 60%);
+  pointer-events:none;
+}
+.correio-hero .icon { font-size:52px; display:block; margin-bottom:6px; animation:float 2.5s ease-in-out infinite; }
+.correio-hero .title { font-family:'Cinzel',serif; font-size:20px; font-weight:900; color:#ffc107; }
+.correio-hero .sub { font-size:12px; color:#9e9e9e; margin-top:4px; }
+
+.status-pill {
+  display:inline-flex; align-items:center; gap:6px; margin-top:10px;
+  padding:5px 14px; border-radius:20px; font-size:11px; font-weight:700;
+}
+.status-pill.verified { background:rgba(41,182,246,0.15); border:1px solid #29b6f6; color:#29b6f6; }
+.status-pill.normal   { background:rgba(158,158,158,0.12); border:1px solid #555; color:#9e9e9e; }
+
+.letter-card {
+  background:var(--bg-card); border:2px solid #2a2a4a; border-radius:14px;
+  padding:14px; margin-bottom:10px; transition:all 0.2s; position:relative; overflow:hidden;
+}
+.letter-card.unclaimed { border-color:#ffc107; box-shadow:0 0 14px rgba(255,193,7,0.12); }
+.letter-card.claimed   { opacity:0.5; }
+.letter-card.verified-letter.unclaimed { border-color:#29b6f6; box-shadow:0 0 14px rgba(41,182,246,0.18); }
+.letter-card.admin-letter {
+  border-color:#e040fb; background:linear-gradient(135deg,#1a0d24,#24122f);
+}
+.letter-card.admin-letter.unclaimed { box-shadow:0 0 16px rgba(224,64,251,0.22); }
+.letter-tag.admin-tag { background:rgba(224,64,251,0.15); color:#e040fb; border-color:#e040fb; }
+.letter-from { font-size:10px; color:#b388ff; margin-top:1px; }
+.letter-message {
+  font-size:12px; color:#c0c0d0; line-height:1.5; margin:8px 0 10px;
+  padding:8px 10px; background:rgba(0,0,0,0.2); border-left:2px solid #e040fb; border-radius:4px;
+}
+.letter-header { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.letter-emoji { font-size:30px; flex-shrink:0; }
+.letter-info { flex:1; }
+.letter-title { font-weight:700; font-size:14px; }
+.letter-date { font-size:10px; color:#9e9e9e; margin-top:2px; }
+.letter-tag {
+  font-size:9px; font-weight:700; padding:2px 8px; border-radius:10px;
+  background:rgba(41,182,246,0.15); color:#29b6f6; border:1px solid #29b6f6;
+}
+.letter-rewards { display:flex; gap:10px; flex-wrap:wrap; font-size:12px; margin-bottom:10px; color:#c0c0d0; }
+.letter-rewards span { display:inline-flex; align-items:center; gap:3px; }
+
+.empty-state {
+  text-align:center; padding:40px 16px; color:#9e9e9e;
+}
+.empty-state .icon { font-size:48px; margin-bottom:10px; display:block; }
+
+.promo-card {
+  background:linear-gradient(135deg,#001a2e,#00263d); border:2px solid #29b6f6;
+  border-radius:14px; padding:14px; margin-bottom:14px; text-align:center;
+}
+.next-letter-note {
+  text-align:center; font-size:11px; color:#555; margin-top:6px;
+}
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title">📬 CORREIO</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content">
+
+  <div class="correio-hero">
+    <span class="icon">📬</span>
+    <div class="title">Correio de Card Fight</div>
+    <div class="sub">Cartas e presentes chegam por aqui, um a cada dia</div>
+    <div id="status-pill-wrap"></div>
+  </div>
+
+  <!-- Promo pra quem não é criador -->
+  <div class="promo-card" id="promo-creator" style="display:none;">
+    <div style="font-size:26px;margin-bottom:6px;">🎬</div>
+    <div style="font-weight:700;font-size:13px;color:#29b6f6;margin-bottom:4px;">Criadores verificados recebem mais</div>
+    <div style="font-size:12px;color:#c0c0d0;line-height:1.6;margin-bottom:10px;">
+      Cartas garantidas todo dia, com mais ouro, XP, XPP e boosts. Divulgue o jogo e vire parceiro oficial!
+    </div>
+    <a href="criador.html" class="btn btn-outline btn-block">🎬 Saiba Mais</a>
+  </div>
+
+  <div style="font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:#ffc107;margin-bottom:10px;">
+    ✉️ Sua Caixa de Correio
+  </div>
+
+  <div id="letters-list"></div>
+
+  <div class="next-letter-note" id="next-letter-note"></div>
+
+  <div style="height:70px;"></div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js"></script>
+<script src="gamedata2.js"></script>
+<script>
+let save;
+
+function init() {
+  save = getOrCreateSave();
+
+  const gotAdminMsg = syncAdminMessages(save);
+  const newLetter = generateDailyCorreioLetter(save);
+  writeSave(save);
+  if (gotAdminMsg) {
+    showToast(`📯 Você recebeu uma mensagem da Equipe Origens Games!`, "gold");
+  } else if (newLetter) {
+    showToast(`${newLetter.emoji} Uma nova carta chegou no seu correio!`, "gold");
+  }
+
+  renderStatus();
+  renderLetters();
+  updateHeader();
+  startAutoSave(() => save);
+}
+
+function renderStatus() {
+  const wrap = document.getElementById("status-pill-wrap");
+  if (save.isVerifiedCreator) {
+    wrap.innerHTML = `<div class="status-pill verified">✅ Criador Verificado · carta VIP garantida todo dia</div>`;
+    document.getElementById("promo-creator").style.display = "none";
+  } else {
+    wrap.innerHTML = `<div class="status-pill normal">👤 Jogador comum · presentes ocasionais</div>`;
+    document.getElementById("promo-creator").style.display = "block";
+  }
+}
+
+function renderLetters() {
+  const list = document.getElementById("letters-list");
+  const inbox = save.correioInbox || [];
+
+  if (inbox.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <span class="icon">📭</span>
+        <div>Sua caixa de correio está vazia.</div>
+        <div style="font-size:11px;margin-top:4px;">Volte amanhã — cartas chegam com o tempo!</div>
+      </div>`;
+    document.getElementById("next-letter-note").textContent = "";
+    return;
+  }
+
+  list.innerHTML = inbox.map(letter => {
+    const r = letter.rewards;
+    const rewardsHtml = [
+      r.gold ? `<span>🪙 ${fmtNum(r.gold)}</span>` : "",
+      r.xp   ? `<span>⭐ ${fmtNum(r.xp)} XP</span>` : "",
+      r.xpp  ? `<span>🎖️ ${fmtNum(r.xpp)} XPP</span>` : "",
+      r.boost? `<span>⚡ ${r.boost.label || "Boost"}</span>` : "",
+    ].filter(Boolean).join("");
+
+    return `<div class="letter-card ${letter.claimed?"claimed":"unclaimed"} ${letter.verified?"verified-letter":""} ${letter.isAdmin?"admin-letter":""}">
+      <div class="letter-header">
+        <div class="letter-emoji">${letter.emoji}</div>
+        <div class="letter-info">
+          <div class="letter-title">${letter.title} ${letter.isAdmin?`<span class="letter-tag admin-tag">OFICIAL</span>`:letter.verified?`<span class="letter-tag">VIP</span>`:""}</div>
+          ${letter.isAdmin?`<div class="letter-from">De: ${letter.from}</div>`:""}
+          <div class="letter-date">${letter.date}</div>
+        </div>
+      </div>
+      ${letter.isAdmin && letter.message ? `<div class="letter-message">${letter.message}</div>` : ""}
+      <div class="letter-rewards">${rewardsHtml}</div>
+      <button class="btn ${letter.claimed?"btn-outline":"btn-gold"} btn-block" style="${letter.claimed?"opacity:0.5;":""}"
+              onclick="claimLetter('${letter.id}')" ${letter.claimed?"disabled":""}>
+        ${letter.claimed ? "✅ Já coletado" : "🎁 Abrir Carta"}
+      </button>
+    </div>`;
+  }).join("");
+
+  document.getElementById("next-letter-note").textContent =
+    "Novas cartas chegam automaticamente uma vez por dia.";
+}
+
+function claimLetter(letterId) {
+  const letter = claimCorreioLetter(save, letterId);
+  if (!letter) { showToast("⚠️ Carta já foi aberta.", "error"); return; }
+
+  writeSave(save);
+  let msg = `${letter.emoji} ${letter.title}: `;
+  if (letter.rewards.gold) msg += `+${fmtNum(letter.rewards.gold)} ouro `;
+  if (letter.rewards.xp)   msg += `+${fmtNum(letter.rewards.xp)} XP `;
+  if (letter.rewards.xpp)  msg += `+${fmtNum(letter.rewards.xpp)} XPP `;
+  if (letter.rewards.boost) msg += `+${letter.rewards.boost.label || "Boost"} `;
+  showToast(msg, "gold");
+
+  updateHeader();
+  renderLetters();
+}
+
+function updateHeader() {
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+}
+
+init();
+</script>
+</body>
+</html>

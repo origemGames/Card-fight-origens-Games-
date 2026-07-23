@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Mesa de Ferramentas – Card Fight v16.0</title>
+<script>
+  var CF_BUILD = Date.now();
+  document.write('<link rel="stylesheet" href="game.css?v=' + CF_BUILD + '"/>');
+</script>
+<style>
+/* ═══════════════════════════════════════════════
+   CRAFTING — Estilos exclusivos v16.0
+═══════════════════════════════════════════════ */
+.craft-hero {
+  background:linear-gradient(180deg,#0f0a02 0%,#2a1a05 45%,#0a0705 100%);
+  border:2px solid #ffb74d; border-radius:20px;
+  padding:22px 16px 18px; margin-bottom:14px; text-align:center;
+  position:relative; overflow:hidden;
+}
+.craft-hero::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% -10%,rgba(255,183,77,0.15) 0%,transparent 65%);
+}
+.craft-hero-icon {
+  font-size:64px; display:block; animation:float 2.5s ease-in-out infinite;
+  filter:drop-shadow(0 0 24px rgba(255,183,77,0.5)); position:relative; z-index:1;
+}
+.craft-title {
+  font-family:'Cinzel',serif; font-size:26px; font-weight:900; margin:6px 0 4px;
+  background:linear-gradient(135deg,#ffb74d,#ff6d00,#ffc107); background-size:200%;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:title-shimmer 4s linear infinite; position:relative; z-index:1;
+}
+.craft-sub { font-size:11px; color:#c9b48a; position:relative; z-index:1; }
+
+/* HUD de recursos */
+.craft-hud {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:12px 0 14px;
+}
+.craft-hud .chip {
+  background:#0e0e1c; border:1px solid #2a2a3e; border-radius:10px;
+  padding:8px 6px; text-align:center; font-size:11px;
+}
+.craft-hud .chip .em { font-size:20px; display:block; margin-bottom:2px; }
+.craft-hud .chip .v  { font-weight:700; color:#fff; font-size:13px; }
+.craft-hud .chip .l  { font-size:9px; color:#888; letter-spacing:0.5px; text-transform:uppercase; }
+
+/* Tabs */
+.craft-tabs {
+  display:flex; background:#0e0e1c; border-radius:12px; padding:4px;
+  margin-bottom:14px; gap:3px; overflow-x:auto;
+}
+.craft-tab {
+  flex:1; padding:9px 6px; border:none; border-radius:9px;
+  background:transparent; color:#9e9e9e;
+  font-family:'Rajdhani',sans-serif; font-size:11px; font-weight:700;
+  cursor:pointer; transition:all 0.2s; white-space:nowrap;
+}
+.craft-tab.active {
+  background:linear-gradient(135deg,#4e2200,#8b3d00); color:#fff;
+}
+
+.stats-row {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:12px;
+}
+.stat-box {
+  background:#0e0e1c; border:1px solid #2a2a3e; border-radius:10px;
+  padding:8px; text-align:center;
+}
+.stat-box .n { font-family:'Cinzel',serif; font-weight:700; color:#ffb74d; font-size:15px; }
+.stat-box .l { font-size:9px; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin-top:2px; }
+
+/* Filtros */
+.rar-filters {
+  display:flex; gap:4px; overflow-x:auto; margin-bottom:10px; padding-bottom:2px;
+}
+.rar-chip {
+  flex:0 0 auto; background:#0e0e1c; border:1px solid #2a2a3e;
+  border-radius:20px; padding:5px 10px; font-size:10px; font-weight:700;
+  color:#aaa; cursor:pointer; transition:all 0.2s; white-space:nowrap;
+}
+.rar-chip.active { color:#fff; box-shadow:0 0 8px currentColor; }
+
+/* Grid do catálogo */
+.cat-grid {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:6px;
+}
+.cat-card {
+  aspect-ratio:0.72;
+  border:2px solid #2a2a3e; border-radius:10px;
+  background:#08080f; position:relative; overflow:hidden;
+  cursor:pointer; transition:transform 0.15s, border-color 0.15s;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:4px; text-align:center;
+}
+.cat-card:hover { transform:translateY(-2px); }
+.cat-card.hidden .q { font-size:38px; opacity:0.4; }
+.cat-card.hidden .name { font-size:9px; color:#666; margin-top:4px; }
+.cat-card .em { font-size:34px; }
+.cat-card .name { font-size:9px; font-weight:700; color:#fff; margin-top:3px; line-height:1.1; }
+.cat-card .rar-lbl { font-size:8px; margin-top:2px; text-transform:uppercase; letter-spacing:0.5px; }
+.cat-card.researching {
+  border-color:#29b6f6;
+  animation:researching-pulse 1.6s infinite;
+}
+@keyframes researching-pulse {
+  0%,100% { box-shadow:0 0 6px rgba(41,182,246,0.4);}
+  50% { box-shadow:0 0 16px rgba(41,182,246,0.8);}
+}
+.cat-card.crafting {
+  border-color:#ffc107;
+  animation:crafting-pulse 1.6s infinite;
+}
+@keyframes crafting-pulse {
+  0%,100% { box-shadow:0 0 6px rgba(255,193,7,0.4);}
+  50% { box-shadow:0 0 16px rgba(255,193,7,0.9);}
+}
+.cat-card .timer {
+  position:absolute; bottom:2px; left:2px; right:2px;
+  background:rgba(0,0,0,0.7); color:#fff; font-size:9px;
+  padding:2px 4px; border-radius:6px; font-weight:700;
+}
+
+/* Modal */
+.modal-back {
+  position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9998;
+  display:none; align-items:center; justify-content:center; padding:16px;
+}
+.modal-back.open { display:flex; }
+.modal-box {
+  background:linear-gradient(135deg,#0f0a02,#1a1108);
+  border:2px solid #ffb74d; border-radius:16px;
+  padding:16px; max-width:420px; width:100%;
+  max-height:90vh; overflow:auto;
+}
+
+/* Upgrade cards */
+.upg-card {
+  background:linear-gradient(135deg,#1a0e05,#2a1a08);
+  border:2px solid #6a4a20; border-radius:14px;
+  padding:14px; margin-bottom:10px; position:relative;
+}
+.upg-card.owned {
+  border-color:#66bb6a; background:linear-gradient(135deg,#0a1a08,#152510);
+}
+.upg-card.next { border-color:#ffb74d; }
+
+/* Conquistas */
+.ach-card {
+  background:#0e0e1c; border:1px solid #2a2a3e; border-radius:12px;
+  padding:10px 12px; margin-bottom:8px; display:flex; align-items:center; gap:10px;
+}
+.ach-card.done { border-color:#66bb6a; background:linear-gradient(135deg,#0a1810,#122015); }
+.ach-card .em { font-size:30px; flex-shrink:0; }
+.ach-card .n { font-weight:700; font-size:13px; color:#fff; }
+.ach-card .d { font-size:10px; color:#999; }
+.ach-card .r { font-size:9px; color:#ffb74d; margin-top:2px; }
+.ach-card .st { font-size:10px; font-weight:700; padding:4px 8px; border-radius:8px; white-space:nowrap; }
+.ach-card .st.done { background:#66bb6a; color:#000; }
+.ach-card .st.pending { background:#333; color:#aaa; }
+
+/* Painel explicativo */
+.explain-block {
+  background:linear-gradient(135deg,#0a0a1a,#12122a);
+  border:1px solid #2a2a4a; border-radius:14px;
+  padding:14px; margin-bottom:10px;
+}
+.explain-block h4 {
+  font-family:'Cinzel',serif; color:#ffb74d; font-size:14px;
+  margin:0 0 8px; letter-spacing:1px;
+}
+.explain-block ul { margin:6px 0 0; padding-left:18px; }
+.explain-block li { font-size:12px; color:#c9c9d9; line-height:1.7; margin-bottom:4px; }
+.explain-block .tag {
+  display:inline-block; font-size:10px; background:#ff6d00; color:#fff;
+  padding:1px 8px; border-radius:6px; margin-left:4px;
+}
+
+/* Ticket */
+.ticket-item {
+  background:#0e0e1c; border:1px solid #2a2a3e; border-radius:10px;
+  padding:10px 12px; margin-bottom:6px;
+}
+.ticket-item .id { font-family:monospace; color:#ffb74d; font-size:11px; }
+
+.btn-craft {
+  background:linear-gradient(135deg,#8b3d00,#ffb74d); border:none; color:#fff;
+  padding:10px 14px; border-radius:10px; font-weight:700; cursor:pointer;
+  width:100%; font-size:13px;
+}
+.btn-craft:disabled { opacity:0.4; cursor:not-allowed; }
+
+/* Toast interno se showToast não existir */
+#cf-mini-toast {
+  position:fixed; top:16px; left:50%; transform:translateX(-50%);
+  background:#0e0e1c; border:1px solid #ffb74d; border-radius:10px;
+  padding:10px 14px; color:#fff; font-size:12px; z-index:9999;
+  display:none; box-shadow:0 6px 24px rgba(0,0,0,0.6);
+}
+</style>
+</head>
+<body>
+
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Início</a>
+  <span class="logo-title">⚙️ MESA</span>
+  <a href="#" onclick="switchTab('help');return false;" class="btn btn-outline btn-sm">❓ Ajuda</a>
+</header>
+
+<main class="content">
+
+  <div class="craft-hero">
+    <span class="craft-hero-icon">⚙️</span>
+    <div class="craft-title">MESA DE FERRAMENTAS</div>
+    <div class="craft-sub">Fusão de cartas — v16.0 · By Origens Games</div>
+  </div>
+
+  <!-- HUD RECURSOS -->
+  <div class="craft-hud">
+    <div class="chip"><span class="em">💰</span><div class="v" id="hud-gold">0</div><div class="l">Ouro</div></div>
+    <div class="chip"><span class="em">⚙️</span><div class="v" id="hud-gears">0</div><div class="l">Engrenagens</div></div>
+    <div class="chip"><span class="em">⛽</span><div class="v" id="hud-gas">0</div><div class="l">Gasolina</div></div>
+    <div class="chip"><span class="em">🏭</span><div class="v" id="hud-lvl">Nv 0</div><div class="l">Máquina</div></div>
+  </div>
+
+  <!-- BRINDE DIÁRIO -->
+  <div id="daily-claim-wrap"></div>
+
+  <!-- TABS -->
+  <div class="craft-tabs">
+    <button class="craft-tab active" data-tab="mesa">🔧 Mesa</button>
+    <button class="craft-tab" data-tab="upg">🏭 Upgrades</button>
+    <button class="craft-tab" data-tab="ach">🏆 Conquistas</button>
+    <button class="craft-tab" data-tab="ticket">🎫 Tickets</button>
+    <button class="craft-tab" data-tab="help">❓ Ajuda</button>
+  </div>
+
+  <!-- ══════════════════ MESA ══════════════════ -->
+  <section id="tab-mesa">
+    <div class="stats-row">
+      <div class="stat-box"><div class="n" id="s-rev">0/200</div><div class="l">Reveladas</div></div>
+      <div class="stat-box"><div class="n" id="s-craft">0</div><div class="l">Fusões feitas</div></div>
+      <div class="stat-box"><div class="n" id="s-pesq">0/3</div><div class="l">Pesquisas hoje</div></div>
+    </div>
+
+    <div id="active-lines"></div>
+
+    <div class="rar-filters" id="rar-filters"></div>
+
+    <div class="cat-grid" id="cat-grid"></div>
+  </section>
+
+  <!-- ══════════════════ UPGRADES ══════════════════ -->
+  <section id="tab-upg" style="display:none;">
+    <div id="upg-list"></div>
+  </section>
+
+  <!-- ══════════════════ CONQUISTAS ══════════════════ -->
+  <section id="tab-ach" style="display:none;">
+    <div class="stats-row">
+      <div class="stat-box"><div class="n" id="ach-done">0/0</div><div class="l">Concluídas</div></div>
+      <div class="stat-box"><div class="n" id="ach-earn">0</div><div class="l">💰 Ganho</div></div>
+      <div class="stat-box"><div class="n" id="ach-pct">0%</div><div class="l">Progresso</div></div>
+    </div>
+    <div id="ach-list"></div>
+  </section>
+
+  <!-- ══════════════════ TICKETS ══════════════════ -->
+  <section id="tab-ticket" style="display:none;">
+    <div class="explain-block">
+      <h4>💳 Compras Especiais</h4>
+      <p style="font-size:12px;color:#c9c9d9;line-height:1.7;">
+        Alguns pacotes premium só podem ser adquiridos abrindo um <b>ticket</b>. Ao abrir,
+        você recebe um <b>código</b> e os <b>dados da conta</b>. Faça o pagamento, envie o
+        comprovante no Discord da Origens Games e um administrador vai recarregar sua conta.
+      </p>
+    </div>
+
+    <div id="ticket-shop">
+      <div class="ticket-item">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="font-size:26px;">⛽</div>
+          <div style="flex:1;"><b>500 Gasolinas Premium</b><div style="font-size:10px;color:#888;">R$ 19,90 — pago via Pix</div></div>
+          <button class="btn btn-primary btn-sm" onclick="openTicket('pack_gas_500', 500, 'gasolina', 1990)">Abrir</button>
+        </div>
+      </div>
+      <div class="ticket-item">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="font-size:26px;">⚙️</div>
+          <div style="flex:1;"><b>5.000 Engrenagens Premium</b><div style="font-size:10px;color:#888;">R$ 19,90 — pago via Pix</div></div>
+          <button class="btn btn-primary btn-sm" onclick="openTicket('pack_gear_5k', 5000, 'engrenagem', 1990)">Abrir</button>
+        </div>
+      </div>
+      <div class="ticket-item">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="font-size:26px;">🔥</div>
+          <div style="flex:1;"><b>Craft Instantâneo (skip 1 pesquisa + 1 craft)</b><div style="font-size:10px;color:#888;">R$ 9,90 — pago via Pix</div></div>
+          <button class="btn btn-primary btn-sm" onclick="openTicket('skip_timers', 1, 'skip', 990)">Abrir</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px;font-family:'Cinzel',serif;color:#ffb74d;font-size:13px;">📋 Meus Tickets</div>
+    <div id="my-tickets"></div>
+  </section>
+
+  <!-- ══════════════════ AJUDA ══════════════════ -->
+  <section id="tab-help" style="display:none;">
+    <div class="explain-block">
+      <h4>⚙️ O que é a Mesa de Ferramentas? <span class="tag">v16</span></h4>
+      <p style="font-size:12px;color:#c9c9d9;line-height:1.7;">
+        Um novo sistema que permite <b>fundir cartas do seu cofre</b> em cartas exclusivas de craft,
+        com stats aumentados. Há <b>200 receitas</b> possíveis, escondidas até você pesquisá-las.
+      </p>
+    </div>
+
+    <div class="explain-block">
+      <h4>🔬 Pesquisa</h4>
+      <ul>
+        <li>Cada carta começa <b>desconhecida</b> (fundo preto com "?"). Você vê só a raridade.</li>
+        <li>Pesquisar custa <b>5K de ouro</b> (Comum → Mítico) ou <b>20K</b> (Ultra Raro / Origens).</li>
+        <li>Duração: <b>30 min</b> (Comum → Épico) ou <b>1h30</b> (Lendário → Origens).</li>
+        <li>Máximo de <b>3 pesquisas por dia</b> e apenas <b>1 rodando por vez</b>.</li>
+        <li>Toda pesquisa tem chance de <b>falhar</b> (aumenta com a raridade). Se falhar,
+            <b>50%</b> do ouro volta pra você.</li>
+      </ul>
+    </div>
+
+    <div class="explain-block">
+      <h4>🔧 Craft</h4>
+      <ul>
+        <li>Após revelar uma receita, ela fica liberada. Craft dura <b>1 hora</b> por padrão.</li>
+        <li>Você precisa das <b>2 cartas de entrada</b> no cofre + <b>Ouro</b> + <b>Engrenagens</b> + <b>Gasolina</b>.</li>
+        <li>Preços por raridade:
+          <ul style="margin-top:4px;">
+            <li>Comum: 1K ouro · 10 ⚙️ · 5 ⛽</li>
+            <li>Raro: 5K · 25 ⚙️ · 5 ⛽</li>
+            <li>Épico: 35K · 100 ⚙️ · 10 ⛽</li>
+            <li>Lendário: 100K · 200 ⚙️ · 30 ⛽</li>
+            <li>Mítico: 500K · 500 ⚙️ · 30 ⛽</li>
+            <li>Ultra Raro: 5M · 1M ⚙️ · 50 ⛽</li>
+            <li>Origens: 30M · 5M ⚙️ · 100 ⛽</li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+
+    <div class="explain-block">
+      <h4>⛽ Gasolina & ⚙️ Engrenagens</h4>
+      <ul>
+        <li>Grátis: <b>1 ⛽ + 1 ⚙️ por dia</b> só por logar.</li>
+        <li>Loja: Gasolina <b>50K</b> cada (até 5/dia) · Engrenagem <b>2K</b> cada (até 15/dia) + pacotes.</li>
+        <li>Drops: <b>7%</b> em vitórias na Batalha · <b>22%</b> na Pesca.</li>
+      </ul>
+    </div>
+
+    <div class="explain-block">
+      <h4>🏭 Upgrades da Máquina</h4>
+      <ul>
+        <li>Nv 1 — 100 ⚙️ + 50 ⛽ → -10% tempo pesquisa · -15% craft · +10% recursos.</li>
+        <li>Nv 2 — 500 ⚙️ + 100 ⛽ → -20% pesquisa · -25% craft · +20% recursos.</li>
+        <li>Nv 3 — 1000 ⚙️ + 500 ⛽ → -30% pesquisa · -40% craft · +30% recursos.</li>
+      </ul>
+    </div>
+
+    <div class="explain-block">
+      <h4>🏆 Conquistas</h4>
+      <p style="font-size:12px;color:#c9c9d9;line-height:1.7;">
+        22+ conquistas exclusivas que dão ouro, engrenagens e gasolina automaticamente
+        quando você bate o requisito.
+      </p>
+    </div>
+  </section>
+
+</main>
+
+</div><!-- /page -->
+
+<!-- Modal genérico -->
+<div class="modal-back" id="modal-back">
+  <div class="modal-box" id="modal-box"></div>
+</div>
+
+<div id="cf-mini-toast"></div>
+
+<!-- Carrega gamedata na ordem correta -->
+<script src="gamedata.js"></script>
+<script src="gamedata2.js"></script>
+<script src="gamedata3.js"></script>
+<script src="gamedata-pesca.js"></script>
+<script src="gamedata-pesca-patch.js"></script>
+<script>document.write('<script src="gamedata-crafting.js?v=' + CF_BUILD + '"><\/script>');</script>
+
+<script>
+"use strict";
+
+// Fallback showToast
+if (typeof showToast === "undefined") {
+  window.showToast = function(msg, type, ms) {
+    const t = document.getElementById("cf-mini-toast");
+    t.textContent = msg; t.style.display = "block";
+    clearTimeout(window._cfTt);
+    window._cfTt = setTimeout(() => t.style.display = "none", ms || 2600);
+  };
+}
+
+let currentRarFilter = "ALL";
+const RAR_ORDER = ["COMMON","RARE","EPIC","LEGENDARY","MYTHIC","ULTRA_RARE","ORIGENS"];
+
+function _save() {
+  const s = getOrCreateSave();
+  CraftAPI.ensure(s);
+  return s;
+}
+
+// TAB SWITCH
+document.querySelectorAll(".craft-tab").forEach(b => {
+  b.onclick = () => switchTab(b.dataset.tab);
+});
+function switchTab(name) {
+  document.querySelectorAll(".craft-tab").forEach(x => x.classList.toggle("active", x.dataset.tab === name));
+  ["mesa","upg","ach","ticket","help"].forEach(n => {
+    const el = document.getElementById("tab-" + n);
+    if (el) el.style.display = (n === name) ? "" : "none";
+  });
+  if (name === "upg")    renderUpg();
+  if (name === "ach")    renderAch();
+  if (name === "ticket") renderTickets();
+  if (name === "mesa")   renderMesa();
+}
+
+// HUD
+function refreshHUD() {
+  const s = _save();
+  document.getElementById("hud-gold" ).textContent = CraftAPI.fmtN(s.gold||0);
+  document.getElementById("hud-gears").textContent = CraftAPI.fmtN(s.craftGears||0);
+  document.getElementById("hud-gas"  ).textContent = CraftAPI.fmtN(s.craftGas||0);
+  document.getElementById("hud-lvl"  ).textContent = "Nv " + (s.craftMachineLevel||0);
+
+  // Brinde diário
+  const wrap = document.getElementById("daily-claim-wrap");
+  if (CraftAPI.canClaimDaily(s)) {
+    wrap.innerHTML = `
+      <div style="background:linear-gradient(135deg,#1b5e20,#388e3c);border:2px solid #66bb6a;border-radius:12px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">
+        <div style="font-size:30px;">🎁</div>
+        <div style="flex:1;color:#fff;">
+          <b>Brinde diário disponível!</b>
+          <div style="font-size:10px;opacity:0.9;">+1 ⛽ Gasolina · +1 ⚙️ Engrenagem</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="claimDaily()">Coletar</button>
+      </div>`;
+  } else {
+    wrap.innerHTML = "";
+  }
+}
+function claimDaily() {
+  const r = CraftAPI.claimDaily(_save());
+  showToast(r.ok ? "🎁 +1 ⛽ e +1 ⚙️ coletados!" : ("❌ " + r.msg), r.ok ? "success" : "error");
+  refreshHUD();
+}
+
+// ═══════════ MESA ═══════════
+function renderMesa() {
+  const s = _save();
+  // stats
+  document.getElementById("s-rev"  ).textContent = (s.researchRevealed||[]).length + "/" + CraftAPI.RECIPES.length;
+  document.getElementById("s-craft").textContent = (s.craftHistory||[]).length;
+  document.getElementById("s-pesq" ).textContent = (s.researchToday||0) + "/" + CraftAPI.CONFIG.pesquisaMaxDia;
+
+  // linhas de atividade
+  renderActiveLines(s);
+
+  // filtros
+  const rf = document.getElementById("rar-filters");
+  const rars = ["ALL", ...RAR_ORDER];
+  rf.innerHTML = rars.map(r => {
+    const active = r === currentRarFilter;
+    const color  = r === "ALL" ? "#ffffff" : CraftAPI.rarityColor(r);
+    const label  = r === "ALL" ? "TODAS" : CraftAPI.rarityName(r);
+    return `<div class="rar-chip ${active?'active':''}" data-rar="${r}" style="color:${color};border-color:${color}66;">${label}</div>`;
+  }).join("");
+  rf.querySelectorAll(".rar-chip").forEach(c => {
+    c.onclick = () => { currentRarFilter = c.dataset.rar; renderMesa(); };
+  });
+
+  // grid
+  const grid = document.getElementById("cat-grid");
+  const recipes = CraftAPI.RECIPES.filter(r => currentRarFilter === "ALL" || r.rarity === currentRarFilter);
+  const revSet  = new Set(s.researchRevealed||[]);
+  const resSet  = new Map((s.researchQueue||[]).map(q => [q.recipeId, q]));
+  const crafSet = new Map((s.craftQueue||[]).map(c => [c.recipeId, c]));
+
+  grid.innerHTML = recipes.map(r => {
+    const revealed  = revSet.has(r.id);
+    const researching = resSet.has(r.id);
+    const crafting  = crafSet.has(r.id);
+    const color     = CraftAPI.rarityColor(r.rarity);
+    if (!revealed && !researching) {
+      return `<div class="cat-card hidden" data-rid="${r.id}" style="border-color:${color}66;">
+        <div class="q">?</div><div class="rar-lbl" style="color:${color};">${CraftAPI.rarityName(r.rarity)}</div></div>`;
+    }
+    if (researching) {
+      const q = resSet.get(r.id);
+      const rem = q.endTs - Date.now();
+      return `<div class="cat-card researching hidden" data-rid="${r.id}" style="border-color:#29b6f6;">
+        <div class="q">🔬</div><div class="rar-lbl" style="color:${color};">${CraftAPI.rarityName(r.rarity)}</div>
+        <div class="timer">${CraftAPI.fmtTime(rem)}</div></div>`;
+    }
+    const outC = r.outCard;
+    let timerHtml = "";
+    if (crafting) {
+      const rem = crafSet.get(r.id).endTs - Date.now();
+      timerHtml = `<div class="timer">🔧 ${CraftAPI.fmtTime(rem)}</div>`;
+    }
+    return `<div class="cat-card ${crafting?'crafting':''}" data-rid="${r.id}" style="border-color:${color};">
+      <div class="em">${outC.img}</div>
+      <div class="name">${outC.name.replace("⚙️ ","")}</div>
+      <div class="rar-lbl" style="color:${color};">${CraftAPI.rarityName(r.rarity)}</div>
+      ${timerHtml}
+    </div>`;
+  }).join("");
+
+  grid.querySelectorAll(".cat-card").forEach(el => {
+    el.onclick = () => openRecipeModal(el.dataset.rid);
+  });
+}
+
+function renderActiveLines(s) {
+  const container = document.getElementById("active-lines");
+  const lines = [];
+  for (const q of (s.researchQueue||[])) {
+    const rem = q.endTs - Date.now();
+    lines.push(`<div style="background:linear-gradient(135deg,#001a2e,#00263d);border:1px solid #29b6f6;border-radius:10px;padding:8px 10px;margin-bottom:6px;display:flex;align-items:center;gap:8px;">
+      <span style="font-size:18px;">🔬</span>
+      <div style="flex:1;font-size:11px;color:#e0f0ff;">Pesquisando ${CraftAPI.rarityName(q.rarity)}...</div>
+      <span style="font-family:monospace;color:#29b6f6;font-weight:700;">${CraftAPI.fmtTime(rem)}</span>
+    </div>`);
+  }
+  for (const c of (s.craftQueue||[])) {
+    const rem = c.endTs - Date.now();
+    const r = CraftAPI.getRecipe(c.recipeId);
+    lines.push(`<div style="background:linear-gradient(135deg,#3a1a05,#5b3010);border:1px solid #ffc107;border-radius:10px;padding:8px 10px;margin-bottom:6px;display:flex;align-items:center;gap:8px;">
+      <span style="font-size:18px;">${r?r.outCard.img:'🔧'}</span>
+      <div style="flex:1;font-size:11px;color:#fff3c0;">Fundindo ${r?r.outCard.name.replace('⚙️ ',''):'?'}...</div>
+      <span style="font-family:monospace;color:#ffc107;font-weight:700;">${CraftAPI.fmtTime(rem)}</span>
+    </div>`);
+  }
+  container.innerHTML = lines.join("");
+}
+
+// ═══════════ MODAL DE RECEITA ═══════════
+function openRecipeModal(recipeId) {
+  const s = _save();
+  const r = CraftAPI.getRecipe(recipeId);
+  if (!r) return;
+  const revealed = (s.researchRevealed||[]).includes(recipeId);
+  const researching = (s.researchQueue||[]).some(q => q.recipeId === recipeId);
+  const crafting    = (s.craftQueue||[]).some(c => c.recipeId === recipeId);
+  const isUltra = r.rarity === "ULTRA_RARE" || r.rarity === "ORIGENS";
+  const color = CraftAPI.rarityColor(r.rarity);
+  const box = document.getElementById("modal-box");
+  let bodyHtml;
+  if (researching) {
+    const q = s.researchQueue.find(x => x.recipeId === recipeId);
+    bodyHtml = `
+      <div style="text-align:center;padding:20px;">
+        <div style="font-size:48px;">🔬</div>
+        <div style="font-family:'Cinzel',serif;font-size:18px;color:#29b6f6;margin:8px 0;">Pesquisando...</div>
+        <div style="font-size:14px;color:#fff;">${CraftAPI.rarityName(r.rarity)}</div>
+        <div style="font-family:monospace;font-size:22px;color:#29b6f6;margin-top:12px;">${CraftAPI.fmtTime(q.endTs - Date.now())}</div>
+        <div style="font-size:10px;color:#888;margin-top:8px;">Chance de falhar: ${CraftAPI.CONFIG.pesquisaChanceFail[r.rarity]}%</div>
+      </div>`;
+  } else if (!revealed) {
+    const custo = isUltra ? CraftAPI.CONFIG.pesquisaCustoUltra : CraftAPI.CONFIG.pesquisaCustoNormal;
+    const dur   = ["COMMON","RARE","EPIC"].includes(r.rarity) ? "30 min" : "1h 30min";
+    const fail  = CraftAPI.CONFIG.pesquisaChanceFail[r.rarity];
+    bodyHtml = `
+      <div style="text-align:center;">
+        <div style="font-size:60px;opacity:0.3;">?</div>
+        <div style="color:${color};font-family:'Cinzel',serif;font-size:16px;margin-top:4px;">${CraftAPI.rarityName(r.rarity)}</div>
+      </div>
+      <div class="explain-block" style="margin-top:14px;">
+        <div style="font-size:12px;color:#c9c9d9;line-height:1.8;">
+          Receita desconhecida. Faça uma <b>pesquisa</b> para revelá-la:
+          <ul style="margin-top:6px;">
+            <li>Custo: <b style="color:#ffb74d">${CraftAPI.fmtN(custo)} 💰</b></li>
+            <li>Duração: <b>${dur}</b></li>
+            <li>Chance de falhar: <b>${fail}%</b> (50% do ouro é devolvido)</li>
+          </ul>
+        </div>
+      </div>
+      <button class="btn-craft" onclick="doResearch('${r.id}')">🔬 Iniciar Pesquisa (${CraftAPI.fmtN(custo)}💰)</button>`;
+  } else {
+    const out = r.outCard;
+    const custoOuro = CraftAPI.CONFIG.custoOuro[r.rarity];
+    const custoGear = CraftAPI.CONFIG.custoGear[r.rarity];
+    const custoGas  = CraftAPI.CONFIG.custoGas [r.rarity];
+    const chk = CraftAPI.canCraftRecipe(s, r.id);
+    const bonus = (function(){ const l=(s.craftMachineLevel||0); if(!l) return 0; return CraftAPI.CONFIG.upgrades[l-1].redCraft; })();
+    const dur = Math.round(CraftAPI.CONFIG.craftDurMs * (1 - bonus));
+    let inputsHtml = "";
+    // Consolida entradas repetidas (ex: 2x da mesma carta) numa única linha
+    const mergedInputs = [];
+    for (const inp of r.inputs) {
+      const existing = mergedInputs.find(m => m.cardId === inp.cardId);
+      if (existing) existing.qty += inp.qty;
+      else mergedInputs.push({ cardId: inp.cardId, qty: inp.qty });
+    }
+    for (const inp of mergedInputs) {
+      const card = getCardById(inp.cardId);
+      const have = (s.vault||[]).filter(id => id === inp.cardId).length;
+      inputsHtml += `
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:#0e0e1c;border-radius:8px;margin-bottom:4px;">
+          <span style="font-size:22px;">${card?card.img:'?'}</span>
+          <div style="flex:1;font-size:11px;">${card?card.name:inp.cardId}</div>
+          <span style="font-size:11px;color:${have>=inp.qty?'#66bb6a':'#ef5350'};">${have}/${inp.qty}</span>
+        </div>`;
+    }
+    bodyHtml = `
+      <div style="text-align:center;">
+        <div style="font-size:64px;">${out.img}</div>
+        <div style="font-family:'Cinzel',serif;font-size:16px;color:#fff;">${out.name.replace('⚙️ ','')}</div>
+        <div style="color:${color};font-size:11px;text-transform:uppercase;letter-spacing:1px;">${CraftAPI.rarityName(r.rarity)}</div>
+        <div style="font-size:11px;color:#888;margin-top:4px;">⚔️ ${out.atk} · ❤️ ${out.hp}</div>
+        <div style="font-size:11px;color:#c9c9d9;margin-top:6px;font-style:italic;">"${out.desc}"</div>
+      </div>
+      <div style="margin-top:12px;">
+        <div style="font-size:11px;color:#888;margin-bottom:4px;">Entradas necessárias:</div>
+        ${inputsHtml}
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:#c9c9d9;">
+        <div>💰 Custo: <b>${CraftAPI.fmtN(custoOuro)}</b></div>
+        <div>⚙️ Engrenagens: <b>${CraftAPI.fmtN(custoGear)}</b></div>
+        <div>⛽ Gasolina: <b>${custoGas}</b></div>
+        <div>⏱ Duração: <b>${CraftAPI.fmtTime(dur)}</b> ${bonus>0?'<span style="color:#66bb6a;">(-'+Math.round(bonus*100)+'% da máquina)</span>':''}</div>
+      </div>
+      ${crafting
+        ? '<div style="text-align:center;color:#ffc107;margin-top:12px;">🔧 Já em fusão!</div>'
+        : `<button class="btn-craft" ${chk.ok?'':'disabled'} onclick="doCraft('${r.id}')">
+             ${chk.ok?'🔧 Fundir Carta':'❌ '+chk.msg}
+           </button>`}
+    `;
+  }
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div style="font-family:'Cinzel',serif;font-size:14px;color:${color};">${CraftAPI.rarityName(r.rarity)}</div>
+      <button style="background:transparent;border:none;color:#aaa;font-size:22px;cursor:pointer;" onclick="closeModal()">✕</button>
+    </div>
+    ${bodyHtml}`;
+  document.getElementById("modal-back").classList.add("open");
+}
+function closeModal() { document.getElementById("modal-back").classList.remove("open"); }
+document.getElementById("modal-back").addEventListener("click", e => {
+  if (e.target.id === "modal-back") closeModal();
+});
+
+function doResearch(rid) {
+  const s = _save();
+  const r = CraftAPI.startResearch(s, rid);
+  showToast(r.ok ? "🔬 Pesquisa iniciada!" : ("❌ " + r.msg), r.ok?"success":"error");
+  if (r.ok) closeModal();
+  refreshHUD(); renderMesa();
+}
+function doCraft(rid) {
+  const s = _save();
+  const r = CraftAPI.startCraft(s, rid);
+  showToast(r.ok ? "🔧 Fusão iniciada!" : ("❌ " + r.msg), r.ok?"success":"error");
+  if (r.ok) closeModal();
+  refreshHUD(); renderMesa();
+}
+
+// ═══════════ UPGRADES ═══════════
+function renderUpg() {
+  const s = _save();
+  const cur = s.craftMachineLevel || 0;
+  let html = "";
+  for (const up of CraftAPI.CONFIG.upgrades) {
+    const owned = cur >= up.level;
+    const next  = cur + 1 === up.level;
+    const canBuy = next && (s.craftGears||0) >= up.engr && (s.craftGas||0) >= up.gas;
+    html += `
+      <div class="upg-card ${owned?'owned':(next?'next':'')}">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-family:'Cinzel',serif;font-size:15px;color:${owned?'#66bb6a':'#ffb74d'};">Nv ${up.level} · ${up.name}</div>
+            <div style="font-size:10px;color:#c9b48a;margin-top:2px;">
+              -${Math.round(up.redPesq*100)}% pesquisa · -${Math.round(up.redCraft*100)}% craft · +${Math.round(up.bonusRec*100)}% recursos
+            </div>
+          </div>
+          ${owned
+            ? '<span style="color:#66bb6a;font-weight:700;">✔ ATIVO</span>'
+            : (next
+                ? `<button class="btn btn-primary btn-sm" ${canBuy?'':'disabled'} onclick="doUpgrade()">Melhorar</button>`
+                : '<span style="color:#666;font-size:10px;">Bloqueado</span>')}
+        </div>
+        ${owned ? '' : `
+          <div style="margin-top:8px;font-size:11px;color:#c9c9d9;">
+            Custo: <b>${up.engr} ⚙️</b> + <b>${up.gas} ⛽</b>
+          </div>`}
+      </div>`;
+  }
+  document.getElementById("upg-list").innerHTML = html;
+}
+function doUpgrade() {
+  const r = CraftAPI.doUpgrade(_save());
+  showToast(r.ok ? "🏭 Máquina melhorada!" : ("❌ " + r.msg), r.ok?"success":"error");
+  refreshHUD(); renderUpg();
+}
+
+// ═══════════ CONQUISTAS ═══════════
+function renderAch() {
+  const s = _save();
+  CraftAPI.checkAchievements(s);
+  const done = s.craftAchievements || [];
+  const total = CraftAPI.ACHIEVEMENTS.length;
+  const earn = CraftAPI.ACHIEVEMENTS.filter(a => done.includes(a.id))
+                 .reduce((sum,a) => sum + ((a.reward&&a.reward.gold)||0), 0);
+  document.getElementById("ach-done").textContent = done.length + "/" + total;
+  document.getElementById("ach-earn").textContent = CraftAPI.fmtN(earn);
+  document.getElementById("ach-pct" ).textContent = Math.floor(done.length*100/total) + "%";
+  const list = document.getElementById("ach-list");
+  list.innerHTML = CraftAPI.ACHIEVEMENTS.map(a => {
+    const ok = done.includes(a.id);
+    const r = a.reward || {};
+    const rew = [];
+    if (r.gold) rew.push(CraftAPI.fmtN(r.gold) + "💰");
+    if (r.gears) rew.push(r.gears + "⚙️");
+    if (r.gas)   rew.push(r.gas + "⛽");
+    return `
+      <div class="ach-card ${ok?'done':''}">
+        <div class="em">${a.icon}</div>
+        <div style="flex:1;">
+          <div class="n">${a.name}</div>
+          <div class="d">${a.desc}</div>
+          <div class="r">Recompensa: ${rew.join(" · ")}</div>
+        </div>
+        <div class="st ${ok?'done':'pending'}">${ok?'✓':'—'}</div>
+      </div>`;
+  }).join("");
+}
+
+// ═══════════ TICKETS ═══════════
+function openTicket(kind, qty, item, priceCentavos) {
+  const s = _save();
+  const t = CraftAPI.createTicket(s, kind, { qty, item, priceBRL: (priceCentavos/100).toFixed(2) });
+  const box = document.getElementById("modal-box");
+  box.innerHTML = `
+    <div style="text-align:center;">
+      <div style="font-size:40px;">🎫</div>
+      <div style="font-family:'Cinzel',serif;color:#ffb74d;font-size:16px;">Ticket criado!</div>
+      <div style="font-family:monospace;font-size:14px;color:#fff;margin:6px 0;">${t.id}</div>
+    </div>
+    <div class="explain-block" style="margin-top:10px;">
+      <div style="font-size:12px;color:#c9c9d9;line-height:1.8;">
+        <b>Item:</b> ${qty} × ${item}<br>
+        <b>Valor:</b> R$ ${(priceCentavos/100).toFixed(2)}<br>
+        <b>Pix (chave):</b> <span style="color:#66bb6a;">craft@origensgames.com.br</span><br>
+        <b>Beneficiário:</b> Origens Games<br>
+        <b>Descrição:</b> Ticket <span style="color:#ffb74d;">${t.id}</span> — ${s.playerName||'?'}
+      </div>
+    </div>
+    <div style="font-size:11px;color:#888;text-align:center;margin-top:8px;">
+      Após pagar, envie o comprovante + código do ticket no Discord.
+    </div>
+    <button class="btn-craft" style="margin-top:10px;" onclick="closeModal();renderTickets();">OK</button>`;
+  document.getElementById("modal-back").classList.add("open");
+  refreshHUD();
+}
+function renderTickets() {
+  const s = _save();
+  const list = document.getElementById("my-tickets");
+  const ts = (s.craftTickets||[]).slice().reverse();
+  if (ts.length === 0) {
+    list.innerHTML = '<div style="color:#666;font-size:11px;padding:8px;text-align:center;">Nenhum ticket ainda.</div>';
+    return;
+  }
+  list.innerHTML = ts.map(t => `
+    <div class="ticket-item">
+      <div style="display:flex;justify-content:space-between;">
+        <span class="id">${t.id}</span>
+        <span style="font-size:10px;color:${t.status==='paid'?'#66bb6a':'#ffb74d'};">${t.status.toUpperCase()}</span>
+      </div>
+      <div style="font-size:11px;color:#c9c9d9;margin-top:4px;">
+        ${t.details.qty} × ${t.details.item} — R$ ${t.details.priceBRL}
+      </div>
+      <div style="font-size:9px;color:#666;margin-top:2px;">${new Date(t.createdAt).toLocaleString()}</div>
+    </div>`).join("");
+}
+
+// ═══════════ TICK LOOP (pesquisa/craft) ═══════════
+function tickLoop() {
+  const s = _save();
+  const rp = CraftAPI.tickResearch(s);
+  const cp = CraftAPI.tickCraft(s);
+  rp.finished.forEach(f => {
+    if (f.success) showToast("✅ Pesquisa concluída! Receita revelada.", "success", 3600);
+    else           showToast("❌ Pesquisa falhou. Refund: " + CraftAPI.fmtN(f.refund) + "💰", "error", 3600);
+  });
+  cp.finished.forEach(f => {
+    if (f.overflow) showToast("⚠️ Cofre cheio! Craft finalizado mas sem espaço.", "error", 4200);
+    else            showToast("🎉 Fusão pronta: " + f.card.name.replace('⚙️ ','') + "!", "success", 4200);
+  });
+  refreshHUD();
+  if (document.getElementById("tab-mesa").style.display !== "none") renderMesa();
+}
+
+// INIT
+(function init() {
+  refreshHUD();
+  renderMesa();
+  // check achievements at open
+  CraftAPI.checkAchievements(_save());
+  setInterval(tickLoop, 1000);
+})();
+</script>
+</body>
+</html>

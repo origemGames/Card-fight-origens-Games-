@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Ranking – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+.rank-header-banner {
+  background:linear-gradient(135deg,#1a0a00,#2d1a00,#1a0a00);
+  border:2px solid #ffc107; border-radius:16px;
+  padding:16px; margin-bottom:14px; text-align:center;
+}
+.rank-tabs { display:flex; background:#0e0e1c; border-radius:12px; padding:3px; gap:3px; margin-bottom:14px; }
+.rank-tab  { flex:1; padding:9px 4px; border:none; border-radius:9px; background:transparent; color:#9e9e9e;
+  font-family:'Rajdhani',sans-serif; font-size:11px; font-weight:700; cursor:pointer; transition:all 0.2s; }
+.rank-tab.active { background:linear-gradient(135deg,#c62828,#e53935); color:#fff; }
+.player-row {
+  display:flex; align-items:center; gap:10px; padding:12px 14px;
+  background:var(--bg-card); border:1px solid #2a2a4a; border-radius:12px;
+  margin-bottom:6px; cursor:pointer; transition:all 0.2s;
+}
+.player-row:hover { border-color:#ffc107; transform:translateX(3px); }
+.player-row.me    { border-color:#ffc107; background:linear-gradient(135deg,#1a1a00,#2a2000); }
+.player-row.top-1 { border-color:#ffc107; background:linear-gradient(135deg,#1a1000,#2a1a00); }
+.player-row.top-2 { border-color:#9e9e9e; background:linear-gradient(135deg,#141414,#1c1c1c); }
+.player-row.top-3 { border-color:#cd7f32; background:linear-gradient(135deg,#100a00,#1a1000); }
+.pos-badge {
+  width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-family:'Cinzel',serif; font-size:14px; font-weight:900; flex-shrink:0;
+}
+.pos-badge.top1 { background:linear-gradient(135deg,#ffc107,#ff6d00); color:#000; font-size:16px; }
+.pos-badge.top2 { background:linear-gradient(135deg,#9e9e9e,#bdbdbd); color:#000; }
+.pos-badge.top3 { background:linear-gradient(135deg,#cd7f32,#a0522d); color:#fff; }
+.pos-badge.other{ background:#1e1e30; color:#9e9e9e; font-size:12px; }
+.player-avatar { font-size:26px; flex-shrink:0; }
+.player-info  { flex:1; min-width:0; }
+.player-name  { font-weight:700; font-size:14px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.player-rank  { font-size:11px; color:#9e9e9e; margin-top:2px; }
+.player-title { font-size:10px; font-weight:700; margin-top:2px; }
+.player-stats { display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
+.stat-chip    { font-size:11px; color:#9e9e9e; display:flex; align-items:center; gap:3px; white-space:nowrap; }
+.stat-chip strong { color:#ffc107; }
+/* Profile popup */
+.profile-popup-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:400;
+  display:flex; align-items:flex-end; justify-content:center; padding-bottom:70px; }
+.profile-popup-overlay.hidden { display:none; }
+.profile-popup { background:#0e0e1c; border:2px solid #ffc107; border-radius:20px 20px 0 0;
+  padding:20px; width:100%; max-width:480px; max-height:80vh; overflow-y:auto;
+  animation:slideUp 0.3s ease; }
+@keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.popup-card-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:12px; }
+.mini-card { background:var(--bg-card); border:1px solid #2a2a4a; border-radius:8px;
+  padding:8px 4px; text-align:center; }
+.win-rate-bar { background:#1e1e30; border-radius:20px; height:8px; overflow:hidden; margin-top:4px; }
+.win-rate-fill { height:100%; border-radius:20px; background:linear-gradient(90deg,#1b5e20,#66bb6a); }
+.player-filter { display:flex; gap:6px; margin-bottom:12px; align-items:center; }
+.player-filter select { flex:1; background:#0e0e1c; border:1px solid #2a2a4a; border-radius:8px;
+  color:#fff; padding:8px 10px; font-family:'Rajdhani',sans-serif; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title">🏆 RANKING</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content">
+
+  <!-- Banner -->
+  <div class="rank-header-banner">
+    <div style="font-size:36px;">🏆</div>
+    <div style="font-family:'Cinzel',serif;font-size:16px;font-weight:900;color:#ffc107;margin:4px 0;">
+      OS MELHORES GUERREIROS - Nem todos os Players estarão no ranking para você!
+    </div>
+    <div style="font-size:12px;color:#9e9e9e;">Clique em um jogador para ver o perfil completo</div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="rank-tabs">
+    <button class="rank-tab active" onclick="switchTab('global',this)">🌍 Global</button>
+    <button class="rank-tab" onclick="switchTab('xpp',this)">🎖️ Patente</button>
+    <button class="rank-tab" onclick="switchTab('wins',this)">⚔️ Vitórias</button>
+    <button class="rank-tab" onclick="switchTab('cards',this)">🃏 Coleção</button>
+    <button class="rank-tab" onclick="switchTab('level',this)">⭐ Nível</button>
+  </div>
+
+  <!-- Meu rank quick-card -->
+  <div id="my-rank-card" class="panel" style="margin-bottom:14px;background:linear-gradient(135deg,#1a1a00,#2a2000);border-color:#ffc107;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="font-size:32px;">👤</div>
+      <div style="flex:1;">
+        <div style="font-weight:700;font-size:15px;" id="my-name">—</div>
+        <div style="font-size:12px;color:#9e9e9e;margin-top:2px;" id="my-rank-name">—</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:11px;color:#9e9e9e;">Sua posição</div>
+        <div style="font-size:22px;font-weight:900;font-family:'Cinzel',serif;color:#ffc107;" id="my-pos">#—</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px;">
+      <div style="text-align:center;background:#0e0e1c;border-radius:8px;padding:6px;">
+        <div style="font-size:10px;color:#9e9e9e;">Vitórias</div>
+        <div style="font-size:14px;font-weight:900;color:#66bb6a;" id="my-wins">0</div>
+      </div>
+      <div style="text-align:center;background:#0e0e1c;border-radius:8px;padding:6px;">
+        <div style="font-size:10px;color:#9e9e9e;">WinRate</div>
+        <div style="font-size:14px;font-weight:900;color:#ffc107;" id="my-wr">0%</div>
+      </div>
+      <div style="text-align:center;background:#0e0e1c;border-radius:8px;padding:6px;">
+        <div style="font-size:10px;color:#9e9e9e;">Cartas</div>
+        <div style="font-size:14px;font-weight:900;color:#2196F3;" id="my-cards">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="player-filter">
+    <select id="sort-sel" onchange="applySortAndRender()">
+      <option value="xpp">Ordenar: XPP (Patente)</option>
+      <option value="wins">Ordenar: Vitórias</option>
+      <option value="level">Ordenar: Nível</option>
+      <option value="winRate">Ordenar: WinRate</option>
+      <option value="vaultCards">Ordenar: Coleção</option>
+    </select>
+  </div>
+
+  <!-- Lista -->
+  <div id="rank-list"></div>
+
+</main>
+
+<!-- Profile Popup -->
+<div class="profile-popup-overlay hidden" id="popup-overlay" onclick="closePopup(event)">
+  <div class="profile-popup" id="popup-box">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
+      <div style="font-family:'Cinzel',serif;font-size:16px;font-weight:900;color:#ffc107;">Perfil do Jogador</div>
+      <button onclick="closePopupBtn()" style="background:none;border:none;color:#9e9e9e;font-size:20px;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <div id="popup-content"></div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js"></script>
+<script src="gamedata2.js"></script>
+<script>
+let save, allPlayers = [], currentTab = "global";
+
+function init() {
+  save = getOrCreateSave();
+  buildPlayerList();
+  renderMyCard();
+  applySortAndRender();
+  updateHeader();
+}
+
+function buildPlayerList() {
+  // Jogador real no topo (com seus dados)
+  const me = {
+    name:       save.playerName,
+    xpp:        save.xpp || 0,
+    wins:       save.wins || 0,
+    losses:     save.losses || 0,
+    xp:         save.xp  || 0,
+    level:      getLevel(save.xp),
+    vaultCards: save.vault.length,
+    isMe:       true,
+    profileFrame:  save.profileFrame  || "",
+    profileTitle:  save.profileTitle  || "",
+    profileAvatar: save.profileAvatar || "",
+    profileBadge:  save.profileBadge  || "",
+    profileCards:  save.profileCards  || [],
+    isVerifiedCreator: save.isVerifiedCreator || false,
+  };
+  me.totalBattles = (me.wins + me.losses) || 1;
+  me.winRate      = Math.round((me.wins / me.totalBattles) * 100);
+
+  // Simular jogadores
+  const sims = SIMULATED_PLAYERS.map(p => ({
+    ...p,
+    level: p.level || getLevel(p.xp),
+    totalBattles: Math.round(p.wins / (p.winRate/100)),
+    losses: Math.round(p.wins * ((100-p.winRate)/p.winRate)),
+    isMe: false,
+  }));
+
+  allPlayers = [me, ...sims];
+}
+
+function renderMyCard() {
+  const rank = getRank(save.xpp);
+  const total = (save.wins + save.losses) || 1;
+  const wr    = Math.round((save.wins / total) * 100);
+  document.getElementById("my-name").textContent    = save.playerName;
+  document.getElementById("my-rank-name").textContent = rank.name;
+  document.getElementById("my-wins").textContent    = fmtNum(save.wins);
+  document.getElementById("my-wr").textContent      = wr + "%";
+  document.getElementById("my-cards").textContent   = save.vault.length;
+}
+
+function switchTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll(".rank-tab").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  const sortMap = { global:"xpp", xpp:"xpp", wins:"wins", cards:"vaultCards", level:"level" };
+  document.getElementById("sort-sel").value = sortMap[tab] || "xpp";
+  applySortAndRender();
+}
+
+function applySortAndRender() {
+  const sortKey = document.getElementById("sort-sel").value;
+  const sorted  = [...allPlayers].sort((a,b) => (b[sortKey]||0) - (a[sortKey]||0));
+
+  // Calcular posição do jogador
+  const myPos = sorted.findIndex(p => p.isMe) + 1;
+  document.getElementById("my-pos").textContent = "#" + myPos;
+
+  const list = document.getElementById("rank-list");
+  list.innerHTML = sorted.map((p, i) => {
+    const pos   = i + 1;
+    const rank  = getRank(p.xpp);
+    const level = p.level || getLevel(p.xp||0);
+    const wr    = p.winRate || 0;
+    const avatar= p.profileAvatar ? (getProfileItemById(p.profileAvatar)?.emoji || "👤") : "👤";
+    const title = p.profileTitle  ? getProfileItemById(p.profileTitle)  : null;
+    const frame = p.profileFrame  ? getProfileItemById(p.profileFrame)  : null;
+
+    let posBadgeClass = "other";
+    let posLabel = pos;
+    if (pos === 1) { posBadgeClass = "top1"; posLabel = "🥇"; }
+    else if (pos === 2) { posBadgeClass = "top2"; posLabel = "🥈"; }
+    else if (pos === 3) { posBadgeClass = "top3"; posLabel = "🥉"; }
+
+    let rowClass = p.isMe ? "player-row me" : `player-row ${pos<=3?"top-"+pos:""}`;
+
+    const mainStat = (() => {
+      const sk = document.getElementById("sort-sel").value;
+      if (sk === "wins")      return `⚔️ ${fmtNum(p.wins)} vitórias`;
+      if (sk === "level")     return `⭐ Nível ${level}`;
+      if (sk === "winRate")   return `📊 ${wr}% winrate`;
+      if (sk === "vaultCards")return `🃏 ${fmtNum(p.vaultCards)} cartas`;
+      return `🎖️ ${fmtNum(p.xpp)} XPP`;
+    })();
+
+    return `<div class="${rowClass}" onclick="openProfile(${allPlayers.indexOf(p)})">
+      <div class="pos-badge ${posBadgeClass}">${posLabel}</div>
+      <div class="player-avatar" style="${frame?`border:2px solid ${frame.color};border-radius:50%;padding:2px;`:""}">${avatar}</div>
+      <div class="player-info">
+        <div class="player-name" style="${p.isMe?"color:#ffd54f;":""}">
+          ${p.isMe?"[VOCÊ] ":""}${p.name}${p.isVerifiedCreator?` <span style="color:#29b6f6;font-size:11px;">✅</span>`:""}
+        </div>
+        ${title ? `<div class="player-title" style="color:${title.color};">${title.emoji} ${title.name}</div>` : ""}
+        <div class="player-rank">${rank.name} · Nível ${level}</div>
+      </div>
+      <div class="player-stats">
+        <div class="stat-chip"><strong>${fmtNum(p.wins)}</strong> wins</div>
+        <div class="stat-chip"><strong>${wr}%</strong> WR</div>
+        <div class="stat-chip" style="font-size:11px;">${mainStat}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function openProfile(playerIdx) {
+  const p = allPlayers[playerIdx];
+  if (!p) return;
+
+  const rank  = getRank(p.xpp);
+  const level = p.level || 1;
+  const wr    = p.winRate || 0;
+  const xpNext= xpForNextLevel(p.xp || 0);
+  const xpCur = p.xp || 0;
+  const xpPrev= xpForLevel(level);
+  const xpPct = xpNext > xpPrev ? Math.min(100, Math.round(((xpCur - xpPrev)/(xpNext - xpPrev))*100)) : 100;
+
+  const frame  = p.profileFrame  ? getProfileItemById(p.profileFrame)  : null;
+  const title  = p.profileTitle  ? getProfileItemById(p.profileTitle)  : null;
+  const avatar = p.profileAvatar ? getProfileItemById(p.profileAvatar) : null;
+  const effect = p.profileEffect ? getProfileItemById(p.profileEffect) : null;
+
+  const nextRank = getNextRank(p.xpp);
+  const xppPct   = nextRank ? Math.min(100, Math.round((p.xpp / nextRank.xpp) * 100)) : 100;
+
+  const cards = (p.profileCards || []).slice(0,3).map(cid => getCardById(cid)).filter(Boolean);
+  const cardsHtml = cards.length > 0
+    ? `<div style="font-family:'Cinzel',serif;font-size:13px;font-weight:700;color:#ffc107;margin-bottom:8px;">🃏 Cartas em Destaque</div>
+       <div class="popup-card-grid">${cards.map(c => {
+         const r = RARITY[c.rarity]||RARITY.COMMON;
+         return `<div class="mini-card" style="border-color:${r.color}44;">
+           <div style="font-size:24px;">${c.img}</div>
+           <div style="font-size:10px;font-weight:700;margin-top:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${c.name}</div>
+           <div style="font-size:9px;color:${r.color};">${r.name}</div>
+         </div>`;}).join("")}
+       </div>` : "";
+
+  document.getElementById("popup-content").innerHTML = `
+    <div style="text-align:center;margin-bottom:16px;">
+      ${p.isVerifiedCreator ? `<div style="margin-bottom:6px;"><span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#29b6f6;background:rgba(41,182,246,0.12);border:1px solid #29b6f6;border-radius:20px;padding:3px 10px;">✅ Criador Verificado</span></div>` : ""}
+      <div style="font-size:56px;${frame?`border:3px solid ${frame.color};border-radius:50%;display:inline-block;padding:4px;`:""}">${avatar?.emoji||"👤"}</div>
+      <div style="font-family:'Cinzel',serif;font-size:20px;font-weight:900;margin:8px 0 4px;${p.isMe?"color:#ffd54f;":""}">${p.name}</div>
+      ${title ? `<div style="font-weight:700;color:${title.color};font-size:13px;">${title.emoji} ${title.name}</div>` : ""}
+      ${frame  ? `<div style="font-size:11px;color:${frame.color};margin-top:2px;">🖼️ ${frame.name}</div>` : ""}
+      ${effect ? `<div style="font-size:11px;color:${effect.color};margin-top:2px;">${effect.emoji} ${effect.name}</div>` : ""}
+    </div>
+
+    <div style="background:#0a0a1e;border-radius:12px;padding:12px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:13px;font-weight:700;color:#ffc107;">🎖️ ${rank.name}</span>
+        ${nextRank ? `<span style="font-size:11px;color:#9e9e9e;">→ ${nextRank.name}</span>` : ""}
+      </div>
+      <div style="background:#1e1e30;border-radius:20px;height:6px;overflow:hidden;">
+        <div style="height:100%;width:${xppPct}%;background:linear-gradient(90deg,#7b1fa2,#e040fb);border-radius:20px;"></div>
+      </div>
+      <div style="font-size:10px;color:#9e9e9e;margin-top:3px;">${fmtNum(p.xpp)} XPP</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div style="background:#0e0e1c;border-radius:10px;padding:10px;text-align:center;">
+        <div style="font-size:22px;font-weight:900;color:#66bb6a;">${fmtNum(p.wins)}</div>
+        <div style="font-size:11px;color:#9e9e9e;">Vitórias</div>
+      </div>
+      <div style="background:#0e0e1c;border-radius:10px;padding:10px;text-align:center;">
+        <div style="font-size:22px;font-weight:900;color:#ef5350;">${fmtNum(p.losses||0)}</div>
+        <div style="font-size:11px;color:#9e9e9e;">Derrotas</div>
+      </div>
+      <div style="background:#0e0e1c;border-radius:10px;padding:10px;text-align:center;">
+        <div style="font-size:22px;font-weight:900;color:#ffc107;">${wr}%</div>
+        <div style="font-size:11px;color:#9e9e9e;">WinRate</div>
+        <div class="win-rate-bar"><div class="win-rate-fill" style="width:${wr}%;"></div></div>
+      </div>
+      <div style="background:#0e0e1c;border-radius:10px;padding:10px;text-align:center;">
+        <div style="font-size:22px;font-weight:900;color:#2196F3;">⭐${level}</div>
+        <div style="font-size:11px;color:#9e9e9e;">Nível</div>
+      </div>
+      <div style="background:#0e0e1c;border-radius:10px;padding:10px;text-align:center;grid-column:span 2;">
+        <div style="font-size:18px;font-weight:900;color:#90caf9;">🃏 ${fmtNum(p.vaultCards||0)} cartas</div>
+        <div style="font-size:11px;color:#9e9e9e;">Coleção total no cofre</div>
+      </div>
+    </div>
+
+    ${cardsHtml}
+
+    ${p.isMe ? `<a href="profile.html" class="btn btn-primary btn-block" style="margin-top:12px;">✏️ Editar Meu Perfil</a>` : ""}
+  `;
+
+  document.getElementById("popup-overlay").classList.remove("hidden");
+}
+
+function closePopup(e) {
+  if (e.target === document.getElementById("popup-overlay")) {
+    document.getElementById("popup-overlay").classList.add("hidden");
+  }
+}
+function closePopupBtn() {
+  document.getElementById("popup-overlay").classList.add("hidden");
+}
+
+function updateHeader() {
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+}
+
+init();
+</script>
+</body>
+</html>

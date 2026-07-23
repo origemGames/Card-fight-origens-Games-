@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Loja – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+/* ═══ SHOP HERO ═══ */
+.shop-hero {
+  background:linear-gradient(180deg,#070712 0%,#1a0808 60%,#07120a 100%);
+  border:2px solid #ffc107; border-radius:20px;
+  padding:20px 16px 16px; margin-bottom:14px; text-align:center;
+  position:relative; overflow:hidden;
+}
+.shop-hero::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(255,193,7,0.1) 0%,transparent 60%);
+}
+.shop-hero-icon { font-size:56px; display:block; animation:float 2.5s ease-in-out infinite; position:relative; z-index:1; }
+.shop-hero-title {
+  font-family:'Cinzel',serif; font-size:24px; font-weight:900; margin:8px 0 4px;
+  background:linear-gradient(135deg,#ffc107,#ff6d00,#ff4444); background-size:200%;
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  animation:title-shimmer 4s linear infinite; position:relative; z-index:1;
+}
+
+/* ═══ PACK CARDS ═══ */
+.pack-card {
+  background:linear-gradient(135deg,var(--pc-from),var(--pc-to));
+  border:2px solid var(--pc-border); border-radius:16px;
+  padding:16px; margin-bottom:10px; position:relative; overflow:hidden;
+  cursor:pointer; transition:all 0.2s;
+}
+.pack-card::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,0.06) 50%,transparent 70%);
+  background-size:200%; animation:btn-shimmer 3s ease infinite;
+}
+.pack-card:hover { transform:translateY(-3px); box-shadow:0 10px 30px rgba(0,0,0,0.5); }
+.pack-card:active { transform:scale(0.98); }
+.pack-icon   { font-size:40px; display:block; margin-bottom:8px; filter:drop-shadow(0 0 16px rgba(255,255,255,0.2)); position:relative; z-index:1; }
+.pack-name   { font-family:'Cinzel',serif; font-size:16px; font-weight:700; margin-bottom:4px; position:relative; z-index:1; }
+.pack-desc   { font-size:11px; color:rgba(255,255,255,0.7); line-height:1.7; position:relative; z-index:1; margin-bottom:10px; }
+.pack-price  { font-size:14px; font-weight:700; color:#ffc107; position:relative; z-index:1; }
+.pack-bonus  {
+  position:absolute; top:10px; right:10px; background:#ffc107; color:#000;
+  font-size:9px; font-weight:700; padding:2px 8px; border-radius:10px;
+  animation:glow-pulse 1.5s infinite; z-index:2;
+}
+
+/* ═══ BOOST CARDS ═══ */
+.boost-card {
+  background:#0e0e1c; border:1px solid #1e1e30; border-radius:12px;
+  padding:14px; margin-bottom:8px; display:flex; align-items:center; gap:12px;
+  transition:border-color 0.2s; cursor:pointer;
+}
+.boost-card:hover { border-color:#ffc107; }
+.boost-icon { font-size:32px; flex-shrink:0; }
+.boost-info { flex:1; }
+.boost-name { font-weight:700; font-size:14px; margin-bottom:2px; }
+.boost-desc { font-size:11px; color:#9e9e9e; }
+.boost-price { font-size:13px; font-weight:700; color:#ffc107; margin-top:4px; }
+
+/* ═══ TABS ═══ */
+.shop-tabs-wrap { overflow-x:auto; margin-bottom:14px; }
+.shop-tabs { display:flex; background:#0e0e1c; border-radius:12px; padding:4px; gap:3px; min-width:max-content; }
+.shop-tab {
+  padding:9px 12px; border:none; border-radius:9px; background:transparent;
+  color:#9e9e9e; font-family:'Rajdhani',sans-serif; font-size:11px; font-weight:700;
+  cursor:pointer; transition:all 0.2s; white-space:nowrap;
+}
+.shop-tab.active { background:linear-gradient(135deg,#8b0000,#c62828); color:#fff; }
+.shop-tab.active.pesca-active { background:linear-gradient(135deg,#006064,#00838f); }
+
+/* ═══ GOLD BALANCE STRIP ═══ */
+.balance-strip {
+  background:linear-gradient(135deg,#1a1000,#2d1e00); border:1px solid #ffc10744;
+  border-radius:12px; padding:10px 14px; margin-bottom:14px;
+  display:flex; align-items:center; gap:10px;
+}
+.balance-gold { font-size:18px; font-weight:900; color:#ffc107; }
+.balance-lbl  { font-size:11px; color:#9e9e9e; }
+
+/* ═══ COFRE TAB ═══ */
+.cofre-box {
+  background:linear-gradient(135deg,#0d1a0d,#1a3000); border:2px solid #4CAF50; border-radius:16px;
+  padding:18px; margin-bottom:12px; text-align:center; position:relative; overflow:hidden;
+}
+.cofre-icon { font-size:52px; display:block; animation:float 2.5s ease-in-out infinite; }
+
+/* ═══ PERFIL TAB ═══ */
+.profile-item {
+  background:#0e0e1c; border:1px solid #1e1e30; border-radius:12px;
+  padding:12px; display:flex; align-items:center; gap:12px; margin-bottom:8px;
+  transition:border-color 0.2s; cursor:pointer;
+}
+.profile-item:hover { border-color:#ffc107; }
+.profile-item.owned { border-color:#4CAF50; }
+
+/* ═══ PESCA TAB ═══ */
+.pesca-shop-header {
+  background:linear-gradient(135deg,#001a2e,#002d4e);
+  border:2px solid #00e5ff; border-radius:16px; padding:14px; margin-bottom:14px;
+  position:relative; overflow:hidden;
+}
+.pesca-shop-header::before { content:'🎣'; position:absolute; font-size:100px; opacity:0.04; right:-10px; top:-10px; }
+.pesca-section-title {
+  font-family:'Cinzel',serif; font-size:12px; font-weight:700;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--pst-color,#29b6f6);
+  margin:14px 0 8px;
+}
+
+/* ═══ VARAS NA LOJA ═══ */
+.shop-rod-card {
+  background:#0e0e1c; border:1px solid #1e1e30; border-radius:12px;
+  padding:12px 14px; margin-bottom:8px; display:flex; align-items:center; gap:12px;
+  transition:border-color 0.2s;
+}
+.shop-rod-card:hover { border-color:var(--rod-color,#29b6f6); }
+
+/* ═══ MAESTRIA TAB ═══ */
+.maestria-card {
+  background:#0e0e1c; border:1px solid #1e1e30; border-radius:12px;
+  padding:12px; margin-bottom:8px; display:flex; align-items:center; gap:12px; cursor:pointer;
+  transition:border-color 0.2s;
+}
+.maestria-card:hover { border-color:#ce93d8; }
+
+/* ═══ SALAS TAB ═══ */
+.sala-card {
+  background:#0e0e1c; border:2px solid var(--sala-border,#1e1e30); border-radius:12px;
+  padding:14px; margin-bottom:10px; text-align:center; cursor:pointer;
+  transition:all 0.2s; position:relative;
+}
+.sala-card:hover { transform:translateY(-2px); border-color:var(--sala-border); }
+.sala-icon { font-size:40px; display:block; margin-bottom:8px; }
+.sala-name { font-family:'Cinzel',serif; font-size:14px; font-weight:700; margin-bottom:4px; }
+.sala-desc { font-size:11px; color:#9e9e9e; line-height:1.6; }
+.sala-price { font-size:13px; font-weight:700; color:#ffc107; margin-top:8px; }
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Início</a>
+  <span class="logo-title">🛒 LOJA</span>
+  <div class="player-quick">
+    <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+  </div>
+</header>
+
+<main class="content">
+
+  <!-- Hero -->
+  <div class="shop-hero">
+    <span class="shop-hero-icon">🛒</span>
+    <div class="shop-hero-title">LOJA OFICIAL</div>
+    <div style="font-size:12px;color:#9e9e9e;position:relative;z-index:1;">Pacotes · Boosts · Pesca · Perfil · Maestria · Craft</div>
+  </div>
+
+  <!-- Saldo -->
+  <div class="balance-strip">
+    <span style="font-size:24px;">🪙</span>
+    <div style="flex:1;">
+      <div class="balance-gold" id="balance-gold">0</div>
+      <div class="balance-lbl">ouro disponível</div>
+    </div>
+    <a href="comprar.html" class="btn btn-gold btn-sm">+ Comprar ouro</a>
+  </div>
+
+  <!-- Tabs -->
+  <div class="shop-tabs-wrap">
+    <div class="shop-tabs">
+      <button class="shop-tab active" onclick="switchShopTab('pacotes',this)">📦 Pacotes</button>
+      <button class="shop-tab" onclick="switchShopTab('pesca',this)">🎣 Pesca</button>
+      <button class="shop-tab" onclick="switchShopTab('boosts',this)">⚡ Boosts</button>
+      <button class="shop-tab" onclick="switchShopTab('perfil',this)">👤 Perfil</button>
+      <button class="shop-tab" onclick="switchShopTab('cofre',this)">🔐 Cofre</button>
+      <button class="shop-tab" onclick="switchShopTab('salas',this)">🏟️ Salas</button>
+      <button class="shop-tab" onclick="switchShopTab('maestria',this)">⭐ Maestria</button>
+      <button class="shop-tab" onclick="switchShopTab('powerups',this)" style="border-color:#7c4dff;color:#e040fb;">⚡ Power-ups</button>
+      <button class="shop-tab" onclick="switchShopTab('craft',this)" style="border-color:#ffb74d;color:#ffb74d;">⚙️ Craft</button>
+    </div>
+  </div>
+
+  <!-- ══════════ TAB: PACOTES ══════════ -->
+  <div id="tab-pacotes">
+    <div id="pacotes-lista"></div>
+    <a href="comprar.html" class="btn btn-block btn-outline" style="border-color:#ffc107;color:#ffc107;margin-top:6px;">💎 Ver pacotes premium com dinheiro real →</a>
+  </div>
+
+  <!-- ══════════ TAB: PESCA ══════════ -->
+  <div id="tab-pesca" style="display:none;">
+
+    <!-- Header de pesca na loja -->
+    <div class="pesca-shop-header">
+      <div style="position:relative;z-index:1;display:flex;align-items:center;gap:12px;">
+        <span style="font-size:40px;animation:float 2.5s ease-in-out infinite;filter:drop-shadow(0 0 12px rgba(0,229,255,0.4));">🎣</span>
+        <div>
+          <div style="font-family:'Cinzel',serif;font-size:16px;font-weight:700;
+                      background:linear-gradient(135deg,#29b6f6,#00e5ff);
+                      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+            LOJA DE PESCA</div>
+          <div style="font-size:11px;color:#80deea;margin-top:2px;">Varas · Iscas Especiais · Pesca Imediata</div>
+        </div>
+      </div>
+      <div style="position:relative;z-index:1;font-size:11px;color:#9e9e9e;margin-top:10px;line-height:1.7;">
+        Compre varas e iscas com ouro. Varas e iscas <strong style="color:#ff4444;">premium</strong> são exclusivas via loja real.<br>
+        🔁 Junte <strong style="color:#ffc107;">1.000 Restos de Isca</strong> → 1 Isca Origens gratuita!<br>
+        Vá para <a href="pesca.html" style="color:#29b6f6;font-weight:700;">pesca.html</a> para acessar o sistema completo.
+      </div>
+    </div>
+
+    <!-- Iscas extras do dia -->
+    <div class="pesca-section-title">🪱 Iscas Comuns Extras (Hoje)</div>
+    <div style="background:#0e0e1c;border:1px solid #1e1e30;border-radius:12px;padding:14px;margin-bottom:12px;">
+      <div style="font-size:12px;color:#c0c0d0;margin-bottom:10px;">
+        Compre iscas comuns adicionais para hoje. <strong style="color:#ffc107;">Máximo 30 extras/dia · 🪙 1.000 cada</strong>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:6px;">
+        <button class="btn btn-gold btn-sm" style="flex:1;" onclick="comprarExtrasShop(5)">+5 iscas<br><small>🪙 5.000</small></button>
+        <button class="btn btn-gold btn-sm" style="flex:1;" onclick="comprarExtrasShop(10)">+10 iscas<br><small>🪙 10.000</small></button>
+        <button class="btn btn-gold btn-sm" style="flex:1;" onclick="comprarExtrasShop(30)">+30 iscas<br><small>🪙 30.000</small></button>
+      </div>
+      <div style="font-size:11px;color:#9e9e9e;" id="shop-extras-info"></div>
+    </div>
+
+    <!-- Iscas especiais -->
+    <div class="pesca-section-title" style="--pst-color:#90caf9;">🪝 Iscas Especiais (Por Ouro)</div>
+    <div id="shop-iscas-lista"></div>
+
+    <!-- Varas por ouro -->
+    <div class="pesca-section-title" style="--pst-color:#ffc107;">🪵 Varas de Pesca (Por Ouro)</div>
+    <div id="shop-varas-lista"></div>
+
+    <!-- Varas premium -->
+    <div class="pesca-section-title" style="--pst-color:#ff4444;">💎 Varas Premium (Dinheiro Real)</div>
+    <div style="background:linear-gradient(135deg,#1a0010,#2d0020);border:2px solid #ff4444;border-radius:14px;padding:14px;margin-bottom:8px;">
+      <div style="font-size:12px;color:#ef9a9a;line-height:1.8;margin-bottom:10px;">
+        As varas premium suportam cartas <strong style="color:#ff4444;">ORIGENS</strong> — a raridade máxima.<br>
+        Disponíveis apenas via Discord da Origens Games.
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="shop-rod-card" style="border-color:#ff444444;--rod-color:#ff4444;">
+          <span style="font-size:28px;">🎯</span>
+          <div style="flex:1;">
+            <div style="font-weight:700;color:#ff8888;">Vara das Origens</div>
+            <div style="font-size:10px;color:#9e9e9e;">Dur: 60 · Máx: Origens · Suporta qualquer carta</div>
+          </div>
+          <a href="comprar.html" class="btn btn-sm" style="background:#ff4444;color:#fff;font-size:10px;">💎 Premium</a>
+        </div>
+        <div class="shop-rod-card" style="border-color:#ffd70044;--rod-color:#ffd700;">
+          <span style="font-size:28px;">⚡</span>
+          <div style="flex:1;">
+            <div style="font-weight:700;color:#ffd700;">Vara Divina</div>
+            <div style="font-size:10px;color:#9e9e9e;">Dur: 100 · Máx: Origens · Alta durabilidade</div>
+          </div>
+          <a href="comprar.html" class="btn btn-sm" style="background:#ff4444;color:#fff;font-size:10px;">💎 Premium</a>
+        </div>
+        <div class="shop-rod-card" style="border-color:#ff444444;--rod-color:#ff4444;">
+          <span style="font-size:28px;">♾️</span>
+          <div style="flex:1;">
+            <div style="font-weight:700;color:#ff4444;">Vara Eterna</div>
+            <div style="font-size:10px;color:#9e9e9e;">Dur: ♾️ INFINITA · Máx: Origens · O topo absoluto</div>
+            <div style="font-size:9px;background:#ff4444;color:#fff;border-radius:4px;padding:1px 6px;display:inline-block;margin-top:3px;">ULTRA PREMIUM</div>
+          </div>
+          <a href="comprar.html" class="btn btn-sm" style="background:#ff4444;color:#fff;font-size:10px;">💎 Premium</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Restos de isca info -->
+    <div class="pesca-section-title" style="--pst-color:#ff6d00;">💨 Restos de Isca</div>
+    <div class="restos-shop-box" style="background:linear-gradient(135deg,#1a0010,#2a0020);border:1px solid #ff6d0066;border-radius:12px;padding:14px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-size:32px;">💨</span>
+        <div style="flex:1;">
+          <div style="font-weight:700;color:#ff8888;">Restos de Isca</div>
+          <div style="font-size:11px;color:#9e9e9e;margin-top:2px;">
+            Você tem: <strong id="shop-restos-count" style="color:#ff6d00;">0</strong> restos
+          </div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:#c0c0d0;line-height:1.8;margin-bottom:10px;">
+        Restos são obtidos quando um peixe-carta foge (+2 por fuga).<br>
+        Troque <strong style="color:#ffc107;">1.000 restos</strong> por 1 Isca Origens diretamente na tela de pesca!
+      </div>
+      <a href="pesca.html" class="btn btn-block btn-outline" style="border-color:#ff6d00;color:#ff6d00;">
+        🎣 Ir para a Pesca → Aba Iscas (Troca de Restos)
+      </a>
+    </div>
+
+    <!-- Atalho para pesca -->
+    <a href="pesca.html" class="btn btn-block" style="background:linear-gradient(135deg,#006064,#00838f,#29b6f6);color:#fff;font-family:'Cinzel',serif;font-size:14px;font-weight:700;padding:16px;border-radius:14px;text-decoration:none;display:block;text-align:center;letter-spacing:1px;">
+      🎣 ABRIR SISTEMA DE PESCA COMPLETO
+    </a>
+
+  </div>
+
+  <!-- ══════════ TAB: BOOSTS ══════════ -->
+  <div id="tab-boosts" style="display:none;">
+    <div id="boosts-lista"></div>
+  </div>
+
+  <!-- ══════════ TAB: PERFIL ══════════ -->
+  <div id="tab-perfil" style="display:none;">
+    <div id="perfil-lista"></div>
+  </div>
+
+  <!-- ══════════ TAB: COFRE ══════════ -->
+  <div id="tab-cofre" style="display:none;">
+
+    <div class="cofre-box">
+      <span class="cofre-icon">🔐</span>
+      <div style="font-family:'Cinzel',serif;font-size:18px;font-weight:700;color:#4CAF50;margin:8px 0 4px;">COFRE DE CARTAS</div>
+      <div style="font-size:12px;color:#9e9e9e;margin-bottom:14px;line-height:1.6;">
+        O cofre guarda todas as cartas que você já conseguiu.<br>
+        Quando ele enche, você não consegue mais receber cartas novas de pacotes ou pesca!
+      </div>
+      <div style="font-size:14px;font-weight:700;color:#ffc107;margin-bottom:6px;">
+        🔐 <span id="cofre-usado">0</span> / <span id="cofre-limite">50</span> cartas
+      </div>
+      <div style="background:#0e0e1c;border-radius:8px;height:10px;overflow:hidden;margin-bottom:14px;">
+        <div id="cofre-bar" style="height:100%;background:linear-gradient(90deg,#4CAF50,#8bc34a);width:0%;transition:width 0.3s;"></div>
+      </div>
+      <button class="btn btn-gold btn-block" id="btn-expandir-cofre" onclick="expandirCofreShop()">
+        🔐 Expandir Cofre +50 · 🪙 <span id="cofre-expand-price">30.000</span>
+      </button>
+      <div style="font-size:10px;color:#9e9e9e;margin-top:8px;">Limite: 1 expansão por dia</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">📦 Sem espaço?</div>
+      <div style="font-size:12px;color:#c0c0d0;line-height:1.8;">
+        Além de expandir o cofre, você pode abrir espaço vendendo ou fundindo cartas duplicadas na
+        <a href="maestria.html" style="color:#ce93d8;font-weight:700;">tela de Maestria</a> — cada carta sacrificada
+        na Fusão vira pontos de evolução para outra carta.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════════ TAB: SALAS ══════════ -->
+  <div id="tab-salas" style="display:none;">
+
+    <div class="panel" style="margin-bottom:14px;background:linear-gradient(135deg,#0d1a0d,#1a3000);">
+      <div style="font-size:12px;color:#c0c0d0;line-height:1.8;">
+        🏟️ Todo jogador pode criar salas personalizadas para jogar com amigos.<br>
+        Jogadores comuns têm <strong style="color:#66bb6a;">5 salas grátis por dia</strong>. <strong style="color:#29b6f6;">Criadores verificados</strong> têm <strong style="color:#29b6f6;">50 por dia</strong>.<br>
+        Depois disso, é preciso um <strong style="color:#ffc107;">Cartão de Sala</strong> para cada sala extra.
+      </div>
+    </div>
+
+    <div class="sala-card" style="--sala-border:#4CAF50;" onclick="window.location.href='sala.html'">
+      <span class="sala-icon">🏟️</span>
+      <div class="sala-name" style="color:#66bb6a;">Criar / Entrar em Sala</div>
+      <div class="sala-desc">Abre a tela de salas. Usa seu limite diário automaticamente; se acabar, consome 1 Cartão de Sala.</div>
+      <div class="sala-price" id="sala-uso-hoje">Salas hoje: 0 / 5</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">🎫 Cartões de Sala</div>
+      <div style="font-size:12px;color:#c0c0d0;line-height:1.8;margin-bottom:10px;">
+        Você tem <strong style="color:#ffc107;" id="sala-cartoes-count">0</strong> Cartão(ões) de Sala guardado(s).<br>
+        Cada cartão permite criar 1 sala extra além do seu limite diário grátis.
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-gold btn-sm" style="flex:1;" onclick="comprarCartaoSala(1)">+1 cartão<br><small>🪙 2.000</small></button>
+        <button class="btn btn-gold btn-sm" style="flex:1;" onclick="comprarCartaoSala(5)">+5 cartões<br><small>🪙 9.000</small></button>
+        <button class="btn btn-gold btn-sm" style="flex:1;" onclick="comprarCartaoSala(10)">+10 cartões<br><small>🪙 16.000</small></button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════════ TAB: MAESTRIA ══════════ -->
+  <div id="tab-maestria" style="display:none;">
+    <div class="panel" style="margin-bottom:14px;background:linear-gradient(135deg,#0d0025,#1a0040);">
+      <div style="font-size:12px;color:#d1c4e9;line-height:1.8;">
+        ⭐ <strong style="color:#ce93d8;">Maestria</strong> evolui cartas de 1★ a 5★, aumentando ATK e HP (+1% por estrela).<br>
+        Não se compra com ouro direto: você ganha <strong style="color:#ffc107;">Pontos de Maestria</strong> ao abrir cartas
+        duplicadas em pacotes, ou fundindo dupes na tela de Maestria.
+      </div>
+    </div>
+    <a href="maestria.html" class="btn btn-block btn-primary" style="margin-bottom:10px;">⭐ Abrir Sistema de Maestria</a>
+
+    <div class="panel">
+      <div class="panel-title">🔮 Pontos por Dupe (ao abrir pacote)</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;" id="maestria-dupe-lista"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">⚗️ Pontos por Fusão (sacrificar dupe)</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;" id="maestria-fusion-lista"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">📊 Custo por Estrela (pontos necessários)</div>
+      <div style="font-size:11px;color:#9e9e9e;margin-bottom:8px;">Custo é por raridade da carta — quanto mais rara, mais pontos exige.</div>
+      <div id="maestria-star-cost" style="overflow-x:auto;"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">🏆 Marcos de Maestria (total de estrelas na conta)</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;" id="maestria-milestones"></div>
+    </div>
+  </div>
+
+  <!-- ══════════ TAB: POWER-UPS ══════════ -->
+  <div id="tab-powerups" style="display:none;">
+    <div class="panel" style="margin-bottom:14px;background:linear-gradient(135deg,#0a0020,#150035);border-color:#7c4dff;">
+      <div style="font-size:12px;color:#c0c0d0;line-height:1.8;">
+        ⚡ <strong style="color:#e040fb;">Power-ups</strong> são ativados durante a <strong>Batalha Clássica</strong> para virar o jogo!<br>
+        Compre aqui com ouro · Gerencie no inventário via <a href="power.html" style="color:#7c4dff;">⚡ Power-ups</a>.<br>
+        <span style="color:#9e9e9e;font-size:11px;">Arena do Caos e Expedição não usam power-ups.</span>
+      </div>
+    </div>
+    <div id="powerups-shop-list"></div>
+    <a href="power.html" class="btn btn-outline btn-block" style="border-color:#7c4dff;color:#e040fb;margin-top:8px;">⚡ Ver meu inventário de Power-ups →</a>
+  </div>
+
+  <!-- ══════════ TAB: CRAFT ══════════ -->
+  <div id="tab-craft" style="display:none;" data-craft-shop-slot>
+    <div class="panel" style="margin-bottom:14px;background:linear-gradient(135deg,#0f0a02,#1a1108);border-color:#ffb74d;">
+      <div style="font-size:12px;color:#c9c9d9;line-height:1.8;">
+        ⚙️ Suprimentos para a <strong style="color:#ffb74d;">Mesa de Ferramentas</strong>: compre
+        <strong>⛽ Gasolina</strong> e <strong>⚙️ Engrenagens</strong> para pesquisar e fundir cartas.<br>
+        <span style="font-size:11px;color:#9e9e9e;">Gerencie fusões em <a href="Crafting.html" style="color:#ffb74d;">⚙️ Mesa de Ferramentas</a>.</span>
+      </div>
+    </div>
+    <div id="craft-shop-list">
+      <div style="text-align:center;color:#666;font-size:11px;padding:20px;">Carregando suprimentos de craft…</div>
+    </div>
+  </div>
+
+  <div style="height:80px;"></div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn active"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js?v=13.0"></script>
+<script src="gamedata2.js?v=13.0"></script>
+<script src="gamedata3.js?v=13.0"></script>
+<script src="gamedata-v7-patch.js?v=13.0"></script>
+<script src="gamedata-pesca.js?v=13.0"></script>
+<script src="gamedata-pesca-patch.js?v=13.0"></script>
+<script src="gamedata-powerups.js?v=13.0"></script>
+<script>
+"use strict";
+
+let save;
+
+function init() {
+  save = getOrCreateSave();
+  cleanExpiredBoosts && cleanExpiredBoosts(save);
+  renderHeader();
+  renderPacotes();
+  renderBoosts();
+  renderPerfil();
+  renderCofre();
+  renderSalas();
+  renderMaestriaTab();
+  renderPescaTab();
+}
+
+function renderHeader() {
+  document.getElementById("hdr-gold").textContent  = fmtNum(save.gold);
+  document.getElementById("balance-gold").textContent = fmtNum(save.gold);
+}
+
+// ══════ GASTO CENTRAL DE OURO (alimenta o sistema Prime) ══════
+// Toda compra deve passar por aqui em vez de fazer "save.gold -= X" direto,
+// senão o gasto nao conta para o Prime (save.totalGoldSpent).
+function spendGold(saveObj, amount) {
+  amount = Math.max(0, Math.floor(amount || 0));
+  saveObj.gold = (saveObj.gold || 0) - amount;
+  saveObj.totalGoldSpent = (saveObj.totalGoldSpent || 0) + amount;
+}
+
+// ══════ PACOTES ══════
+function renderPacotes() {
+  const el = document.getElementById("pacotes-lista");
+  if (!el || typeof PACKS === "undefined") return;
+
+  const playerRank = typeof getRank === "function" ? getRank(save.xpp) : null;
+  const playerXpp   = save.xpp || 0;
+
+  el.innerHTML = PACKS.map(pack => {
+    const isLimited = pack.limitedUntil && new Date(pack.limitedUntil) < new Date();
+    if (isLimited) return "";
+
+    let locked = false, lockLabel = "";
+    if (pack.requiresRank && typeof RANKS !== "undefined") {
+      const reqRank = RANKS.find(r => r.name === pack.requiresRank);
+      if (reqRank && playerXpp < reqRank.xpp) { locked = true; lockLabel = pack.requiresRank; }
+    }
+
+    const canAfford = save.gold >= (pack.price || 0);
+    return `<div class="pack-card" style="background:${pack.gradient || "linear-gradient(135deg,#1a0000,#2a0010)"};border-color:${pack.borderColor||"#ff4444"};${locked ? "opacity:0.55;" : ""}" onclick="${locked ? "" : `buyPack('${pack.id}')`}">
+      ${locked ? `<div class="pack-bonus" style="background:#555;">🔒 ${lockLabel}+</div>` : ""}
+      <span class="pack-icon">${pack.emoji}</span>
+      <div class="pack-name">${pack.name}</div>
+      <div class="pack-desc">${pack.desc}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div class="pack-price">🪙 ${fmtNum(pack.price)}</div>
+        <button class="btn btn-gold btn-sm" ${(!canAfford || locked) ? "disabled style='opacity:0.4;'" : ""}>${locked ? "Bloqueado" : "Comprar"}</button>
+      </div>
+    </div>`;
+  }).join("") || "<div style='text-align:center;padding:24px;color:#555;font-size:13px;'>Nenhum pacote disponível no momento.</div>";
+}
+
+function buyPack(packId) {
+  if (typeof openPack !== "function") { showToast("Pacote não disponível aqui.", "error"); return; }
+  const pack = (typeof PACKS !== "undefined" ? PACKS : []).find(p => p.id === packId);
+  if (!pack) return;
+
+  if (pack.requiresRank && typeof RANKS !== "undefined") {
+    const reqRank = RANKS.find(r => r.name === pack.requiresRank);
+    if (reqRank && (save.xpp || 0) < reqRank.xpp) {
+      showToast(`❌ Requer patente ${pack.requiresRank} ou acima!`, "error"); return;
+    }
+  }
+  if (save.gold < pack.price) { showToast("❌ Ouro insuficiente!", "error"); return; }
+
+  const vaultBefore = (save.vault || []).length;
+  spendGold(save, pack.price);
+  const cards = openPack(pack, save);
+  const vaultAfter = (save.vault || []).length;
+  const added = vaultAfter - vaultBefore;
+  if (typeof updateMissionProgress === "function") updateMissionProgress(save, "packs");
+  writeSave(save);
+  renderHeader();
+  renderCofre();
+
+  if (added < cards.length) {
+    showToast(`⚠️ Pacote aberto! ${added}/${cards.length} carta(s) adicionadas ao cofre — cofre cheio, expanda-o!`, "warning", 5000);
+  } else {
+    showToast(`✅ Pacote aberto! ${cards.length} carta(s) adicionadas ao cofre.`, "gold", 4000);
+  }
+  renderPacotes();
+}
+
+// ══════ BOOSTS ══════
+function renderBoosts() {
+  const el = document.getElementById("boosts-lista");
+  if (!el || typeof BOOSTS === "undefined") { if (el) el.innerHTML = ""; return; }
+
+  const activeBoosts = (save.activeBoosts || []).filter(b => b.endTime > Date.now());
+
+  let html = "";
+  if (activeBoosts.length > 0) {
+    html += `<div class="panel" style="margin-bottom:12px;">
+      <div class="panel-title" style="color:#29b6f6;">⚡ Boosts Ativos</div>`;
+    activeBoosts.forEach(b => {
+      const min = Math.round((b.endTime - Date.now()) / 60000);
+      html += `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #1e1e30;font-size:12px;">
+        <span>⚡</span><div style="flex:1;">${b.name}</div>
+        <span style="color:#ffc107;font-size:11px;">${min} min restantes</span>
+      </div>`;
+    });
+    html += "</div>";
+  }
+
+  const usedToday = save.boostUsedToday || {};
+  html += BOOSTS.map(b => {
+    const usedCount  = usedToday[b.id] || 0;
+    const limitReached = usedCount >= b.limit;
+    const canAfford  = save.gold >= b.price;
+    return `<div class="boost-card" onclick="${limitReached ? "" : `buyBoost('${b.id}')`}" style="${limitReached ? "opacity:0.5;" : ""}">
+      <span class="boost-icon">${b.emoji}</span>
+      <div class="boost-info">
+        <div class="boost-name">${b.name}</div>
+        <div class="boost-desc">${b.desc}</div>
+        <div class="boost-price">🪙 ${fmtNum(b.price)} <span style="color:#9e9e9e;font-weight:400;">· ${usedCount}/${b.limit} hoje</span></div>
+      </div>
+      <button class="btn btn-gold btn-sm" ${(!canAfford || limitReached) ? "disabled style='opacity:0.4;'" : ""}>${limitReached ? "Esgotado" : "Comprar"}</button>
+    </div>`;
+  }).join("");
+
+  el.innerHTML = html;
+}
+
+function buyBoost(boostId) {
+  const boost = BOOSTS.find(b => b.id === boostId);
+  if (!boost) return;
+
+  if (!save.boostUsedToday) save.boostUsedToday = {};
+  const usedCount = save.boostUsedToday[boostId] || 0;
+  if (usedCount >= boost.limit) { showToast("❌ Limite diário desse boost atingido!", "error"); return; }
+  if (save.gold < boost.price) { showToast("❌ Ouro insuficiente!", "error"); return; }
+
+  spendGold(save, boost.price);
+  if (!save.activeBoosts) save.activeBoosts = [];
+  save.activeBoosts.push({ id: boost.id, type: boost.type, mult: boost.mult, name: boost.name, endTime: Date.now() + boost.duration });
+  save.boostUsedToday[boostId] = usedCount + 1;
+  writeSave(save);
+  renderHeader();
+  renderBoosts();
+  showToast(`⚡ ${boost.emoji} ${boost.name} ativado!`, "gold", 3500);
+}
+
+// ══════ PERFIL ══════
+function renderPerfil() {
+  const el = document.getElementById("perfil-lista");
+  if (!el) return;
+
+  if (typeof PROFILE_ITEMS === "undefined") {
+    el.innerHTML = `<a href="profile.html" class="btn btn-block btn-outline" style="border-color:#ffc107;color:#ffc107;">👤 Abrir loja de perfil completa →</a>`;
+    return;
+  }
+
+  const items = PROFILE_ITEMS.filter(i => i.price > 0 && !i.realMoney).slice(0, 12);
+  if (items.length === 0) {
+    el.innerHTML = `<a href="profile.html" class="btn btn-block btn-outline" style="border-color:#ffc107;color:#ffc107;">👤 Abrir loja de perfil completa →</a>`;
+    return;
+  }
+
+  el.innerHTML = items.map(item => {
+    const owned   = (save.profileItems || []).includes(item.id);
+    const canAfford = save.gold >= (item.price || 0);
+    return `<div class="profile-item ${owned ? "owned" : ""}" onclick="${owned ? "" : `buyProfileItem('${item.id}')`}">
+      <span style="font-size:28px;">${item.emoji}</span>
+      <div style="flex:1;">
+        <div style="font-weight:700;font-size:13px;">${item.name}</div>
+        <div style="font-size:11px;color:#9e9e9e;">${item.desc || ""}</div>
+        ${owned ? "<div style='font-size:10px;color:#4CAF50;margin-top:2px;'>✅ Já possui</div>" : `<div style="font-size:12px;color:#ffc107;margin-top:2px;font-weight:700;">🪙 ${fmtNum(item.price)}</div>`}
+      </div>
+      ${owned ? "" : `<button class="btn btn-gold btn-sm" ${!canAfford ? "disabled style='opacity:0.4;'" : ""}>Comprar</button>`}
+    </div>`;
+  }).join("") +
+  `<a href="profile.html" class="btn btn-block btn-outline" style="border-color:#ffc107;color:#ffc107;margin-top:8px;">👤 Ver todos os itens de perfil →</a>`;
+}
+
+function buyProfileItem(itemId) {
+  if (typeof PROFILE_ITEMS === "undefined") return;
+  const item = PROFILE_ITEMS.find(i => i.id === itemId);
+  if (!item) return;
+  if (save.gold < item.price) { showToast("❌ Ouro insuficiente!", "error"); return; }
+  if ((save.profileItems || []).includes(itemId)) { showToast("Já possui!", "warning"); return; }
+
+  spendGold(save, item.price);
+  if (!save.profileItems) save.profileItems = [];
+  save.profileItems.push(itemId);
+  writeSave(save);
+  renderHeader();
+  renderPerfil();
+  showToast(`✅ ${item.emoji} ${item.name} desbloqueado!`, "gold", 3000);
+}
+
+// ══════ COFRE (armazenamento de cartas) ══════
+const VAULT_EXPAND_PRICE = 30000;
+const VAULT_EXPAND_AMOUNT = 50;
+
+function renderCofre() {
+  const used  = (save.vault || []).length;
+  const limit = save.vaultLimit || 50;
+  const usedEl  = document.getElementById("cofre-usado");
+  const limEl   = document.getElementById("cofre-limite");
+  const barEl   = document.getElementById("cofre-bar");
+  const priceEl = document.getElementById("cofre-expand-price");
+  const btnEl   = document.getElementById("btn-expandir-cofre");
+  if (usedEl) usedEl.textContent = fmtNum(used);
+  if (limEl)  limEl.textContent  = fmtNum(limit);
+  if (barEl)  barEl.style.width  = Math.min(100, Math.round((used / limit) * 100)) + "%";
+  if (priceEl) priceEl.textContent = fmtNum(VAULT_EXPAND_PRICE);
+
+  const today = new Date().toDateString();
+  const alreadyExpandedToday = save.lastVaultExpand === today;
+  if (btnEl) {
+    if (alreadyExpandedToday) {
+      btnEl.disabled = true;
+      btnEl.style.opacity = "0.5";
+      btnEl.innerHTML = "🔐 Já expandiu hoje · volte amanhã";
+    } else {
+      btnEl.disabled = false;
+      btnEl.style.opacity = "1";
+      btnEl.innerHTML = `🔐 Expandir Cofre +${VAULT_EXPAND_AMOUNT} · 🪙 ${fmtNum(VAULT_EXPAND_PRICE)}`;
+    }
+  }
+}
+
+function expandirCofreShop() {
+  const today = new Date().toDateString();
+  if (save.lastVaultExpand === today) { showToast("❌ Você já expandiu o cofre hoje!", "error"); return; }
+  if (save.gold < VAULT_EXPAND_PRICE) { showToast("❌ Ouro insuficiente!", "error"); return; }
+
+  spendGold(save, VAULT_EXPAND_PRICE);
+  save.vaultLimit = (save.vaultLimit || 50) + VAULT_EXPAND_AMOUNT;
+  save.lastVaultExpand = today;
+  writeSave(save);
+  renderHeader();
+  renderCofre();
+  showToast(`🔐 Cofre expandido! Novo limite: ${fmtNum(save.vaultLimit)} cartas.`, "gold", 3500);
+}
+
+// ══════ SALAS (Cartões de Sala) ══════
+function renderSalas() {
+  const today = new Date().toDateString();
+  const limit = typeof getRoomCardLimit === "function" ? getRoomCardLimit(save) : (save.isVerifiedCreator ? 50 : 5);
+  const usedToday = (save.salasDiarias && save.salasDiarias.date === today) ? (save.salasDiarias.count || 0) : 0;
+
+  const usoEl = document.getElementById("sala-uso-hoje");
+  if (usoEl) usoEl.textContent = `Salas hoje: ${usedToday} / ${limit}`;
+
+  const cartoesEl = document.getElementById("sala-cartoes-count");
+  if (cartoesEl) cartoesEl.textContent = fmtNum(save.roomCards || 0);
+}
+
+const ROOM_CARD_PRICES = { 1: 2000, 5: 9000, 10: 16000 };
+
+function comprarCartaoSala(qtd) {
+  const custo = ROOM_CARD_PRICES[qtd] || (qtd * 2000);
+  if (save.gold < custo) { showToast("❌ Ouro insuficiente!", "error"); return; }
+
+  spendGold(save, custo);
+  save.roomCards = (save.roomCards || 0) + qtd;
+  writeSave(save);
+  renderHeader();
+  renderSalas();
+  showToast(`✅ +${qtd} 🎫 Cartão(ões) de Sala! 🪙 -${fmtNum(custo)}`, "gold", 3000);
+}
+
+// ══════ PESCA TAB ══════
+function renderPescaTab() {
+  const p = save.pesca || {};
+
+  // Extras info
+  const extEl = document.getElementById("shop-extras-info");
+  if (extEl) {
+    const isCreator = !!save.isVerifiedCreator;
+    const base = isCreator ? PESCA_CONFIG.iscasDiariasCreator : PESCA_CONFIG.iscasDiariasBase;
+    extEl.textContent = `Iscas comuns hoje: ${p.iscasComunsHoje || 0} · Extras compradas: ${p.iscasExtrasHoje || 0} / ${PESCA_CONFIG.iscasExtraMaxCompra}`;
+  }
+
+  // Restos
+  const restosEl = document.getElementById("shop-restos-count");
+  if (restosEl) restosEl.textContent = fmtNum(p.restos || 0);
+
+  // Iscas especiais (apenas por ouro)
+  const iscasEl = document.getElementById("shop-iscas-lista");
+  if (iscasEl) {
+    const paidBaits = BAIT_TYPES.filter(b => !b.realMoney && b.price > 0);
+    iscasEl.innerHTML = paidBaits.map(b => {
+      const count = (p.iscas && p.iscas[b.id]) || 0;
+      const canAfford = save.gold >= b.price;
+      return `<div class="shop-rod-card" style="--rod-color:${b.color};">
+        <span style="font-size:28px;">${b.emoji}</span>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:13px;color:${b.color};">${b.name}</div>
+          <div style="font-size:10px;color:#9e9e9e;margin-top:2px;">${b.desc}</div>
+          ${b.bonusChance > 0 ? `<div style="font-size:10px;color:#29b6f6;margin-top:2px;">+${b.bonusChance}% chance</div>` : ""}
+          <div style="font-size:10px;color:#9e9e9e;margin-top:2px;">Em estoque: <strong style="color:${b.color};">${count}</strong></div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:13px;font-weight:700;color:#ffc107;margin-bottom:4px;">🪙 ${fmtNum(b.price)}</div>
+          <button class="btn btn-gold btn-sm" style="${!canAfford ? "opacity:0.5;" : ""}" onclick="shopBuyIsca('${b.id}',1)" ${!canAfford ? "disabled" : ""}>+1</button>
+          <button class="btn btn-gold btn-sm" style="margin-top:4px;${!canAfford || save.gold < b.price*5 ? "opacity:0.5;" : ""}" onclick="shopBuyIsca('${b.id}',5)" ${save.gold < b.price*5 ? "disabled" : ""}>+5</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  // Varas por ouro
+  const varasEl = document.getElementById("shop-varas-lista");
+  if (varasEl) {
+    const goldRods = FISHING_RODS.filter(r => !r.realMoney);
+    varasEl.innerHTML = goldRods.map(rod => {
+      const owned    = p.varasCompradas && p.varasCompradas[rod.id];
+      const equipped = p.varaEquipada === rod.id;
+      const canAfford = save.gold >= rod.price;
+      return `<div class="shop-rod-card" style="border-color:${equipped ? "#ffc107" : owned ? "#4CAF50" : "#1e1e30"};--rod-color:${rod.color};">
+        <span style="font-size:28px;">${rod.emoji}</span>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:13px;color:${rod.color};">
+            ${rod.name}
+            ${equipped ? ' <span style="font-size:9px;background:#ffc107;color:#000;border-radius:4px;padding:1px 5px;">✅ Equipada</span>' : ""}
+            ${owned && !equipped ? ' <span style="font-size:9px;background:#4CAF50;color:#fff;border-radius:4px;padding:1px 5px;">Possui</span>' : ""}
+          </div>
+          <div style="font-size:10px;color:#9e9e9e;margin-top:2px;">${rod.desc}</div>
+          <div style="font-size:10px;color:#9e9e9e;margin-top:2px;">
+            Máx: <span style="color:${RARITY[rod.maxRarity]?.color||"#fff"};font-weight:700;">${RARITY[rod.maxRarity]?.name||rod.maxRarity}</span>
+            · Dur: ${rod.durability === Infinity ? "♾️" : rod.durability}
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          ${owned
+            ? (equipped
+                ? `<div style="font-size:10px;color:#ffc107;">Em uso</div>`
+                : `<button class="btn btn-sm btn-outline" style="border-color:#29b6f6;color:#29b6f6;font-size:10px;" onclick="shopEquip('${rod.id}')">Equipar</button>`)
+            : `<div style="font-size:13px;font-weight:700;color:#ffc107;margin-bottom:4px;">🪙 ${fmtNum(rod.price)}</div>
+               <button class="btn btn-gold btn-sm" ${!canAfford ? "disabled style='opacity:0.5;'" : ""} onclick="shopBuyVara('${rod.id}')">Comprar</button>`
+          }
+        </div>
+      </div>`;
+    }).join("");
+  }
+}
+
+function comprarExtrasShop(qtd) {
+  const result = comprarIscaExtra(save, qtd);
+  if (!result.ok) { showToast("❌ " + result.reason, "error"); return; }
+  writeSave(save);
+  renderHeader();
+  renderPescaTab();
+  showToast(`✅ +${result.compradas} iscas extras! 🪙 -${fmtNum(result.custo)}`, "gold", 3000);
+}
+
+function shopBuyIsca(baitId, qtd) {
+  const result = comprarIscaEspecial(save, baitId, qtd);
+  if (!result.ok) { showToast("❌ " + result.reason, "error"); return; }
+  writeSave(save);
+  renderHeader();
+  renderPescaTab();
+  const bait = BAIT_TYPES.find(b => b.id === baitId);
+  showToast(`✅ +${qtd} ${bait.emoji} ${bait.name}!`, "gold", 2500);
+}
+
+function shopBuyVara(rodId) {
+  const result = comprarVara(save, rodId);
+  if (!result.ok) { showToast("❌ " + result.reason, "error"); return; }
+  writeSave(save);
+  renderHeader();
+  renderPescaTab();
+  showToast(`✅ ${result.rod.emoji} ${result.rod.name} comprada! Equipar na tela de Pesca.`, "gold", 3500);
+}
+
+function shopEquip(rodId) {
+  const result = equiparVara(save, rodId);
+  if (!result.ok) { showToast("❌ " + result.reason, "error"); return; }
+  writeSave(save);
+  renderPescaTab();
+  showToast(`🎣 ${result.rod.emoji} ${result.rod.name} equipada!`, "gold", 2500);
+}
+
+// ══════ MAESTRIA (dados reais do gamedata3.js) ══════
+function renderMaestriaTab() {
+  if (typeof MAESTRIA_CONFIG === "undefined" || typeof RARITY === "undefined") return;
+
+  const dupeEl = document.getElementById("maestria-dupe-lista");
+  if (dupeEl) {
+    dupeEl.innerHTML = Object.entries(MAESTRIA_CONFIG.dupePts).map(([rar, pts]) => {
+      const r = RARITY[rar] || { name: rar, color: "#fff" };
+      return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1e1e30;font-size:12px;">
+        <span style="color:${r.color};">${r.name}</span><span style="color:#ce93d8;font-weight:700;">+${pts} pts</span>
+      </div>`;
+    }).join("");
+  }
+
+  const fusionEl = document.getElementById("maestria-fusion-lista");
+  if (fusionEl) {
+    fusionEl.innerHTML = Object.entries(MAESTRIA_CONFIG.fusionPts).map(([rar, pts]) => {
+      const r = RARITY[rar] || { name: rar, color: "#fff" };
+      return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1e1e30;font-size:12px;">
+        <span style="color:${r.color};">${r.name}</span><span style="color:#ce93d8;font-weight:700;">+${pts} pts</span>
+      </div>`;
+    }).join("");
+  }
+
+  const starEl = document.getElementById("maestria-star-cost");
+  if (starEl) {
+    const rarities = Object.keys(MAESTRIA_CONFIG.starCost);
+    let table = `<table style="width:100%;border-collapse:collapse;font-size:11px;">
+      <tr style="border-bottom:1px solid #1e1e30;">
+        <th style="text-align:left;padding:6px 4px;color:#9e9e9e;">Raridade</th>
+        <th style="padding:6px 4px;color:#9e9e9e;">1★</th>
+        <th style="padding:6px 4px;color:#9e9e9e;">2★</th>
+        <th style="padding:6px 4px;color:#9e9e9e;">3★</th>
+        <th style="padding:6px 4px;color:#9e9e9e;">4★</th>
+        <th style="padding:6px 4px;color:#9e9e9e;">5★</th>
+      </tr>`;
+    rarities.forEach(rar => {
+      const r = RARITY[rar] || { name: rar, color: "#fff" };
+      const costs = MAESTRIA_CONFIG.starCost[rar];
+      table += `<tr style="border-bottom:1px solid #1e1e30;">
+        <td style="padding:6px 4px;color:${r.color};font-weight:700;white-space:nowrap;">${r.name}</td>
+        ${costs.map(c => `<td style="padding:6px 4px;text-align:center;color:#ffc107;">${c}</td>`).join("")}
+      </tr>`;
+    });
+    table += "</table>";
+    starEl.innerHTML = table;
+  }
+
+  const msEl = document.getElementById("maestria-milestones");
+  if (msEl) {
+    msEl.innerHTML = Object.entries(MAESTRIA_CONFIG.milestoneRewards).map(([total, rw]) => {
+      return `<div style="padding:8px 0;border-bottom:1px solid #1e1e30;font-size:12px;">
+        <div style="color:#ffc107;font-weight:700;">${rw.label}</div>
+        <div style="color:#9e9e9e;font-size:11px;margin-top:2px;">🪙 ${fmtNum(rw.gold)} · ⭐ ${fmtNum(rw.xp)} XP · 🎖️ ${fmtNum(rw.xpp)} XPP${rw.card ? " · 🎴 carta exclusiva" : ""}</div>
+      </div>`;
+    }).join("");
+  }
+}
+
+// ══════ SWITCH TAB ══════
+function switchShopTab(tab, btn) {
+  ["pacotes","pesca","boosts","perfil","cofre","salas","maestria","powerups","craft"].forEach(t => {
+    document.getElementById("tab-" + t).style.display = t === tab ? "block" : "none";
+  });
+  document.querySelectorAll(".shop-tab").forEach(b => {
+    b.classList.remove("active","pesca-active");
+  });
+  btn.classList.add("active");
+  if (tab === "pesca") btn.classList.add("pesca-active");
+
+  if (tab === "pesca")    renderPescaTab();
+  if (tab === "cofre")    renderCofre();
+  if (tab === "salas")    renderSalas();
+  if (tab === "maestria") renderMaestriaTab();
+  if (tab === "powerups") renderPowerupsShopTab();
+  if (tab === "craft" && typeof window.renderCraftShop === "function") window.renderCraftShop();
+}
+
+// ══════ POWER-UPS SHOP ══════
+function renderPowerupsShopTab() {
+  const el = document.getElementById("powerups-shop-list");
+  if (!el || typeof POWERUPS === "undefined") return;
+  el.innerHTML = POWERUPS.map(pu => {
+    const owned = (save.powerups && save.powerups[pu.id]) || 0;
+    const canAfford = save.gold >= pu.shopCost;
+    return `<div class="boost-card" onclick="buyPowerup('${pu.id}')">
+      <span class="boost-icon">${pu.emoji}</span>
+      <div class="boost-info">
+        <div class="boost-name">${pu.name}</div>
+        <div class="boost-desc">${pu.desc}</div>
+        <div class="boost-price">🪙 ${fmtNum(pu.shopCost)} <span style="color:#9e9e9e;font-weight:400;">· em estoque: <strong style="color:#e040fb;">${owned}</strong></span></div>
+      </div>
+      <button class="btn btn-gold btn-sm" ${!canAfford ? "disabled style='opacity:0.4;'" : ""}>Comprar</button>
+    </div>`;
+  }).join("");
+}
+
+function buyPowerup(puId) {
+  if (typeof POWERUPS === "undefined") return;
+  const pu = POWERUPS.find(p => p.id === puId);
+  if (!pu) return;
+  if (save.gold < pu.shopCost) { showToast("❌ Ouro insuficiente!", "error"); return; }
+  spendGold(save, pu.shopCost);
+  if (!save.powerups) save.powerups = {};
+  save.powerups[puId] = (save.powerups[puId] || 0) + 1;
+  writeSave(save);
+  renderHeader();
+  renderPowerupsShopTab();
+  showToast(`⚡ ${pu.emoji} ${pu.name} adicionado ao inventário!`, "gold", 3000);
+}
+
+// ══════ BOOT ══════
+init();
+</script>
+<script>
+(function loadCraftingScript() {
+  var s = document.createElement('script');
+  s.src = 'gamedata-crafting.js?v=' + (window.CF_BUILD || Date.now());
+  document.body.appendChild(s);
+})();
+</script>
+</body>
+</html>

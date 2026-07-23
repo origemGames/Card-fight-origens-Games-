@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Academia & Expedição – Card Fight v18.3</title>
+<script>
+  var CF_BUILD = Date.now();
+  document.write('<link rel="stylesheet" href="game.css?v=' + CF_BUILD + '"/>');
+</script>
+<style>
+  :root {
+    --acad-gold:#e6c36a;
+    --acad-red:#ff4444;
+    --acad-green:#66bb6a;
+    --acad-blue:#29b6f6;
+    --acad-purple:#ce93d8;
+  }
+  .acad-hero {
+    background:linear-gradient(180deg,#050510 0%,#1a0e05 50%,#050510 100%);
+    border:2px solid var(--acad-gold); border-radius:20px;
+    padding:20px 16px 16px; margin-bottom:16px; text-align:center;
+    position:relative; overflow:hidden;
+  }
+  .acad-hero::before{
+    content:'🥋'; position:absolute; font-size:150px; opacity:0.05;
+    top:-20px; right:-20px; transform:rotate(-15deg);
+  }
+  .acad-title {
+    font-family:'Cinzel',serif; font-size:26px; font-weight:900;
+    background:linear-gradient(135deg,#e6c36a,#fff3c0,#e6c36a);
+    background-size:200%;
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    letter-spacing:2px; margin:4px 0;
+    animation:title-shimmer 4s linear infinite;
+  }
+  .acad-sub { font-size:11px; color:#c9b48a; margin-bottom:8px; }
+
+  .level-strip {
+    display:flex; align-items:center; gap:10px;
+    background:rgba(0,0,0,0.4); border:1px solid #3a2a10;
+    border-radius:12px; padding:10px 14px; margin-top:8px;
+  }
+  .level-badge {
+    width:44px; height:44px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Cinzel',serif; font-weight:900; font-size:20px;
+    background:linear-gradient(135deg,#3a2412,#e6c36a);
+    color:#000; box-shadow:0 0 12px rgba(230,195,106,0.4);
+    flex-shrink:0;
+  }
+  .level-info { flex:1; text-align:left; }
+  .level-info .ln { font-family:'Cinzel',serif; font-size:12px; color:#e6c36a; font-weight:700; letter-spacing:1px; }
+  .level-info .lx { font-size:10px; color:#9e9e9e; margin-top:2px; }
+  .xp-bar {
+    height:6px; background:#1a1108; border-radius:4px; overflow:hidden; margin-top:6px;
+  }
+  .xp-bar-fill {
+    height:100%; background:linear-gradient(90deg,#e6c36a,#fff3c0);
+    transition:width 0.4s ease;
+  }
+
+  .tabs {
+    display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:14px;
+  }
+  .tab {
+    background:#0e0e1c; border:1px solid #1e1e30; border-radius:10px;
+    padding:10px 4px; text-align:center; cursor:pointer;
+    font-family:'Cinzel',serif; font-size:11px; font-weight:700;
+    letter-spacing:0.8px; color:#8a8a9e; transition:all 0.2s;
+  }
+  .tab .ti { font-size:20px; display:block; margin-bottom:2px; }
+  .tab.active {
+    background:linear-gradient(135deg,#3a2412,#5b3820);
+    border-color:#e6c36a; color:#fff3c0;
+    box-shadow:0 4px 14px rgba(230,195,106,0.25);
+  }
+  .tab:not(.active):hover { border-color:#3a3a5a; color:#c0c0d0; }
+
+  .panel {
+    background:#0e0e1c; border:1px solid #1e1e30; border-radius:14px;
+    padding:14px; margin-bottom:12px;
+  }
+  .panel-title {
+    font-family:'Cinzel',serif; font-size:13px; font-weight:700;
+    letter-spacing:1.4px; text-transform:uppercase;
+    margin-bottom:10px; color:var(--acad-gold);
+    display:flex; align-items:center; gap:8px;
+  }
+
+  .info-box {
+    background:linear-gradient(135deg,#0a0a1a,#12122a);
+    border:1px solid #3a3a5a; border-radius:10px;
+    padding:10px 12px; margin-bottom:10px;
+    font-size:11px; color:#c0c0d0; line-height:1.7;
+  }
+  .info-box.warn {
+    border-color:#ff4444; background:linear-gradient(135deg,#1a0505,#2a0808);
+    color:#ff8888;
+  }
+  .info-box.good {
+    border-color:#66bb6a; background:linear-gradient(135deg,#051a08,#082a10);
+    color:#a5d6a7;
+  }
+  .info-box .ib-title { font-weight:700; color:#fff; margin-bottom:4px; display:block; }
+
+  .card-picker {
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(80px,1fr));
+    gap:8px; max-height:280px; overflow-y:auto; padding:4px;
+    background:#050510; border:1px solid #1e1e30; border-radius:10px;
+  }
+  .card-mini {
+    background:#0e0e1c; border:2px solid #2a2a4a; border-radius:8px;
+    padding:6px 4px; text-align:center; cursor:pointer; position:relative;
+    transition:all 0.2s;
+  }
+  .card-mini:hover { border-color:#e6c36a; transform:translateY(-2px); }
+  .card-mini.selected {
+    border-color:#e6c36a;
+    box-shadow:0 0 12px rgba(230,195,106,0.5);
+    background:linear-gradient(135deg,#1a1108,#2a1a08);
+  }
+  .card-mini.disabled { opacity:0.35; cursor:not-allowed; }
+  .card-mini .cm-img { font-size:24px; }
+  .card-mini .cm-name { font-size:9px; color:#c0c0d0; margin-top:2px; line-height:1.1;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
+  .card-mini .cm-stats { font-size:9px; color:#9e9e9e; margin-top:2px; }
+  .card-mini .cm-trained {
+    position:absolute; top:2px; right:2px; font-size:14px;
+    filter:drop-shadow(0 0 4px rgba(230,195,106,0.8));
+  }
+  .card-mini .cm-buff {
+    position:absolute; top:2px; left:2px; font-size:8px; font-weight:900;
+    padding:1px 4px; border-radius:6px;
+  }
+  .card-mini .cm-buff.pos { background:#66bb6a; color:#000; }
+  .card-mini .cm-buff.neg { background:#ff4444; color:#fff; }
+
+  .focus-picker { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px; }
+  .focus-opt {
+    background:#0e0e1c; border:2px solid #2a2a4a; border-radius:10px;
+    padding:10px 6px; text-align:center; cursor:pointer; transition:all 0.2s;
+  }
+  .focus-opt:hover { border-color:#e6c36a; }
+  .focus-opt.selected { border-color:#e6c36a; background:linear-gradient(135deg,#1a1108,#2a1a08); box-shadow:0 0 10px rgba(230,195,106,0.4); }
+  .focus-opt .fi { font-size:22px; }
+  .focus-opt .fl { font-size:11px; font-weight:700; margin-top:2px; }
+  .focus-opt .fs { font-size:9px; color:#9e9e9e; margin-top:2px; line-height:1.2; }
+
+  .opt-row {
+    background:#0e0e1c; border:1px solid #2a2a4a; border-radius:10px;
+    padding:10px 12px; margin-bottom:8px;
+    display:flex; align-items:center; gap:10px; cursor:pointer;
+    transition:border-color 0.2s;
+  }
+  .opt-row:hover { border-color:#e6c36a; }
+  .opt-row.active { border-color:#e6c36a; background:linear-gradient(135deg,#1a1108,#2a1a08); }
+  .opt-row .oi { font-size:22px; }
+  .opt-row .otxt { flex:1; }
+  .opt-row .on { font-size:12px; font-weight:700; color:#fff; }
+  .opt-row .od { font-size:10px; color:#9e9e9e; margin-top:2px; line-height:1.4; }
+  .opt-row .op { font-size:12px; font-weight:900; color:#ffc107; }
+  .opt-row.disabled { opacity:0.4; cursor:not-allowed; }
+
+  .btn-primary {
+    display:block; width:100%; padding:14px;
+    background:linear-gradient(135deg,#8a5a20,#e6c36a);
+    color:#000; font-family:'Cinzel',serif; font-size:14px; font-weight:900;
+    letter-spacing:1.4px; text-transform:uppercase;
+    border:none; border-radius:12px; cursor:pointer;
+    box-shadow:0 4px 20px rgba(230,195,106,0.3);
+    transition:all 0.2s;
+  }
+  .btn-primary:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 6px 24px rgba(230,195,106,0.5); }
+  .btn-primary:active { transform:scale(0.98); }
+  .btn-primary:disabled { opacity:0.4; cursor:not-allowed; }
+
+  .btn-danger {
+    background:linear-gradient(135deg,#8b0000,#c62828);
+    color:#fff; box-shadow:0 4px 20px rgba(198,40,40,0.3);
+  }
+
+  /* Active training cards */
+  .run-card {
+    background:linear-gradient(135deg,#0a0a1a,#12122a);
+    border:1px solid #3a3a5a; border-radius:12px;
+    padding:12px; margin-bottom:10px; position:relative;
+  }
+  .run-card.ready { border-color:#66bb6a; box-shadow:0 0 14px rgba(102,187,106,0.25); }
+  .run-card.exp { border-color:#29b6f6; }
+  .run-card .rh { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .run-card .ri { font-size:32px; }
+  .run-card .rn { flex:1; font-family:'Cinzel',serif; font-weight:700; color:#fff; font-size:13px; }
+  .run-card .rt { font-size:10px; color:#9e9e9e; margin-top:2px; }
+  .run-card .rtimer {
+    text-align:center; font-family:'Courier New',monospace; font-size:18px; font-weight:900;
+    color:#e6c36a; padding:6px; background:rgba(0,0,0,0.4); border-radius:8px;
+    letter-spacing:2px;
+  }
+  .run-card.ready .rtimer { color:#66bb6a; }
+  .run-card .rmeta {
+    display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;
+    font-size:10px;
+  }
+  .run-card .rchip {
+    background:rgba(255,255,255,0.05); border:1px solid #2a2a4a;
+    padding:2px 8px; border-radius:8px; color:#c0c0d0;
+  }
+  .result-msg {
+    margin-top:8px; padding:8px 10px;
+    background:linear-gradient(135deg,#0a0518,#160830);
+    border:1px solid #9c27b0; border-radius:8px;
+    font-size:11px; color:#ce93d8; font-style:italic; line-height:1.5;
+  }
+
+  /* Sessão calendar */
+  .sessao-cal { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-top:8px; }
+  .sc-day {
+    aspect-ratio:1; border-radius:8px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:#0a0a1a; border:1px solid #2a2a4a;
+    font-size:10px; color:#9e9e9e;
+  }
+  .sc-day.done { background:linear-gradient(135deg,#1b5e20,#388e3c); border-color:#66bb6a; color:#fff; font-weight:900; }
+  .sc-day.miss { background:linear-gradient(135deg,#8b0000,#c62828); border-color:#ff4444; color:#fff; font-weight:900; }
+  .sc-day.today { border-color:#e6c36a; box-shadow:0 0 10px rgba(230,195,106,0.5); color:#fff3c0; font-weight:900; }
+
+  /* Achievements */
+  .ach-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .ach-card {
+    background:#0e0e1c; border:1px solid #2a2a4a; border-radius:10px;
+    padding:10px; display:flex; gap:8px; align-items:flex-start;
+    opacity:0.5; transition:all 0.2s;
+  }
+  .ach-card.done { opacity:1; border-color:#e6c36a; background:linear-gradient(135deg,#1a1108,#2a1a08); }
+  .ach-card .aci { font-size:26px; flex-shrink:0; }
+  .ach-card .acn { font-size:11px; font-weight:700; color:#fff3c0; }
+  .ach-card .acd { font-size:9px; color:#9e9e9e; margin-top:2px; line-height:1.3; }
+  .ach-card .acr { font-size:9px; color:#ffc107; margin-top:3px; font-weight:700; }
+
+  .locked-box {
+    text-align:center; padding:24px 16px;
+    background:linear-gradient(135deg,#0a0a1a,#12122a);
+    border:2px dashed #3a3a5a; border-radius:14px;
+  }
+  .locked-box .lki { font-size:50px; margin-bottom:8px; opacity:0.5; }
+  .locked-box .lkt { font-family:'Cinzel',serif; font-size:16px; color:#8a8a9e; margin-bottom:6px; }
+  .locked-box .lks { font-size:11px; color:#9e9e9e; margin-bottom:14px; line-height:1.6; }
+
+  .toast-mini {
+    position:fixed; bottom:80px; left:50%; transform:translateX(-50%);
+    background:linear-gradient(135deg,#8a5a20,#e6c36a); color:#000;
+    padding:10px 18px; border-radius:22px; font-weight:900; font-size:12px;
+    box-shadow:0 6px 20px rgba(0,0,0,0.5); z-index:9999;
+    animation:toast-in 0.3s ease-out;
+  }
+  @keyframes toast-in { from { opacity:0; transform:translate(-50%,20px);} to { opacity:1; transform:translate(-50%,0);} }
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Início</a>
+  <span class="logo-title">🥋 ACADEMIA</span>
+  <span style="width:80px; text-align:right; font-size:11px; color:#e6c36a;">v18.3</span>
+</header>
+
+<main class="content">
+
+  <!-- HERO -->
+  <div class="acad-hero">
+    <div style="font-size:56px;">🥋</div>
+    <div class="acad-title">ACADEMIA & EXPEDIÇÃO</div>
+    <div class="acad-sub">Treine suas cartas · Envie em Expedições · Cresça de nível</div>
+
+    <div class="level-strip">
+      <div class="level-badge" id="acad-lvl-badge">1</div>
+      <div class="level-info">
+        <div class="ln">Nível da Academia <span id="acad-lvl-name" style="color:#fff3c0;">Faixa Branca</span></div>
+        <div class="lx" id="acad-xp-txt">0 / 500 XP</div>
+        <div class="xp-bar"><div class="xp-bar-fill" id="acad-xp-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" data-tab="academia"><span class="ti">🥋</span>Academia</div>
+    <div class="tab" data-tab="sessao"><span class="ti">⛩️</span>Seção</div>
+    <div class="tab" data-tab="expedicao"><span class="ti">🗺️</span>Expedição</div>
+    <div class="tab" data-tab="conquistas"><span class="ti">🏆</span>Conquistas</div>
+  </div>
+
+  <!-- ACTIVE RUNS (sempre visível no topo) -->
+  <div id="active-runs-wrap"></div>
+
+  <!-- TAB CONTENT -->
+  <div id="tab-content"></div>
+
+  <div style="height:100px;"></div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="AcademiaExP.html" class="nav-btn active"><span class="icon">🥋</span>Academia</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script>
+  var CF_BUILD_A = window.CF_BUILD || Date.now();
+  // BUGFIX: gamedata-racas-patch.js (sistema "Faça Seu Caminho") nunca era
+  // carregado aqui, então os bônus de Artefatos (Núcleo de Plasma +5% ATK,
+  // Pena Sagrada +5% HP, Sigilo das Origens) nunca valiam nas cartas
+  // treinadas em Academia/Expedição.
+  ["gamedata.js","gamedata2.js","gamedata3.js","gamedata-racas-patch.js","gamedata-academia-patch.js"].forEach(function(src){
+    document.write('<scr'+'ipt src="'+src+'?v='+CF_BUILD_A+'"></scr'+'ipt>');
+  });
+</script>
+
+<script>
+/* ========================================================
+   AcademiaExP UI – v18.3
+   ======================================================== */
+(function(){
+  "use strict";
+  if (typeof getOrCreateSave !== "function" || !window.AcademiaAPI) {
+    document.getElementById("tab-content").innerHTML =
+      '<div class="panel"><b style="color:#ff4444">Erro:</b> gamedata.js ou patch v18 não carregado. Verifique se <code>gamedata-academia-patch.js</code> está na pasta.</div>';
+    return;
+  }
+  const A = window.AcademiaAPI;
+  const save = getOrCreateSave();
+  A.ensure(save);
+
+  const LEVEL_NAMES = ["Faixa Branca","Faixa Amarela","Faixa Laranja","Faixa Marrom","Faixa Roxa","Faixa Preta"];
+
+  let currentTab = "academia";
+  let picker = { cardId:null, focus:"balanced", insurance:false, doubleCard:null };
+  let sessaoPicker = { cardId:null, focus:"balanced" };
+  let expPicker = { cardId:null, focus:"balanced", insurance:false, doubleCard:null };
+
+  function fmt(n){ return typeof fmtNum==="function"?fmtNum(n):n.toLocaleString("pt-BR"); }
+
+  function toast(msg, ok){
+    const t = document.createElement("div");
+    t.className = "toast-mini";
+    if (!ok) t.style.background = "linear-gradient(135deg,#8b0000,#c62828)", t.style.color="#fff";
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(()=>t.remove(), 2600);
+  }
+
+  function timeLeft(ms){
+    ms = Math.max(0, ms);
+    const h = Math.floor(ms/3600000);
+    const m = Math.floor((ms%3600000)/60000);
+    const s = Math.floor((ms%60000)/1000);
+    return String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
+  }
+
+  function refreshHero(){
+    const a = A.ensure(save);
+    document.getElementById("acad-lvl-badge").textContent = a.level;
+    document.getElementById("acad-lvl-name").textContent  = LEVEL_NAMES[a.level-1] || "Faixa Lendária";
+    const needed = A.xpForNext(a.level);
+    if (needed === null) {
+      document.getElementById("acad-xp-txt").textContent = "NÍVEL MÁXIMO";
+      document.getElementById("acad-xp-fill").style.width = "100%";
+    } else {
+      const base = A.totalXpForLevel(a.level);
+      const cur  = a.xp - base;
+      document.getElementById("acad-xp-txt").textContent = fmt(cur)+" / "+fmt(needed)+" XP · +"+fmt(needed-cur)+" pro próximo";
+      document.getElementById("acad-xp-fill").style.width = Math.min(100,(cur/needed)*100)+"%";
+    }
+  }
+
+  function refreshActiveRuns(){
+    const a = A.ensure(save);
+    const wrap = document.getElementById("active-runs-wrap");
+    if (!a.activeTraining.length) { wrap.innerHTML = ""; return; }
+    let html = '<div class="panel"><div class="panel-title">⏳ Em Andamento</div>';
+    a.activeTraining.forEach((r,idx) => {
+      const ready = Date.now() >= r.endsAt;
+      const card = (typeof ALL_CARDS!=="undefined") ? ALL_CARDS.find(c=>c.id===r.cardId) : null;
+      const c2 = r.doubleCard && (typeof ALL_CARDS!=="undefined") ? ALL_CARDS.find(c=>c.id===r.doubleCard) : null;
+      html += `<div class="run-card ${ready?'ready':''} ${r.kind==='expedicao'?'exp':''}" data-idx="${idx}">
+        <div class="rh">
+          <div class="ri">${card?card.img:'🃏'}${c2?' + '+c2.img:''}</div>
+          <div style="flex:1;">
+            <div class="rn">${r.kind==='expedicao'?'🗺️ Expedição':'🥋 Academia'} — ${card?card.name:'?'}${c2?' + '+c2.name:''}</div>
+            <div class="rt">Foco: ${r.focus.toUpperCase()} · Duração ${r.durationH}h${r.insurance?' · 🛡️ Seguro':''}</div>
+          </div>
+        </div>
+        <div class="rtimer" data-endsat="${r.endsAt}">${ready?'✅ PRONTO':timeLeft(r.endsAt-Date.now())}</div>
+        <button class="btn-primary" style="margin-top:8px;${ready?'':'opacity:0.5;pointer-events:none;'}" onclick="window.__acadClaim(${idx})">
+          ${ready?'🎁 Coletar Resultado':'⏳ Aguardando...'}
+        </button>
+      </div>`;
+    });
+    html += '</div>';
+    wrap.innerHTML = html;
+  }
+
+  window.__acadClaim = function(idx){
+    const a = A.ensure(save);
+    const run = a.activeTraining[idx];
+    if (!run) return;
+    let res;
+    if (run.kind === "academia") res = A.claimAcademia(save, run);
+    else res = A.claimExpedicao(save, run);
+    if (!res.ok) { toast(res.msg, false); return; }
+    showResultModal(run);
+    render();
+  };
+
+  function showResultModal(run){
+    const bg = document.createElement("div");
+    bg.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px;";
+    const card = (typeof ALL_CARDS!=="undefined") ? ALL_CARDS.find(c=>c.id===run.cardId) : null;
+    const r = run.result;
+    let html;
+    if (run.kind === "academia") {
+      const p = c => (c>=0?'+'+c:c)+"%";
+      const col = c => c>=0?"#66bb6a":"#ff4444";
+      html = `<div style="background:linear-gradient(180deg,#1a0e05,#0a0510);border:2px solid #e6c36a;border-radius:16px;padding:20px;max-width:400px;text-align:center;">
+        <div style="font-size:60px;">${card?card.img:'🥋'}</div>
+        <div style="font-family:'Cinzel',serif;font-size:20px;color:#e6c36a;font-weight:900;margin:6px 0;">🥋 TREINO CONCLUÍDO</div>
+        <div style="font-size:14px;color:#fff;margin-bottom:8px;">${card?card.name:''}</div>
+        <div style="background:rgba(0,0,0,0.4);border-radius:10px;padding:12px;margin:10px 0;">
+          <div style="font-size:12px;color:#9e9e9e;">Resultado do treino:</div>
+          <div style="font-size:22px;font-weight:900;margin-top:6px;">
+            <span style="color:${col(r.buff.atk)};">ATK ${p(r.buff.atk)}</span>
+            &nbsp;·&nbsp;
+            <span style="color:${col(r.buff.hp)};">HP ${p(r.buff.hp)}</span>
+          </div>
+        </div>
+        <div class="result-msg">${card?card.name:'A carta'} ${r.msg}</div>
+        <div style="font-size:11px;color:#e6c36a;margin-top:10px;">🥋 Esta carta agora está TREINADA e não poderá voltar à Academia.</div>
+        <button class="btn-primary" style="margin-top:12px;" onclick="this.closest('[data-modal]').remove()">Continuar</button>
+      </div>`;
+    } else {
+      const cardReward = r.cardReward;
+      html = `<div style="background:linear-gradient(180deg,#001a2e,#050510);border:2px solid ${r.lost.length?'#ff4444':'#29b6f6'};border-radius:16px;padding:20px;max-width:400px;text-align:center;">
+        <div style="font-size:60px;">${r.lost.length?'💀':'🗺️'}</div>
+        <div style="font-family:'Cinzel',serif;font-size:20px;color:${r.lost.length?'#ff4444':'#29b6f6'};font-weight:900;margin:6px 0;">
+          ${r.lost.length?'EXPEDIÇÃO PERIGOSA':'EXPEDIÇÃO CONCLUÍDA'}
+        </div>
+        <div class="result-msg" style="border-color:${r.lost.length?'#ff4444':'#9c27b0'};">
+          ${card?card.name:'A carta'} ${r.msg}
+        </div>
+        <div style="background:rgba(0,0,0,0.4);border-radius:10px;padding:12px;margin:10px 0;text-align:left;font-size:12px;line-height:1.9;">
+          <div>🪙 Ouro: <b style="color:#ffc107;">+${fmt(r.gold)}</b></div>
+          <div>⭐ XP: <b style="color:#66bb6a;">+${fmt(r.xp)}</b></div>
+          <div>🏅 XPP: <b style="color:#29b6f6;">+${fmt(r.xpp)}</b></div>
+          ${cardReward ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid #2a2a4a;">🎴 Nova carta: <b style="color:${(typeof RARITY!=='undefined'&&RARITY[cardReward.rarity])?RARITY[cardReward.rarity].color:'#fff'};">${cardReward.img} ${cardReward.name}</b></div>` : ''}
+          ${r.lost.length ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid #ff4444;color:#ff8888;">💀 Perdidas: ${r.lost.length} carta(s)!</div>` : ''}
+        </div>
+        <button class="btn-primary" style="margin-top:8px;" onclick="this.closest('[data-modal]').remove()">Continuar</button>
+      </div>`;
+    }
+    bg.setAttribute("data-modal","1");
+    bg.innerHTML = html;
+    bg.addEventListener("click", e=>{ if(e.target===bg) bg.remove(); });
+    document.body.appendChild(bg);
+  }
+
+  // ── CARD PICKER helper ──────────────────────────────────
+  function renderCardPicker(state, excludeId){
+    const cards = (save.vault||[])
+      .map(id => (typeof ALL_CARDS!=="undefined") ? ALL_CARDS.find(c=>c.id===id) : null)
+      .filter(Boolean);
+    if (!cards.length) return '<div class="info-box warn">Você não tem cartas no cofre.</div>';
+    const html = cards.map(c => {
+      const trained = A.isTrained(save, c.id);
+      const buff = A.getCardBuff(save, c.id);
+      const activeInTraining = A.isCardBusy(save, c.id);
+      const disabled = trained || activeInTraining || c.id === excludeId;
+      const sel = state.cardId === c.id ? "selected" : "";
+      let buffChip = "";
+      if (buff.atk || buff.hp) {
+        const val = buff.atk + buff.hp;
+        buffChip = `<span class="cm-buff ${val>=0?'pos':'neg'}">${val>=0?'+':''}${(buff.atk+buff.hp).toFixed(1)}</span>`;
+      }
+      return `<div class="card-mini ${sel} ${disabled?'disabled':''}"
+        data-id="${c.id}" title="${trained?'Já treinada':activeInTraining?'Em treinamento':c.name}">
+        ${trained?'<span class="cm-trained">🥋</span>':''}
+        ${buffChip}
+        <div class="cm-img">${c.img}</div>
+        <div class="cm-name">${c.name}</div>
+        <div class="cm-stats">${c.atk}⚔️ ${c.hp}❤️</div>
+      </div>`;
+    }).join("");
+    return `<div class="card-picker" data-picker="1">${html}</div>`;
+  }
+
+  function attachCardPickerEvents(state, cb){
+    document.querySelectorAll('[data-picker="1"] .card-mini').forEach(el => {
+      el.onclick = () => {
+        if (el.classList.contains("disabled")) return;
+        state.cardId = el.getAttribute("data-id");
+        cb && cb();
+        render();
+      };
+    });
+  }
+
+  function focusPickerHTML(state){
+    const opts = [
+      {v:"atk", i:"⚔️", n:"ATK", d:"Chance maior de buff em ATK · HP mais exposto"},
+      {v:"balanced", i:"⚖️", n:"Equilibrado", d:"Buffs moderados em ambos"},
+      {v:"hp", i:"🛡️", n:"HP", d:"Chance maior de buff em HP · ATK mais exposto"}
+    ];
+    return `<div class="focus-picker">${opts.map(o=>`
+      <div class="focus-opt ${state.focus===o.v?'selected':''}" data-focus="${o.v}">
+        <div class="fi">${o.i}</div>
+        <div class="fl">${o.n}</div>
+        <div class="fs">${o.d}</div>
+      </div>`).join("")}</div>`;
+  }
+  function attachFocusEvents(state){
+    document.querySelectorAll('.focus-opt').forEach(el=>{
+      el.onclick = ()=>{ state.focus = el.getAttribute("data-focus"); render(); };
+    });
+  }
+
+  // ── TABS ─────────────────────────────────────────────────
+  function renderAcademia(){
+    const a = A.ensure(save);
+    const canStart = A.canStartAcademia(save);
+    const container = document.getElementById("tab-content");
+    const mods = A.luckModifiers(save);
+
+    if (!canStart) {
+      container.innerHTML = `<div class="info-box good">✅ <b>Você já enviou uma carta para Academia hoje!</b><br>Volte amanhã para treinar outra carta.<br><br>Nível ${a.level}: teto negativo <b>${mods.negFloor.toFixed(2)}%</b> · bônus positivo <b>+${mods.posBonus.toFixed(2)}%</b></div>` + renderPainelExplicativo();
+      return;
+    }
+    container.innerHTML = `
+      <div class="panel">
+        <div class="panel-title">🥋 Enviar carta para Academia</div>
+        <div class="info-box">
+          <span class="ib-title">Como funciona</span>
+          • Duração <b>aleatória</b>: 2h, 4h, 8h, 12h, 24h ou 42h<br>
+          • Buff <b>aleatório</b>: +1% a +3% (positivo) ou até ${mods.negFloor.toFixed(2)}% (negativo)<br>
+          • A carta ganha o selo <b>🥋</b> e <b>nunca mais</b> poderá treinar<br>
+          • 1 carta por dia · Ganha XP da Academia
+        </div>
+
+        <div style="font-size:11px;color:#e6c36a;font-weight:700;margin-bottom:6px;">1️⃣ Escolha uma carta do cofre</div>
+        ${renderCardPicker(picker, null)}
+
+        <div style="font-size:11px;color:#e6c36a;font-weight:700;margin:14px 0 6px;">2️⃣ Escolha o foco</div>
+        ${focusPickerHTML(picker)}
+
+        <button class="btn-primary" ${picker.cardId?'':'disabled'} onclick="window.__doAcademia()">
+          🥋 Enviar para Academia (${picker.cardId?'PRONTO':'escolha uma carta'})
+        </button>
+      </div>
+      ${renderPainelExplicativo()}
+    `;
+    attachCardPickerEvents(picker);
+    attachFocusEvents(picker);
+  }
+
+  window.__doAcademia = function(){
+    if (!picker.cardId) return;
+    const res = A.startAcademia(save, picker.cardId, picker.focus);
+    if (!res.ok) return toast(res.msg, false);
+    toast("🥋 Carta enviada para Academia!", true);
+    picker = { cardId:null, focus:"balanced", insurance:false, doubleCard:null };
+    render();
+  };
+
+  function renderSessao(){
+    const a = A.ensure(save);
+    const container = document.getElementById("tab-content");
+    if (!a.sessaoUnlocked) {
+      container.innerHTML = `
+        <div class="locked-box">
+          <div class="lki">🔒</div>
+          <div class="lkt">SEÇÃO BLOQUEADA</div>
+          <div class="lks">
+            A <b>Seção</b> é uma modalidade avançada de treino: <b>7 dias consecutivos</b><br>
+            com boost final de até <b style="color:#e6c36a;">+10% ATK/HP</b>!<br><br>
+            <b style="color:#ff8888;">⚠️ Cuidado:</b> se você perder dias consecutivos,<br>
+            a carta pode sofrer <b>até -30% de ATK/HP</b>.
+          </div>
+          <div style="font-size:18px;color:#ffc107;font-weight:900;margin-bottom:10px;">🪙 Custo: 100.000 ouro</div>
+          <div style="font-size:11px;color:#9e9e9e;margin-bottom:14px;">Seu ouro: ${fmt(save.gold||0)}</div>
+          <button class="btn-primary" ${(save.gold||0)<100000?'disabled':''} onclick="window.__unlockSessao()">
+            🔓 Desbloquear Seção (100.000 🪙)
+          </button>
+        </div>
+        ${renderPainelExplicativo()}
+      `;
+      return;
+    }
+    if (a.sessao) {
+      A.pingSessao(save);
+      const s = a.sessao;
+      const card = (typeof ALL_CARDS!=="undefined") ? ALL_CARDS.find(c=>c.id===s.cardId) : null;
+      const daysLeft = Math.max(0, Math.ceil((s.endsAt - Date.now())/86400000));
+      const done = s.streak;
+      const missed = s.missedDays;
+      let calHtml = "";
+      for (let i=1;i<=7;i++){
+        // FIX: antes só marcava dias como "done" (verde) quando missed===0,
+        // então bastava perder 1 dia para os dias já concluídos ficarem
+        // sem marcação nenhuma no calendário. Agora cada dia mostra seu
+        // status real independentemente de haver falhas em outro ponto.
+        let cls = "";
+        if (i <= done) cls = "done";
+        else if (i <= (done+missed)) cls = "miss";
+        else if (i === done+missed+1) cls = "today";
+        calHtml += `<div class="sc-day ${cls}">D${i}</div>`;
+      }
+      container.innerHTML = `
+        <div class="panel">
+          <div class="panel-title">⛩️ Seção em Andamento</div>
+          <div style="text-align:center;font-size:50px;">${card?card.img:'🥋'}</div>
+          <div style="text-align:center;font-family:'Cinzel',serif;font-size:16px;color:#fff;font-weight:700;margin-bottom:6px;">
+            ${card?card.name:'?'}
+          </div>
+          <div style="text-align:center;font-size:11px;color:#9e9e9e;">
+            Foco: <b>${s.focus.toUpperCase()}</b> · Streak: <b style="color:#66bb6a;">${s.streak}/7</b>
+            ${missed>0?`· <b style="color:#ff4444;">${missed} dia(s) perdido(s)</b>`:''}
+          </div>
+          <div class="sessao-cal">${calHtml}</div>
+          <div class="info-box ${missed>0?'warn':'good'}" style="margin-top:12px;">
+            ${missed>0
+              ? `⚠️ <b>Você perdeu ${missed} dia(s) consecutivo(s)!</b> A carta pode receber penalidade final de até -30% ATK/HP.`
+              : `✅ <b>Ótimo!</b> Você está no ritmo — mantenha os check-ins diários.`}<br>
+            Termina em <b>${daysLeft} dia(s)</b>.
+          </div>
+          <button class="btn-primary" ${Date.now()<s.endsAt?'disabled':''} onclick="window.__claimSessao()">
+            ${Date.now()<s.endsAt?'⏳ Aguardando 7 dias...':'🎁 Finalizar Seção'}
+          </button>
+          <button class="btn-primary btn-danger" style="margin-top:8px;" onclick="if(confirm('Cancelar Seção? Progresso perdido.'))window.__cancelSessao()">
+            ❌ Cancelar Seção
+          </button>
+        </div>
+      `;
+      return;
+    }
+    // Escolher carta para começar
+    container.innerHTML = `
+      <div class="panel">
+        <div class="panel-title">⛩️ Iniciar Nova Seção (7 dias)</div>
+        <div class="info-box warn">
+          <span class="ib-title">⚠️ AVISO IMPORTANTE</span>
+          A carta deve ficar na Seção por <b>7 dias CONSECUTIVOS</b>.
+          Se você <b>perder dias</b>, a penalidade pode chegar a <b>-30% ATK/HP</b> na carta.<br>
+          Buff final positivo pode chegar a <b>+10% ATK/HP</b>!
+        </div>
+        <div style="font-size:11px;color:#e6c36a;font-weight:700;margin-bottom:6px;">1️⃣ Escolha uma carta</div>
+        ${renderCardPicker(sessaoPicker, null)}
+        <div style="font-size:11px;color:#e6c36a;font-weight:700;margin:14px 0 6px;">2️⃣ Escolha o foco</div>
+        ${focusPickerHTML(sessaoPicker)}
+        <button class="btn-primary" ${sessaoPicker.cardId?'':'disabled'} onclick="window.__startSessao()">
+          ⛩️ Iniciar Seção de 7 Dias
+        </button>
+      </div>
+      ${renderPainelExplicativo()}
+    `;
+    attachCardPickerEvents(sessaoPicker);
+    attachFocusEvents(sessaoPicker);
+  }
+
+  window.__unlockSessao = function(){
+    const r = A.unlockSessao(save);
+    if (!r.ok) return toast(r.msg, false);
+    toast("🔓 Seção desbloqueada!", true);
+    render();
+  };
+  window.__startSessao = function(){
+    if (!sessaoPicker.cardId) return;
+    const r = A.startSessao(save, sessaoPicker.cardId, sessaoPicker.focus);
+    if (!r.ok) return toast(r.msg, false);
+    toast("⛩️ Seção iniciada! Volte todo dia!", true);
+    sessaoPicker = { cardId:null, focus:"balanced" };
+    render();
+  };
+  window.__claimSessao = function(){
+    const r = A.claimSessao(save);
+    if (!r.ok) return toast(r.msg, false);
+    const b = r.buff;
+    toast(`⛩️ Seção concluída! ATK ${b.atk>=0?'+':''}${b.atk}% / HP ${b.hp>=0?'+':''}${b.hp}%`, b.atk>=0);
+    render();
+  };
+  window.__cancelSessao = function(){ A.cancelSessao(save); render(); };
+
+  function renderExpedicao(){
+    const a = A.ensure(save);
+    const canStart = A.canStartExpedicao(save);
+    const container = document.getElementById("tab-content");
+    if (!canStart) {
+      container.innerHTML = `<div class="info-box good">✅ <b>Você já enviou uma expedição hoje!</b><br>Volte amanhã para nova expedição.</div>` + renderPainelExplicativo();
+      return;
+    }
+    const insCost = A.insuranceCost("expedicao", expPicker.doubleCard);
+    container.innerHTML = `
+      <div class="panel">
+        <div class="panel-title">🗺️ Enviar Cartas em Expedição</div>
+        <div class="info-box">
+          <span class="ib-title">Recompensas possíveis</span>
+          🪙 Até ${fmt(A.EXP_MAX_GOLD)} ouro · ⭐ Até ${fmt(A.EXP_MAX_XP)} XP · 🏅 Até ${fmt(A.EXP_MAX_XPP)} XPP<br>
+          🎴 47% de chance de trazer <b>uma carta aleatória</b> (chance mínima de Origens/Ultra Raro)<br>
+          ⏱️ Duração aleatória (2h, 4h, 8h, 12h, 24h ou 42h)
+        </div>
+        <div class="info-box warn">
+          <span class="ib-title">⚠️ RISCO</span>
+          A carta enviada pode <b>não voltar</b> (~6% de chance) e será <b>perdida para sempre</b>.
+        </div>
+
+        <div style="font-size:11px;color:#e6c36a;font-weight:700;margin-bottom:6px;">1️⃣ Carta principal</div>
+        ${renderCardPicker(expPicker, null)}
+
+        <div style="font-size:11px;color:#e6c36a;font-weight:700;margin:14px 0 6px;">2️⃣ Foco da expedição</div>
+        ${focusPickerHTML(expPicker)}
+
+        <div style="font-size:11px;color:#e6c36a;font-weight:700;margin:14px 0 6px;">3️⃣ Opções extras</div>
+
+        <div class="opt-row ${expPicker.insurance?'active':''}" onclick="window.__toggleInsurance()">
+          <div class="oi">🛡️</div>
+          <div class="otxt">
+            <div class="on">Seguro contra perda</div>
+            <div class="od">Reduz drasticamente (não zera) a chance de perder a carta</div>
+          </div>
+          <div class="op">${fmt(insCost)} 🪙</div>
+        </div>
+
+        <div class="opt-row ${expPicker.doubleCard?'active':''}" onclick="window.__toggleDouble()">
+          <div class="oi">👯</div>
+          <div class="otxt">
+            <div class="on">Enviar 2 cartas juntas</div>
+            <div class="od">Arrisca 2 cartas · teto de recompensa 1.7x · +5.000 🪙 taxa</div>
+          </div>
+          <div class="op">${expPicker.doubleCard?'ON':'OFF'}</div>
+        </div>
+        ${expPicker.doubleCard===true?`
+          <div style="font-size:11px;color:#e6c36a;margin:8px 0 6px;">Escolha a segunda carta:</div>
+          ${renderCardPicker({cardId: (typeof expPicker.doubleCard==='string'?expPicker.doubleCard:null)}, expPicker.cardId).replace('data-picker="1"','data-picker="2"')}
+        `:''}
+        ${typeof expPicker.doubleCard==='string'?`
+          <div style="font-size:11px;color:#66bb6a;padding:6px 10px;background:#082a10;border-radius:8px;margin-bottom:8px;">
+            2ª carta selecionada. <a href="#" onclick="event.preventDefault();window.__clearDouble()" style="color:#ff8888;">remover</a>
+          </div>
+        `:''}
+
+        ${expPicker.doubleCard===true?`
+          <div class="info-box warn" style="margin-bottom:8px;">⚠️ Escolha a 2ª carta acima ou desligue "Enviar 2 cartas juntas" para poder enviar.</div>
+        `:''}
+        <button class="btn-primary" ${(expPicker.cardId && expPicker.doubleCard!==true)?'':'disabled'} onclick="window.__doExpedicao()">
+          🗺️ Enviar em Expedição
+        </button>
+      </div>
+      ${renderPainelExplicativo()}
+    `;
+    attachCardPickerEvents(expPicker, ()=>{ if(typeof expPicker.doubleCard==='string' && expPicker.doubleCard===expPicker.cardId) expPicker.doubleCard = true; });
+    attachFocusEvents(expPicker);
+    // 2º picker
+    document.querySelectorAll('[data-picker="2"] .card-mini').forEach(el=>{
+      el.onclick = ()=>{
+        if (el.classList.contains("disabled")) return;
+        expPicker.doubleCard = el.getAttribute("data-id");
+        render();
+      };
+    });
+  }
+
+  window.__toggleInsurance = function(){ expPicker.insurance = !expPicker.insurance; render(); };
+  window.__toggleDouble = function(){
+    if (expPicker.doubleCard) expPicker.doubleCard = null;
+    else expPicker.doubleCard = true; // mode: escolher
+    render();
+  };
+  window.__clearDouble = function(){ expPicker.doubleCard = true; render(); };
+  window.__doExpedicao = function(){
+    if (!expPicker.cardId) return;
+    const dc = typeof expPicker.doubleCard === "string" ? expPicker.doubleCard : null;
+    const res = A.startExpedicao(save, expPicker.cardId, expPicker.focus, { insurance: expPicker.insurance, doubleCard: dc });
+    if (!res.ok) return toast(res.msg, false);
+    toast("🗺️ Expedição iniciada!", true);
+    expPicker = { cardId:null, focus:"balanced", insurance:false, doubleCard:null };
+    render();
+  };
+
+  function renderConquistas(){
+    const a = A.ensure(save);
+    const done = Object.keys(a.achievements).length;
+    const total = A.ACHIEVEMENTS.length;
+    let html = `<div class="panel">
+      <div class="panel-title">🏆 Conquistas · ${done}/${total}</div>
+      <div class="ach-grid">`;
+    A.ACHIEVEMENTS.forEach(ach => {
+      const unlocked = !!a.achievements[ach.id];
+      html += `<div class="ach-card ${unlocked?'done':''}">
+        <div class="aci">${ach.icon}</div>
+        <div style="flex:1;">
+          <div class="acn">${ach.name}</div>
+          <div class="acd">${ach.desc}</div>
+          <div class="acr">🎁 ${(()=>{
+            const parts = [];
+            if (ach.reward.gold)   parts.push(fmt(ach.reward.gold)+' 🪙');
+            if (ach.reward.xpAcad) parts.push(fmt(ach.reward.xpAcad)+' XP Acad');
+            return parts.join(' · ');
+          })()}</div>
+        </div>
+      </div>`;
+    });
+    html += "</div></div>";
+    document.getElementById("tab-content").innerHTML = html;
+  }
+
+  function renderPainelExplicativo(){
+    const mods = A.luckModifiers(save);
+    return `
+      <div class="panel" style="border-color:#3a2a10;">
+        <div class="panel-title">📖 Como funciona a Academia v18.3</div>
+        <div style="font-size:11px;color:#c9b48a;line-height:1.9;">
+          <b style="color:#e6c36a;">🥋 Academia (diária)</b><br>
+          • 1 carta por dia · duração aleatória (2h a 42h)<br>
+          • Buffs aleatórios: +1% a +3% (positivo) ou até ${mods.negFloor.toFixed(2)}% (negativo)<br>
+          • Carta recebe selo <b>🥋</b> permanente (não pode treinar de novo)<br>
+          • <b>Foco escolhido</b>: chance maior de buff positivo naquele atributo — o outro fica mais exposto ao negativo<br><br>
+
+          <b style="color:#e6c36a;">⛩️ Seção (avançada — 100K 🪙 pra desbloquear)</b><br>
+          • <b>7 dias consecutivos</b> de treino · abra a Seção todo dia<br>
+          • Boost final positivo até <b>+10% ATK/HP</b><br>
+          • <b style="color:#ff4444;">Se perder dias consecutivos: até -30% ATK/HP!</b><br>
+          • Só recebe 🥋 depois dos 7 dias completos<br><br>
+
+          <b style="color:#29b6f6;">🗺️ Expedição (diária)</b><br>
+          • 1 vez por dia · duração aleatória (2h a 42h)<br>
+          • Recompensa: até ${fmt(A.EXP_MAX_GOLD)} 🪙 · ${fmt(A.EXP_MAX_XP)} XP · ${fmt(A.EXP_MAX_XPP)} XPP<br>
+          • 47% de chance de trazer <b>uma carta</b> (chance mínima Origens/Ultra Raro)<br>
+          • <b style="color:#ff4444;">Risco de perder a carta</b> (~${(mods.loseChance*100).toFixed(1)}% com seu nível atual)<br>
+          • <b>🛡️ Seguro</b> reduz muito o risco (não zera) — bem caro<br>
+          • <b>👯 Enviar dupla</b>: 2 cartas em risco, teto de recompensa 1.7x<br><br>
+
+          <b style="color:#ce93d8;">⭐ XP da Academia (Nv 1 → 6)</b><br>
+          • Todo treino/expedição concluído dá XP<br>
+          • Cada nível <b>reduz</b> o teto negativo e <b>aumenta</b> chance de buff positivo<br>
+          • Também reduz risco de perder cartas em expedição<br>
+          • <b>Nv MÁX 6 = Faixa Preta</b>: teto negativo apenas -0.50% e chance de perda mínima (2%)<br><br>
+
+          <b style="color:#ffc107;">🏆 Conquistas</b><br>
+          • 23 conquistas variadas dão ouro e XP da Academia<br>
+          • Complete treinos, expedições, alcance níveis e desbloqueie recompensas
+        </div>
+      </div>
+    `;
+  }
+
+  function render(){
+    A.tickAll(save);
+    refreshHero();
+    refreshActiveRuns();
+    // Tabs
+    document.querySelectorAll(".tab").forEach(t=>{
+      t.classList.toggle("active", t.getAttribute("data-tab")===currentTab);
+      t.onclick = ()=>{ currentTab = t.getAttribute("data-tab"); render(); };
+    });
+    if (currentTab === "academia")   renderAcademia();
+    else if (currentTab === "sessao") renderSessao();
+    else if (currentTab === "expedicao") renderExpedicao();
+    else if (currentTab === "conquistas") renderConquistas();
+  }
+
+  // Timer para countdowns
+  setInterval(()=>{
+    document.querySelectorAll(".rtimer[data-endsat]").forEach(el=>{
+      const e = parseInt(el.getAttribute("data-endsat"),10);
+      const left = e - Date.now();
+      if (left <= 0) {
+        if (el.textContent !== "✅ PRONTO") { render(); }
+      } else {
+        el.textContent = timeLeft(left);
+      }
+    });
+  }, 1000);
+
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Comprar – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+.comprar-hero {
+  background:linear-gradient(135deg,#1a0a00,#2d1500,#1a0a00);
+  border:2px solid #ffc107; border-radius:16px;
+  padding:20px 16px; margin-bottom:14px; text-align:center;
+  position:relative; overflow:hidden;
+}
+.comprar-hero::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(255,193,7,0.1) 0%,transparent 60%);
+  pointer-events:none;
+}
+.comprar-hero .icon { font-size:48px; display:block; margin-bottom:8px;
+  animation:float 2.5s ease-in-out infinite; }
+.comprar-hero .title { font-family:'Cinzel',serif; font-size:20px; font-weight:900;
+  background:linear-gradient(135deg,#ffc107,#ff6d00);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:4px; }
+.comprar-hero .sub { font-size:12px; color:#9e9e9e; }
+
+.shop-tabs {
+  display:flex; background:#0e0e1c; border-radius:12px;
+  padding:4px; margin-bottom:16px; gap:3px;
+}
+.shop-tab {
+  flex:1; padding:9px 4px; border:none; border-radius:9px;
+  background:transparent; color:#9e9e9e;
+  font-family:'Rajdhani',sans-serif; font-size:12px; font-weight:700;
+  cursor:pointer; transition:all 0.2s;
+}
+.shop-tab.active { background:linear-gradient(135deg,#b8730a,#e65100); color:#fff; }
+
+.item-buy-card {
+  background:var(--bg-card); border:2px solid #2a2a4a; border-radius:14px;
+  padding:14px; margin-bottom:10px; transition:all 0.2s; position:relative;
+}
+.item-buy-card:hover { border-color:#ffc107; transform:translateY(-2px); }
+.item-buy-card.creator-disc { border-color:#29b6f6; }
+
+.discount-badge {
+  position:absolute; top:10px; right:10px;
+  background:linear-gradient(135deg,#388e3c,#66bb6a); color:#fff;
+  border-radius:20px; padding:3px 10px; font-size:11px; font-weight:700;
+}
+.discount-badge.creator { background:linear-gradient(135deg,#0d47a1,#29b6f6); }
+
+.price-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.price-original { text-decoration:line-through; color:#555; font-size:13px; }
+.price-final { font-size:20px; font-weight:900; color:#ffc107; }
+
+.currency-selector {
+  display:flex; gap:8px; margin-bottom:14px;
+}
+.currency-btn {
+  flex:1; padding:12px; border:2px solid #2a2a4a; border-radius:10px;
+  background:transparent; color:#9e9e9e; font-family:'Rajdhani',sans-serif;
+  font-size:14px; font-weight:700; cursor:pointer; transition:all 0.2s; text-align:center;
+}
+.currency-btn.active { border-color:#ffc107; color:#ffc107; background:rgba(255,193,7,0.08); }
+
+.vitrine-card {
+  background:linear-gradient(135deg,#0a0020,#150030);
+  border:2px solid #7c4dff; border-radius:14px;
+  padding:14px; margin-bottom:10px; position:relative; overflow:hidden;
+  transition:all 0.2s;
+}
+.vitrine-card:hover { border-color:#e040fb; transform:translateY(-2px); }
+.vitrine-exclusive {
+  position:absolute; top:0; right:0;
+  background:linear-gradient(135deg,#4a0072,#7c4dff);
+  font-size:10px; font-weight:700; color:#fff;
+  padding:4px 12px; border-radius:0 14px 0 10px;
+}
+.vitrine-timer {
+  text-align:center; background:#0e0e1c; border:1px solid #4a0072;
+  border-radius:10px; padding:8px; margin-bottom:12px;
+  font-size:12px; color:#9e9e9e;
+}
+.vitrine-timer span { color:#e040fb; font-weight:700; font-family:'Cinzel',serif; }
+
+.ticket-box {
+  background:linear-gradient(135deg,#1a0a00,#0a1a00);
+  border:2px solid #ffc107; border-radius:14px; padding:16px; margin-bottom:14px;
+}
+.ticket-obfuscated {
+  background:#070712; border:1px solid #2a2a4a; border-radius:8px;
+  padding:12px; font-family:monospace; font-size:10px; color:#4a4a6a;
+  word-break:break-all; line-height:1.6; max-height:100px; overflow-y:auto;
+  margin:10px 0; user-select:all; cursor:text;
+  filter:blur(1.5px); transition:filter 0.3s;
+}
+.ticket-obfuscated:hover { filter:blur(0); }
+
+.warning-box {
+  background:rgba(244,67,54,0.08); border:2px solid #f44336;
+  border-radius:12px; padding:14px; margin:10px 0;
+  font-size:12px; color:#ef9a9a; line-height:1.8;
+}
+.warning-box .warn-title {
+  font-family:'Cinzel',serif; font-weight:700; font-size:14px;
+  color:#f44336; margin-bottom:6px;
+}
+
+.how-to-steps { counter-reset:steps; }
+.step-item {
+  display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--border);
+}
+.step-item:last-child { border-bottom:none; }
+.step-num {
+  background:linear-gradient(135deg,#b8730a,#e65100);
+  color:#fff; border-radius:50%; width:24px; height:24px;
+  display:flex; align-items:center; justify-content:center;
+  font-weight:900; font-size:12px; flex-shrink:0; margin-top:1px;
+}
+.step-txt { font-size:12px; color:#c0c0d0; line-height:1.6; }
+.step-txt strong { color:#ffd54f; }
+
+.discount-rotate-info {
+  background:#0e0e1c; border:1px solid #2a2a4a; border-radius:10px;
+  padding:10px 12px; font-size:11px; color:#9e9e9e; line-height:1.7;
+  margin-bottom:12px;
+}
+.disc-chip {
+  display:inline-flex; align-items:center; gap:3px;
+  font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px;
+}
+.disc-chip.normal { background:rgba(102,187,106,0.15); color:#a5d6a7; border:1px solid #66bb6a; }
+.disc-chip.creator { background:rgba(41,182,246,0.15); color:#80deea; border:1px solid #29b6f6; }
+.disc-chip.weekend { background:rgba(255,193,7,0.15); color:#ffe082; border:1px solid #ffc107; }
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title" style="background:linear-gradient(135deg,#ffc107,#ff6d00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">💳 COMPRAR</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content">
+
+  <div class="comprar-hero">
+    <span class="icon">💎</span>
+    <div class="title">Loja de Diamantes</div>
+    <div class="sub">Ouro, XP, XPP e personagens exclusivos · Pagamento via Discord</div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="shop-tabs">
+    <button class="shop-tab active" onclick="switchTab('vitrine',this)">🌟 Vitrine</button>
+    <button class="shop-tab" onclick="switchTab('gold',this)">🪙 Ouro</button>
+    <button class="shop-tab" onclick="switchTab('xp',this)">⭐ XP/XPP</button>
+    <button class="shop-tab" onclick="switchTab('ticket',this)">🎫 Gerar Ticket</button>
+    <button class="shop-tab" onclick="switchTab('maestria',this)" style="border-color:#ce93d8;color:#ce93d8;">⭐ Maestria</button>
+    <button class="shop-tab" onclick="switchTab('varas',this)" style="border-color:#29b6f6;color:#29b6f6;">🎣 Varas</button>
+    <button class="shop-tab" onclick="switchTab('powerups',this)" style="border-color:#e040fb;color:#e040fb;">⚡ Power-ups VIP</button>
+    <button class="shop-tab" onclick="switchTab('prime',this)" style="border-color:#ff00aa;color:#ff00aa;">8️⃣ Prime</button>
+  </div>
+
+  <!-- ═══ PRIME ═══ -->
+  <div id="tab-prime" style="display:none;">
+    <div class="item-buy-card" style="border-color:#ff00aa;background:linear-gradient(135deg,#100020,#2a0040);">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-size:36px;filter:drop-shadow(0 0 12px #ff00aa);">8️⃣</span>
+        <div>
+          <div style="font-family:'Cinzel',serif;font-weight:900;color:#ff00aa;">Sistema Prime</div>
+          <div style="font-size:11px;color:#9e9e9e;">Adicione pontos direto ao seu Prime com dinheiro real.</div>
+        </div>
+      </div>
+      <div id="prime-current-info" style="font-size:12px;color:#e0e0f0;margin-bottom:10px;"></div>
+      <a href="prime.html" class="btn btn-outline btn-sm" style="border-color:#ff00aa;color:#ff00aa;">Ver ranking &amp; recompensas →</a>
+    </div>
+
+    <div id="prime-buy-list"></div>
+
+    <div class="item-buy-card" style="border-color:#ffc107;background:linear-gradient(135deg,#1a0a00,#3a1500);">
+      <span class="discount-badge" style="background:linear-gradient(135deg,#ff00aa,#ffc107);">EXCLUSIVO</span>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-size:44px;filter:drop-shadow(0 0 16px #ff00aa) drop-shadow(0 0 32px #ffc107);animation:float 2.5s ease-in-out infinite;">8️⃣</span>
+        <div>
+          <div style="font-family:'Cinzel',serif;font-weight:900;color:#ffc107;">Prime VIII Completo</div>
+          <div style="font-size:11px;color:#9e9e9e;">Desbloqueia instantaneamente o Prime VIII e o selo 8️⃣.</div>
+        </div>
+      </div>
+      <div class="price-row" style="margin-bottom:10px;">
+        <span class="price-final">R$ 3.000,00</span>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="buyPrime8Full()"
+              style="background:linear-gradient(135deg,#ff00aa,#ffc107);">
+        Desbloquear Prime VIII
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══ VITRINE ═══ -->
+  <div id="tab-vitrine">
+    <div class="vitrine-timer">
+      Vitrine exclusiva troca em: <span id="vitrine-timer">--:--:--</span>
+    </div>
+    <p style="font-size:12px;color:#9e9e9e;margin-bottom:12px;line-height:1.7;">
+      🌟 <strong style="color:#e040fb;">Personagens exclusivos</strong> — só disponíveis aqui com dinheiro real.
+      A vitrine troca automaticamente a cada <strong>3 horas</strong>. Quando os personagens saem, <strong>nunca mais voltam</strong>!
+    </p>
+
+    <!-- Desconto rotativo info -->
+    <div class="discount-rotate-info" id="discount-info-box"></div>
+
+    <div id="vitrine-list"></div>
+  </div>
+
+  <!-- ═══ OURO ═══ -->
+  <div id="tab-gold" style="display:none;">
+    <div class="discount-rotate-info" id="discount-info-gold"></div>
+    <div id="gold-list"></div>
+  </div>
+  
+  <!-- ═══ PACOTES SUPREMOS ═══ -->
+<div id="tab-supremo" style="display:none;">
+  <div style="background:linear-gradient(135deg,#1a0a00,#2d1500,#1a0a00);border:2px solid #ff6d00;border-radius:14px;padding:16px;margin-bottom:14px;text-align:center;">
+    <div style="font-size:44px;margin-bottom:8px;">👑</div>
+    <div style="font-family:'Cinzel',serif;font-size:18px;font-weight:900;color:#ff6d00;margin-bottom:4px;">PACOTES SUPREMOS</div>
+    <div style="font-size:12px;color:#9e9e9e;line-height:1.7;">Os itens mais poderosos do jogo — para quem quer <strong style="color:#ffc107;">dominar absolutamente</strong>.<br>Compras processadas via Discord.</div>
+  </div>
+
+  <div class="discount-rotate-info" id="discount-info-supremo"></div>
+
+  <!-- ═══ PACOTE: MESTRE DA MAESTRIA ═══ -->
+  <div class="item-buy-card" style="border-color:#ff6d00;background:linear-gradient(135deg,#1a0a00,#2d1500);">
+    <div class="discount-badge" style="background:linear-gradient(135deg,#ff6d00,#ffc107);color:#000;">💎 SUPREMO</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+      <div style="font-size:44px;">⭐</div>
+      <div style="flex:1;">
+        <div style="font-weight:700;font-size:15px;color:#ffc107;">Mestre da Maestria</div>
+        <div style="font-size:12px;color:#ce93d8;">⭐ +1.500 Pontos de Maestria para distribuir livremente</div>
+        <div style="font-size:11px;color:#9e9e9e;margin-top:4px;line-height:1.6;">
+          🔥 Leva uma carta <strong style="color:#ce93d8;">Épica</strong> de 0 a 5★<br>
+          💎 Leva uma carta <strong style="color:#ffc107;">Lendária</strong> de 0 a 4★<br>
+          🌌 Suficiente para <strong style="color:#e040fb;">Prestige I</strong> em uma carta 5★
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div class="price-original" id="sup-p1-original"></div>
+        <div class="price-final" id="sup-p1-final"></div>
+        <button class="btn btn-gold btn-sm" style="margin-top:6px;background:linear-gradient(135deg,#ff6d00,#ffc107);color:#000;" onclick="addToCartSupremo('sup_maestria_1500','Mestre da Maestria (1.500 pts)','⭐',39.99,199.90)">👑 Adicionar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PACOTE: COLECIONADOR SUPREMO ═══ -->
+  <div class="item-buy-card" style="border-color:#ff6d00;background:linear-gradient(135deg,#0a0020,#1a003a);">
+    <div class="discount-badge" style="background:linear-gradient(135deg,#7c4dff,#e040fb);color:#fff;">💎 ULTRA</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+      <div style="font-size:44px;">🃏</div>
+      <div style="flex:1;">
+        <div style="font-weight:700;font-size:15px;color:#e040fb;">Colecionador Supremo</div>
+        <div style="font-size:12px;color:#ce93d8;">🃏 3 cartas <strong style="color:#ffc107;">Lendárias</strong> garantidas (qualquer uma do jogo!)</div>
+        <div style="font-size:11px;color:#9e9e9e;margin-top:4px;line-height:1.6;">
+          ⚡ Você escolhe as 3 cartas via Discord<br>
+          🎯 Pode ser qualquer Lendária — incluindo as da pesca!<br>
+          📦 Chegam direto no seu Cofre
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div class="price-original" id="sup-p2-original"></div>
+        <div class="price-final" id="sup-p2-final"></div>
+        <button class="btn btn-gold btn-sm" style="margin-top:6px;background:linear-gradient(135deg,#7c4dff,#e040fb);color:#fff;" onclick="addToCartSupremo('sup_cards_3l','Colecionador Supremo (3 Lendárias)','🃏',29.99,149.90)">👑 Adicionar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PACOTE: MESTRE DA PESCA ═══ -->
+  <div class="item-buy-card" style="border-color:#ff6d00;background:linear-gradient(135deg,#001a2e,#002d4e);">
+    <div class="discount-badge" style="background:linear-gradient(135deg,#00e5ff,#29b6f6);color:#000;">🎣 SUPREMO</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+      <div style="font-size:44px;">🎣</div>
+      <div style="flex:1;">
+        <div style="font-weight:700;font-size:15px;color:#29b6f6;">Mestre da Pesca</div>
+        <div style="font-size:12px;color:#80deea;">🎣 10.000 Restos de Isca + 50 iscas especiais</div>
+        <div style="font-size:11px;color:#9e9e9e;margin-top:4px;line-height:1.6;">
+          🔥 Restos suficientes para <strong style="color:#ffc107;">10 Iscas Origens</strong><br>
+          🎁 Inclui: 20× Isca Cósmica · 20× Isca Lunar · 10× Isca do Caos<br>
+          🌌 O pacote definitivo para dominar a pesca
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div class="price-original" id="sup-p3-original"></div>
+        <div class="price-final" id="sup-p3-final"></div>
+        <button class="btn btn-gold btn-sm" style="margin-top:6px;background:linear-gradient(135deg,#00e5ff,#29b6f6);color:#000;" onclick="addToCartSupremo('sup_pesca_master','Mestre da Pesca (10K restos + 50 iscas)','🎣',34.99,174.90)">🎣 Adicionar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PACOTE: GUERREIRO ETERNO ═══ -->
+  <div class="item-buy-card" style="border-color:#ff6d00;background:linear-gradient(135deg,#1a0010,#2d0020);">
+    <div class="discount-badge" style="background:linear-gradient(135deg,#ff0044,#ff6d00);color:#fff;">💀 SUPREMO</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+      <div style="font-size:44px;">⚔️</div>
+      <div style="flex:1;">
+        <div style="font-weight:700;font-size:15px;color:#ff4444;">Guerreiro Eterno</div>
+        <div style="font-size:12px;color:#ef9a9a;">⚔️ 1 carta <strong style="color:#ffc107;">Mítica</strong> garantida (você escolhe!)</div>
+        <div style="font-size:11px;color:#9e9e9e;margin-top:4px;line-height:1.6;">
+          🔥 Escolha QUALQUER carta Mítica do jogo<br>
+          💀 Inclui cartas da pesca e eventos (se disponíveis)<br>
+          👑 Ideal para completar sua coleção de Míticas
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div class="price-original" id="sup-p4-original"></div>
+        <div class="price-final" id="sup-p4-final"></div>
+        <button class="btn btn-gold btn-sm" style="margin-top:6px;background:linear-gradient(135deg,#ff0044,#ff6d00);color:#fff;" onclick="addToCartSupremo('sup_mythic_card','Guerreiro Eterno (1 Mítica)','⚔️',49.99,249.90)">👑 Adicionar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PACOTE: ORIGENS ABSOLUTA ═══ -->
+  <div class="item-buy-card" style="border-color:#ff6d00;background:linear-gradient(135deg,#0a0010,#1a0030);border:3px solid #ff4444;box-shadow:0 0 40px rgba(255,68,68,0.15);">
+    <div class="discount-badge" style="background:linear-gradient(135deg,#ff4444,#ffc107);color:#000;">🔥 ORIGENS</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+      <div style="font-size:48px;animation:float 2s ease-in-out infinite;">🌌</div>
+      <div style="flex:1;">
+        <div style="font-weight:700;font-size:16px;color:#ff4444;">Origens Absoluta</div>
+        <div style="font-size:12px;color:#ffc107;">🌌 1 carta <strong style="color:#ffc107;">ORIGENS</strong> garantida (você escolhe!)</div>
+        <div style="font-size:11px;color:#9e9e9e;margin-top:4px;line-height:1.6;">
+          🔥 Escolha QUALQUER carta ORIGENS do jogo<br>
+          🎯 Inclui cartas da pesca: Rei Abissal Nephilim, Dragão do Vazio Eterno, Entidade das Marés<br>
+          👑 A raridade máxima — o sonho de todo jogador<br>
+          ⚠️ <strong style="color:#ff4444;">LIMITADO: apenas 3 unidades por mês!</strong>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div class="price-original" id="sup-p5-original"></div>
+        <div class="price-final" id="sup-p5-final"></div>
+        <button class="btn btn-gold btn-sm" style="margin-top:6px;background:linear-gradient(135deg,#ff0044,#ff6d00);color:#fff;font-size:13px;padding:8px 16px;" onclick="addToCartSupremo('sup_origens_card','Origens Absoluta (1 carta ORIGENS)','🌌',99.99,499.90)">🔥 COMPRAR</button>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:#0a0a18;border:1px solid #2a2a4a;border-radius:10px;padding:12px;font-size:11px;color:#9e9e9e;line-height:1.8;margin-bottom:12px;">
+    ⚠️ <strong style="color:#ff6d00;">Como funciona:</strong> Após a compra e confirmação via Discord, você informa quais cartas deseja receber. O dev verifica se as cartas são válidas e as insere no seu <strong>Cofre</strong> ou <strong>Correio</strong>.<br>
+    📌 <strong style="color:#ffc107;">Cartas escolhidas:</strong> Você pode escolher QUALQUER carta do jogo, incluindo as de pesca, eventos e personagens pagos da vitrine (vc001–vc111).
+  </div>
+
+  <button class="btn btn-primary btn-block" onclick="switchTab('ticket', document.querySelectorAll('.shop-tab')[3])">🎫 Ir para Gerar Ticket</button>
+</div>
+
+  <!-- ═══ XP/XPP ═══ -->
+  <div id="tab-xp" style="display:none;">
+    <div class="discount-rotate-info" id="discount-info-xp"></div>
+    <div id="xp-list"></div>
+  </div>
+
+  <!-- ═══ GERAR TICKET ═══ -->
+  <!-- TAB MAESTRIA PREMIUM -->
+  <div id="tab-maestria" style="display:none;">
+    <div style="background:linear-gradient(135deg,#0d0025,#200050);border:1px solid #ce93d8;border-radius:14px;padding:16px;margin-bottom:14px;text-align:center;">
+      <div style="font-size:40px;margin-bottom:8px;">⭐</div>
+      <div style="font-family:'Cinzel',serif;font-size:17px;font-weight:900;color:#ce93d8;margin-bottom:4px;">Maestria Premium</div>
+      <div style="font-size:12px;color:#9e9e9e;line-height:1.7;">Evolua suas cartas favoritas até 5★ mais rapidamente com produtos exclusivos.<br>Compras processadas via Discord — mesmo fluxo dos pacotes de ouro.</div>
+    </div>
+
+    <div class="discount-rotate-info" id="discount-info-maestria"></div>
+
+    <!-- Produto 1 -->
+    <div class="item-buy-card" style="border-color:#7c4dff;">
+      <div class="discount-badge" id="disc-m1" style="display:none;"></div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-size:40px;">🔮</div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:14px;">Catalisador de Maestria (7 dias)</div>
+          <div style="font-size:12px;color:#ce93d8;">⭐ Dupes em pacotes valem 2x pontos por 7 dias</div>
+          <div style="font-size:11px;color:#9e9e9e;margin-top:3px;">Ideal para quem abre muitos pacotes na semana</div>
+        </div>
+        <div style="text-align:right;">
+          <div id="maestria-p1-original" class="price-original"></div>
+          <div id="maestria-p1-final" class="price-final"></div>
+          <button class="btn btn-gold btn-sm" style="margin-top:6px;" onclick="addToCartMaestria('maestria_catalyst_7d','Catalisador de Maestria 7d','🔮',4.99,24.90)">🛒 Adicionar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Produto 2 -->
+    <div class="item-buy-card" style="border-color:#ffd700;">
+      <div class="discount-badge" id="disc-m2" style="display:none;"></div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-size:40px;">💠</div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:14px;">Pacote de Fragmentos — Pequeno</div>
+          <div style="font-size:12px;color:#ffd700;">⭐ +100 Pontos de Maestria para distribuir livremente</div>
+          <div style="font-size:11px;color:#9e9e9e;margin-top:3px;">Você escolhe qual carta recebe os pontos via Discord</div>
+        </div>
+        <div style="text-align:right;">
+          <div id="maestria-p2-original" class="price-original"></div>
+          <div id="maestria-p2-final" class="price-final"></div>
+          <button class="btn btn-gold btn-sm" style="margin-top:6px;" onclick="addToCartMaestria('maestria_frag_sm','Fragmentos de Maestria (100 pts)','💠',6.99,34.90)">🛒 Adicionar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Produto 3 -->
+    <div class="item-buy-card" style="border-color:#ffd700;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-size:40px;">✨</div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:14px;">Pacote de Fragmentos — Grande</div>
+          <div style="font-size:12px;color:#ffd700;">⭐ +500 Pontos de Maestria para distribuir livremente</div>
+          <div style="font-size:11px;color:#9e9e9e;margin-top:3px;">Suficiente para levar uma carta Épica de 0 a 5★ do zero</div>
+        </div>
+        <div style="text-align:right;">
+          <div id="maestria-p3-original" class="price-original"></div>
+          <div id="maestria-p3-final" class="price-final"></div>
+          <button class="btn btn-gold btn-sm" style="margin-top:6px;" onclick="addToCartMaestria('maestria_frag_lg','Fragmentos de Maestria (500 pts)','✨',24.99,124.90)">🛒 Adicionar</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- ═══ PRODUTO 5: MESTRE DA MAESTRIA ═══ -->
+<div class="item-buy-card" style="border-color:#ff6d00;background:linear-gradient(135deg,#1a0a00,#2d1500);">
+  <div class="discount-badge creator" style="background:linear-gradient(135deg,#ff6d00,#ffc107);color:#000;">🔥 SUPREMO</div>
+  <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+    <div style="font-size:40px;">⭐</div>
+    <div style="flex:1;">
+      <div style="font-weight:700;font-size:14px;color:#ffc107;">Mestre da Maestria</div>
+      <div style="font-size:12px;color:#ffc107;">⭐ +5.000 Pontos de Maestria para distribuir livremente</div>
+      <div style="font-size:11px;color:#9e9e9e;margin-top:3px;">Leva uma carta <strong style="color:#ce93d8;">ULTRA_RARE</strong> de 0 a 5★ do zero!</div>
+    </div>
+    <div style="text-align:right;">
+      <div class="price-original" id="maestria-p5-original"></div>
+      <div class="price-final" id="maestria-p5-final"></div>
+      <button class="btn btn-gold btn-sm" style="margin-top:6px;background:linear-gradient(135deg,#ff6d00,#ffc107);color:#000;" onclick="addToCartMaestria('maestria_frag_5k','Mestre da Maestria (5.000 pts)','⭐',79.99,399.90)">🔥 Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PRODUTO 6: LENDA DA MAESTRIA ═══ -->
+<div class="item-buy-card" style="border-color:#ff4444;background:linear-gradient(135deg,#1a0010,#2d0020);border:3px solid #ff4444;box-shadow:0 0 30px rgba(255,68,68,0.1);">
+  <div class="discount-badge" style="background:linear-gradient(135deg,#ff4444,#ffc107);color:#000;">💀 LENDÁRIO</div>
+  <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+    <div style="font-size:44px;animation:float 2s ease-in-out infinite;">🌌</div>
+    <div style="flex:1;">
+      <div style="font-weight:700;font-size:15px;color:#ff4444;">Lenda da Maestria</div>
+      <div style="font-size:12px;color:#ef9a9a;">⭐ +15.000 Pontos de Maestria para distribuir livremente</div>
+      <div style="font-size:11px;color:#9e9e9e;margin-top:4px;line-height:1.6;">
+        🔥 Leva uma carta <strong style="color:#ffc107;">ORIGENS</strong> de 0 a 5★ do zero!<br>
+        ⚡ Suficiente para <strong style="color:#e040fb;">Prestige III</strong> em uma carta 5★<br>
+        👑 O pacote DEFINITIVO de Maestria — para verdadeiros mestres
+      </div>
+    </div>
+    <div style="text-align:right;">
+      <div class="price-original" id="maestria-p6-original"></div>
+      <div class="price-final" id="maestria-p6-final"></div>
+      <button class="btn btn-gold btn-sm" style="margin-top:6px;background:linear-gradient(135deg,#ff0044,#ff6d00);color:#fff;font-size:13px;padding:8px 16px;" onclick="addToCartMaestria('maestria_frag_15k','Lenda da Maestria (15.000 pts)','🌌',149.99,749.90)">💀 COMPRAR</button>
+    </div>
+  </div>
+</div>
+
+    <!-- Produto 4 -->
+    <div class="item-buy-card" style="border-color:#ce93d8;background:linear-gradient(135deg,#0d0025,#150030);">
+      <div class="discount-badge creator" style="">💎 PREMIUM</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+        <div style="font-size:40px;">💎</div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:14px;color:#ce93d8;">Infusão Diamante Garantida</div>
+          <div style="font-size:12px;color:#ce93d8;">💎 Maxar UMA carta a 5★ + Infusão Diamante cosmética</div>
+          <div style="font-size:11px;color:#9e9e9e;margin-top:3px;">Você indica a carta. Dev aplica os pontos necessários + marca 💎. Qualquer raridade!</div>
+        </div>
+        <div style="text-align:right;">
+          <div id="maestria-p4-original" class="price-original"></div>
+          <div id="maestria-p4-final" class="price-final"></div>
+          <button class="btn btn-gold btn-sm" style="margin-top:6px;background:linear-gradient(135deg,#4a0072,#7b1fa2);" onclick="addToCartMaestria('maestria_diamond','Infusão Diamante Garantida (1 carta)','💎',49.99,249.90)">💎 Adicionar</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#0a0a18;border:1px solid #2a2a4a;border-radius:10px;padding:12px;font-size:11px;color:#9e9e9e;line-height:1.8;margin-bottom:12px;">
+      ⚠️ <strong style="color:#ce93d8;">Como funciona:</strong> Adicione ao carrinho e gere um ticket na aba "Gerar Ticket". No Discord, informe qual carta deve receber os pontos de Maestria. O dev vai verificar seu cofre e aplicar os pontos (necessário ter a carta no cofre).<br>
+      📌 Pontos de Maestria premium são cumulativos com pontos ganhos normalmente em jogo.
+    </div>
+
+    <button class="btn btn-primary btn-block" onclick="switchTab('ticket', document.querySelector('.shop-tab'))">🎫 Ir para Gerar Ticket</button>
+  </div>
+
+  <!-- TAB VARAS PREMIUM -->
+  <div id="tab-varas" style="display:none;">
+    <div style="background:linear-gradient(135deg,#001a2e,#002d4e);border:1px solid #29b6f6;border-radius:14px;padding:16px;margin-bottom:14px;text-align:center;">
+      <div style="font-size:40px;margin-bottom:8px;">🎣</div>
+      <div style="font-family:'Cinzel',serif;font-size:17px;font-weight:900;color:#29b6f6;margin-bottom:4px;">Varas de Pesca Premium</div>
+      <div style="font-size:12px;color:#9e9e9e;line-height:1.7;">As únicas varas capazes de pescar cartas <strong style="color:#ff4444;">ORIGENS</strong>, a raridade máxima do jogo.<br>Compras processadas via Discord — mesmo fluxo dos pacotes de ouro.</div>
+    </div>
+
+    <div class="discount-rotate-info" id="discount-info-varas"></div>
+
+    <div id="varas-list"></div>
+
+    <div style="background:#0a0a18;border:1px solid #2a2a4a;border-radius:10px;padding:12px;font-size:11px;color:#9e9e9e;line-height:1.8;margin-bottom:12px;">
+      ⚠️ <strong style="color:#29b6f6;">Como funciona:</strong> Adicione ao carrinho e gere um ticket na aba "Gerar Ticket". Após confirmação do pagamento, a vara chega no seu <strong>Correio</strong> — depois é só equipar na tela de Pesca.<br>
+      📌 Varas gratuitas (compradas com ouro) continuam disponíveis na aba 🎣 Pesca da Loja.
+    </div>
+
+    <button class="btn btn-primary btn-block" onclick="switchTab('ticket', document.querySelector('.shop-tab'))">🎫 Ir para Gerar Ticket</button>
+  </div>
+
+  <!-- TAB POWER-UPS VIP -->
+  <div id="tab-powerups" style="display:none;">
+    <div style="background:linear-gradient(135deg,#0a0020,#1a0040);border:2px solid #7c4dff;border-radius:14px;padding:16px;margin-bottom:14px;text-align:center;">
+      <div style="font-size:40px;margin-bottom:8px;">⚡</div>
+      <div style="font-family:'Cinzel',serif;font-size:17px;font-weight:900;color:#e040fb;margin-bottom:4px;">Power-ups VIP</div>
+      <div style="font-size:12px;color:#9e9e9e;line-height:1.7;">Versões premium dos power-ups — efeitos mais fortes e pacotes com desconto.<br>Compras processadas via Discord — mesmo fluxo dos pacotes de ouro.</div>
+    </div>
+
+    <div class="discount-rotate-info" id="discount-info-powerups"></div>
+
+    <!-- Pacote Starter -->
+    <div class="item-buy-card" style="border-color:#7c4dff;">
+      <div class="discount-badge" id="disc-pu1" style="display:none;"></div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-size:40px;">⚡</div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:14px;">Kit Iniciante Power-up</div>
+          <div style="font-size:12px;color:#ce93d8;">⚡×3 Carga de ATK · 🛡️×3 Escudo Rúnico · 💊×3 Poção de Cura</div>
+          <div style="font-size:11px;color:#9e9e9e;margin-top:3px;">Perfeito para começar — 9 power-ups essenciais</div>
+        </div>
+        <div style="text-align:right;">
+          <div id="pu-p1-original" class="price-original"></div>
+          <div id="pu-p1-final" class="price-final"></div>
+          <button class="btn btn-gold btn-sm" style="margin-top:6px;" onclick="addToCartPU('pu_kit_starter','Kit Iniciante Power-up','⚡',4.99,24.90)">🛒 Adicionar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pacote Avançado -->
+    <div class="item-buy-card" style="border-color:#e040fb;">
+      <div class="discount-badge" id="disc-pu2" style="display:none;"></div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-size:40px;">💢</div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:14px;">Kit Agressivo Power-up</div>
+          <div style="font-size:12px;color:#e040fb;">💢×3 Modo Berserk · ⚔️×3 Golpe Duplo · 🕶️×2 Roubo de Força · 🎲×2 Dado do Destino</div>
+          <div style="font-size:11px;color:#9e9e9e;margin-top:3px;">Para jogadores que querem virar partidas impossíveis</div>
+        </div>
+        <div style="text-align:right;">
+          <div id="pu-p2-original" class="price-original"></div>
+          <div id="pu-p2-final" class="price-final"></div>
+          <button class="btn btn-gold btn-sm" style="margin-top:6px;" onclick="addToCartPU('pu_kit_agressivo','Kit Agressivo Power-up','💢',7.99,39.90)">🛒 Adicionar</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- ═══ PACOTE: DOMINADOR DE BATALHAS ═══ -->
+<div class="item-buy-card" style="border-color:#ffd700;background:linear-gradient(135deg,#0a0020,#1a0040);">
+  <div class="discount-badge" style="background:linear-gradient(135deg,#ffc107,#ff6d00);color:#000;">🔥 MEGA</div>
+  <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+    <div style="font-size:40px;">⚔️</div>
+    <div style="flex:1;">
+      <div style="font-weight:700;font-size:14px;color:#ffc107;">Dominador de Batalhas</div>
+      <div style="font-size:12px;color:#ffc107;">×20 de TODOS os 8 tipos de power-up (160 power-ups no total!)</div>
+      <div style="font-size:11px;color:#9e9e9e;margin-top:3px;">O arsenal definitivo para DOMINAR a Batalha Clássica por meses</div>
+    </div>
+    <div style="text-align:right;">
+      <div class="price-original" id="pu-p4-original"></div>
+      <div class="price-final" id="pu-p4-final"></div>
+      <button class="btn btn-gold btn-sm" style="margin-top:6px;background:linear-gradient(135deg,#ffc107,#ff6d00);color:#000;" onclick="addToCartPU('pu_kit_dominador','Dominador de Batalhas (×160)','⚔️',49.99,249.90)">🔥 Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PACOTE: SUPREMO DA BATALHA ═══ -->
+<div class="item-buy-card" style="border-color:#ff4444;background:linear-gradient(135deg,#1a0010,#2d0020);border:3px solid #ff4444;box-shadow:0 0 30px rgba(255,68,68,0.1);">
+  <div class="discount-badge" style="background:linear-gradient(135deg,#ff4444,#ffc107);color:#000;">💀 SUPREMO</div>
+  <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+    <div style="font-size:44px;animation:float 2s ease-in-out infinite;">💀</div>
+    <div style="flex:1;">
+      <div style="font-weight:700;font-size:15px;color:#ff4444;">Supremo da Batalha</div>
+      <div style="font-size:12px;color:#ef9a9a;">×100 de TODOS os 8 tipos de power-up (800 power-ups no total!)</div>
+      <div style="font-size:11px;color:#9e9e9e;margin-top:4px;line-height:1.6;">
+        🔥 O pacote DEFINITIVO — use power-ups sem nunca se preocupar em acabar<br>
+        ⚡ Inclui: 100× Carga de ATK · 100× Escudo Rúnico · 100× Golpe Duplo · 100× Poção de Cura<br>
+        100× Cristal de Gelo · 100× Dado do Destino · 100× Roubo de Força · 100× Modo Berserk<br>
+        👑 Para jogadores que querem <strong style="color:#ffc107;">dominar completamente</strong> a Batalha Clássica
+      </div>
+    </div>
+    <div style="text-align:right;">
+      <div class="price-original" id="pu-p5-original"></div>
+      <div class="price-final" id="pu-p5-final"></div>
+      <button class="btn btn-gold btn-sm" style="margin-top:6px;background:linear-gradient(135deg,#ff0044,#ff6d00);color:#fff;font-size:13px;padding:8px 16px;" onclick="addToCartPU('pu_kit_supremo','Supremo da Batalha (×800)','💀',99.99,499.90)">💀 COMPRAR</button>
+    </div>
+  </div>
+</div>
+
+    <!-- Pacote Ultimate -->
+    <div class="item-buy-card" style="border-color:#ffd700;background:linear-gradient(135deg,#0a0020,#150030);">
+      <div class="discount-badge creator" style="">💎 PREMIUM</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+        <div style="font-size:40px;">🌌</div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:14px;color:#ffd700;">Coleção Completa Power-up</div>
+          <div style="font-size:12px;color:#ffd700;">×5 de TODOS os 8 tipos de power-up (40 power-ups no total)</div>
+          <div style="font-size:11px;color:#9e9e9e;margin-top:3px;">O arsenal definitivo — domine cada batalha por semanas</div>
+        </div>
+        <div style="text-align:right;">
+          <div id="pu-p3-original" class="price-original"></div>
+          <div id="pu-p3-final" class="price-final"></div>
+          <button class="btn btn-gold btn-sm" style="margin-top:6px;background:linear-gradient(135deg,#4a0072,#7b1fa2);" onclick="addToCartPU('pu_kit_completo','Coleção Completa Power-up (×40)','🌌',24.99,124.90)">💎 Adicionar</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#0a0a18;border:1px solid #2a2a4a;border-radius:10px;padding:12px;font-size:11px;color:#9e9e9e;line-height:1.8;margin-bottom:12px;">
+      ⚠️ <strong style="color:#e040fb;">Como funciona:</strong> Após a compra e confirmação via Discord, os power-ups chegam no seu <strong>Correio</strong> e ficam disponíveis no inventário ⚡ Power-ups. Use-os durante a <strong>Batalha Clássica</strong> para ativar efeitos poderosos.<br>
+      📌 Power-ups VIP têm os mesmos efeitos dos comprados com ouro — a diferença é o custo menor por unidade em pacotes maiores.
+    </div>
+
+    <button class="btn btn-primary btn-block" onclick="switchTab('ticket', document.querySelectorAll('.shop-tab')[3])">🎫 Ir para Gerar Ticket</button>
+  </div>
+
+  <div id="tab-ticket" style="display:none;">
+
+    <!-- Seleção de moeda -->
+    <div style="font-family:'Cinzel',serif;font-size:13px;font-weight:700;color:#ffc107;margin-bottom:10px;">
+      💱 Escolha a Moeda
+    </div>
+    <div class="currency-selector">
+      <button class="currency-btn active" id="btn-brl" onclick="setCurrency('BRL')">🇧🇷 Reais (R$)</button>
+      <button class="currency-btn" id="btn-usd" onclick="setCurrency('USD')">🇺🇸 Dólar ($)</button>
+    </div>
+
+    <!-- Resumo do pedido -->
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="panel-title">🛒 Resumo do Pedido</div>
+      <div id="order-summary" style="font-size:12px;color:#9e9e9e;text-align:center;padding:12px 0;">
+        Selecione itens nas abas acima (Vitrine, Ouro, XP/XPP) para montar seu pedido.
+      </div>
+      <div id="order-items"></div>
+      <div id="order-total" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+        <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;">
+          <span>Total:</span>
+          <span id="total-price" style="color:#ffc107;"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Botão gerar ticket -->
+    <button class="btn btn-gold btn-block btn-lg" id="btn-gerar-ticket" onclick="gerarTicket()" style="margin-bottom:14px;">
+      🎫 Gerar Ticket de Compra
+    </button>
+
+    <!-- Área do ticket -->
+    <div id="ticket-area" style="display:none;">
+      <div class="ticket-box">
+        <div style="font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:#ffc107;margin-bottom:8px;">
+          🎫 Seu Ticket
+        </div>
+        <div class="ticket-obfuscated" id="ticket-content" title="Passe o mouse para revelar">
+          Gerando ticket...
+        </div>
+        <button class="btn btn-outline btn-block btn-sm" onclick="copyTicket()" style="margin-bottom:8px;">
+          📋 Copiar Ticket
+        </button>
+
+        <div class="warning-box">
+          <div class="warn-title">⚠️ AVISO DE SEGURANÇA IMPORTANTE</div>
+          Este ticket contém informações <strong>criptografadas</strong> da sua conta e do seu pedido.
+          Ele está ofuscado para dificultar leitura direta, mas <strong>NUNCA compartilhe com terceiros</strong>
+          — apenas com um desenvolvedor oficial da Origens Games no Discord.<br><br>
+          ⛔ <strong>NÃO mostre a outros jogadores.</strong> Um dev mal-intencionado ou
+          um golpista pode usar o ticket para manipular sua conta.<br>
+          A Origens Games nunca pede seu ticket fora do canal oficial de compras.<br><br>
+          🔒 Após o pagamento confirmado, um dev abrirá o painel admin e inserirá os itens no seu Correio.
+        </div>
+      </div>
+
+      <!-- Como fazer o pagamento -->
+      <div class="panel">
+        <div class="panel-title">📋 Como Finalizar sua Compra</div>
+        <div class="how-to-steps">
+          <div class="step-item"><div class="step-num">1</div><div class="step-txt">Entre no <strong>Discord oficial da Origens Games</strong> e vá ao canal <strong>#canal-de-compras</strong>.</div></div>
+          <div class="step-item"><div class="step-num">2</div><div class="step-txt">Envie seu ticket copiado para o canal e aguarde um desenvolvedor confirmar.</div></div>
+          <div class="step-item"><div class="step-num">3</div><div class="step-txt">O dev vai informar os dados de pagamento. Realize o pagamento via <strong>Pix (BRL)</strong> ou <strong>transferência internacional (USD)</strong>.</div></div>
+          <div class="step-item"><div class="step-num">4</div><div class="step-txt">Após confirmação do pagamento, o dev inserirá os produtos. Verifique seu <strong>Correio</strong> em até 30 minutos.</div></div>
+        </div>
+      </div>
+
+      <!-- Sistema de Presente -->
+      <div class="panel" style="border-color:#4a0072;">
+        <div class="panel-title" style="color:#e040fb;">🎁 Quer Presentear um Amigo?</div>
+        <p style="font-size:12px;color:#9e9e9e;line-height:1.7;margin-bottom:10px;">
+          Se quiser presentear outro jogador, peça para ele gerar o ticket dele (sem precisar pagar)
+          e te enviar. Você cola o ticket dele no canal <strong>#presentes</strong> do Discord
+          junto com os itens desejados e faz o pagamento. Os itens chegam no <strong>Correio do amigo</strong>.
+        </p>
+        <a href="#" class="btn btn-outline btn-block" onclick="showToast('💬 Peça o link do Discord à equipe!','info');return false;">
+          🎁 Canal de Presentes no Discord
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:70px;"></div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js?v=13.0"></script>
+<script src="gamedata2.js?v=13.0"></script>
+<script src="gamedata3.js?v=13.0"></script>
+<script src="gamedata-v7-patch.js?v=13.0"></script>
+<script src="gamedata-pesca.js?v=13.0"></script>
+<script src="gamedata-powerups.js?v=13.0"></script>
+<script src="gamedata-prime-patch.js?v=13.1"></script>
+<script>
+let save, selectedCurrency = "BRL", cart = [];
+
+// ── PRODUTOS ────────────────────────────────────────────────
+const VITRINE_CHARS = [
+  { id:"vc001", name:"Origens Primordial",   emoji:"🌌", desc:"O primeiro ser a despertar no universo de Card Fight.", brl:19.90, usd:3.99, rarity:"ORIGENS" },
+  { id:"vc002", name:"Deusa da Lua Negra",   emoji:"🌑", desc:"Governante das marés sombrias e do eclipse eterno.",   brl:14.90, usd:2.99, rarity:"ULTRA_RARE" },
+  { id:"vc003", name:"Imperador do Caos",    emoji:"🌀", desc:"Onde ele passa, o espaço se dobra.",                    brl:24.90, usd:4.99, rarity:"ORIGENS" },
+  { id:"vc004", name:"Guardiã das Estrelas", emoji:"⭐", desc:"Nascida da fusão de mil estrelas moribundas.",           brl:12.90, usd:2.49, rarity:"ULTRA_RARE" },
+  { id:"vc005", name:"Dragão Primordial",    emoji:"🐉", desc:"O primeiro dragão — pai de todas as criaturas.",        brl:29.90, usd:5.99, rarity:"ORIGENS" },
+
+  // ── ADICIONADOS ANTERIORMENTE (vc006 – vc011) ──────────
+  { id:"vc006", name:"Anjo da Criação",       emoji:"👼", desc:"O arquiteto que esculpiu os primeiros mundos com luz e sombra.", brl:29.90, usd:5.99, rarity:"ORIGENS" },
+  { id:"vc007", name:"Fênix Dourada",         emoji:"🦅", desc:"Renasce das cinzas com poder renovado a cada amanhecer.", brl:24.90, usd:4.99, rarity:"ULTRA_RARE" },
+  { id:"vc008", name:"Senhor dos Portais",    emoji:"🌀", desc:"Abre passagens entre dimensões esquecidas pelo tempo.", brl:14.90, usd:2.99, rarity:"LEGENDARY" },
+  { id:"vc009", name:"Deusa da Colheita",     emoji:"🌾", desc:"Traz fartura e prosperidade aos campos de batalha.", brl:9.90, usd:1.99, rarity:"EPIC" },
+  { id:"vc010", name:"Dragão do Crepúsculo",  emoji:"🐲", desc:"Sua sombra cobre o horizonte ao entardecer, anunciando a noite eterna.", brl:34.90, usd:6.99, rarity:"ORIGENS" },
+  { id:"vc011", name:"Guardião das Almas",    emoji:"🛡️", desc:"Protege os caídos e os guia para o próximo ciclo de batalhas.", brl:12.90, usd:2.49, rarity:"LEGENDARY" },
+
+  // ════════════════════════════════════════════════════════════
+  // ── 100 NOVOS PERSONAGENS PAGOS (vc012 – vc111) ──────────
+  // ════════════════════════════════════════════════════════════
+
+  // ── ÉPICOS ACESSÍVEIS (vc012 – vc031) ──────────────────────
+  { id:"vc012", name:"Senhora dos Espinhos",        emoji:"🌹", desc:"Beleza letal que transforma jardins em campos de batalha.", brl:9.90, usd:1.99, rarity:"EPIC" },
+  { id:"vc013", name:"Mestre da Forja",             emoji:"🔨", desc:"Suas armas são lendárias, seus golpes, inescapáveis.", brl:10.90, usd:2.19, rarity:"EPIC" },
+  { id:"vc014", name:"Sombra do Vento",             emoji:"🍃", desc:"Desliza entre as brisas como uma lâmina invisível.", brl:9.90, usd:1.99, rarity:"EPIC" },
+  { id:"vc015", name:"Titã da Montanha",            emoji:"⛰️", desc:"Carrega picos inteiros nas costas sem nem tremer.", brl:11.90, usd:2.39, rarity:"EPIC" },
+  { id:"vc016", name:"Bruxa das Marés",             emoji:"🌊", desc:"As ondas dançam conforme sua voz comanda.", brl:9.90, usd:1.99, rarity:"EPIC" },
+  { id:"vc017", name:"Espírito da Caça",            emoji:"🏹", desc:"Nunca perde o rastro de sua presa, viva ou morta.", brl:10.90, usd:2.19, rarity:"EPIC" },
+  { id:"vc018", name:"Guardião do Fogo Eterno",     emoji:"🔥", desc:"As chamas que ele guarda nunca se apagaram.", brl:12.90, usd:2.49, rarity:"EPIC" },
+  { id:"vc019", name:"Cavaleiro da Aurora",         emoji:"☀️", desc:"Sua lança reflete a luz do primeiro amanhecer.", brl:11.90, usd:2.39, rarity:"EPIC" },
+  { id:"vc020", name:"Xamã da Lua Crescente",       emoji:"🌙", desc:"Canaliza o poder das fases lunares em cada ataque.", brl:9.90, usd:1.99, rarity:"EPIC" },
+  { id:"vc021", name:"Corsário Fantasma",           emoji:"🏴‍☠️", desc:"Navega em um navio que só aparece nas noites sem lua.", brl:10.90, usd:2.19, rarity:"EPIC" },
+  { id:"vc022", name:"Arcanista das Runas",         emoji:"🪄", desc:"Cada runa tatuada em seu corpo guarda um feitiço ancestral.", brl:12.90, usd:2.49, rarity:"EPIC" },
+  { id:"vc023", name:"Centauro da Neblina",         emoji:"🐴", desc:"Surge da névoa para disparar flechas que nunca erram.", brl:9.90, usd:1.99, rarity:"EPIC" },
+  { id:"vc024", name:"Rainha das Formigas",         emoji:"🐜", desc:"Comanda exércitos de criaturas com disciplina militar.", brl:11.90, usd:2.39, rarity:"EPIC" },
+  { id:"vc025", name:"Golem de Lava",               emoji:"🌋", desc:"Seu corpo derretido queima tudo que toca.", brl:10.90, usd:2.19, rarity:"EPIC" },
+  { id:"vc026", name:"Harpia da Tempestade",        emoji:"🦅", desc:"Seus gritos trazem tempestades que duram semanas.", brl:9.90, usd:1.99, rarity:"EPIC" },
+  { id:"vc027", name:"Sátiro da Floresta Proibida", emoji:"🐐", desc:"Conhece os segredos que as árvores sussurram.", brl:10.90, usd:2.19, rarity:"EPIC" },
+  { id:"vc028", name:"Oráculo da Areia",            emoji:"🏜️", desc:"Lê o futuro nas dunas que o vento molda.", brl:12.90, usd:2.49, rarity:"EPIC" },
+  { id:"vc029", name:"Paladino das Cinzas",         emoji:"🕯️", desc:"Renascido de uma fogueira que queimou um reino.", brl:11.90, usd:2.39, rarity:"EPIC" },
+  { id:"vc030", name:"Ladrão de Sonhos",            emoji:"💤", desc:"Rouba os sonhos dos inimigos para usá-los contra eles.", brl:9.90, usd:1.99, rarity:"EPIC" },
+  { id:"vc031", name:"Guerreiro de Cristal",        emoji:"💎", desc:"Seu corpo reflete a luz e corta a escuridão.", brl:10.90, usd:2.19, rarity:"EPIC" },
+
+  // ── LENDÁRIOS (vc032 – vc071) ──────────────────────────────
+  { id:"vc032", name:"Avatar do Trovão",            emoji:"⚡", desc:"Cada passo é seguido por um raio que parte o céu.", brl:14.90, usd:2.99, rarity:"LEGENDARY" },
+  { id:"vc033", name:"Deusa da Colheita Eterna",    emoji:"🌾", desc:"Suas terras nunca secam e seus inimigos nunca vencem.", brl:16.90, usd:3.39, rarity:"LEGENDARY" },
+  { id:"vc034", name:"Cavaleiro do Abismo",         emoji:"🐴", desc:"Monta uma criatura nascida no vazio entre as estrelas.", brl:17.90, usd:3.59, rarity:"LEGENDARY" },
+  { id:"vc035", name:"Maga das Estações",           emoji:"🌈", desc:"Controla o clima e o fluxo do tempo com sua magia.", brl:15.90, usd:3.19, rarity:"LEGENDARY" },
+  { id:"vc036", name:"Xerife das Terras Ermas",     emoji:"🤠", desc:"A lei em um mundo onde a lei é apenas um nome.", brl:14.90, usd:2.99, rarity:"LEGENDARY" },
+  { id:"vc037", name:"Necromante das Almas Gêmeas", emoji:"👻", desc:"Luta ao lado de seu próprio fantasma refletido.", brl:18.90, usd:3.79, rarity:"LEGENDARY" },
+  { id:"vc038", name:"Berserker Gélido",            emoji:"🧊", desc:"Sua raiva congela o sangue de seus oponentes.", brl:16.90, usd:3.39, rarity:"LEGENDARY" },
+  { id:"vc039", name:"Samurai do Pôr do Sol",       emoji:"🌅", desc:"Sua honra é tão brilhante quanto a luz do fim do dia.", brl:15.90, usd:3.19, rarity:"LEGENDARY" },
+  { id:"vc040", name:"Sacerdotisa do Eco",          emoji:"🔊", desc:"Cada palavra dela ressoa por toda a eternidade.", brl:14.90, usd:2.99, rarity:"LEGENDARY" },
+  { id:"vc041", name:"Titã da Ferrugem",            emoji:"⚙️", desc:"Corrói armaduras e esperanças com igual eficácia.", brl:17.90, usd:3.59, rarity:"LEGENDARY" },
+  { id:"vc042", name:"Sereia do Silêncio",          emoji:"🤫", desc:"Seu canto rouba a voz de quem a ouve.", brl:16.90, usd:3.39, rarity:"LEGENDARY" },
+  { id:"vc043", name:"Golem de Obsidiana Negra",    emoji:"🪨", desc:"Uma muralha viva que reflete feitiços de volta.", brl:18.90, usd:3.79, rarity:"LEGENDARY" },
+  { id:"vc044", name:"Vampira do Eclipse",          emoji:"🌘", desc:"Só desperta quando a luz do mundo se apaga.", brl:15.90, usd:3.19, rarity:"LEGENDARY" },
+  { id:"vc045", name:"Monge do Som",                emoji:"🎵", desc:"Transforma vibrações em golpes devastadores.", brl:14.90, usd:2.99, rarity:"LEGENDARY" },
+  { id:"vc046", name:"Pirata do Tempo",             emoji:"⏳", desc:"Navega por eras em busca do tesouro final.", brl:17.90, usd:3.59, rarity:"LEGENDARY" },
+  { id:"vc047", name:"Anjo Caído do Juízo",         emoji:"⚖️", desc:"Pesa as almas dos guerreiros caídos.", brl:16.90, usd:3.39, rarity:"LEGENDARY" },
+  { id:"vc048", name:"Feiticeiro do Sol Negro",     emoji:"🌚", desc:"Um sol sem luz que devora a energia vital.", brl:18.90, usd:3.79, rarity:"LEGENDARY" },
+  { id:"vc049", name:"Cavaleiro de Ferro",          emoji:"🛡️", desc:"Sua armadura é tão pesada quanto seu ódio.", brl:15.90, usd:3.19, rarity:"LEGENDARY" },
+  { id:"vc050", name:"Elfa da Geada Eterna",        emoji:"❄️", desc:"Seu toque transforma oceanos em blocos de gelo.", brl:14.90, usd:2.99, rarity:"LEGENDARY" },
+  { id:"vc051", name:"Hydra das Profundezas",       emoji:"🐍", desc:"Corte uma cabeça e duas mais surgirão das águas.", brl:19.90, usd:3.99, rarity:"LEGENDARY" },
+  { id:"vc052", name:"Minotauro das Lendas",        emoji:"🐂", desc:"Perdido em seu próprio labirinto de fúria.", brl:16.90, usd:3.39, rarity:"LEGENDARY" },
+  { id:"vc053", name:"Grifo dos Céus",              emoji:"🦁", desc:"Rei das criaturas aladas e senhor das tempestades.", brl:17.90, usd:3.59, rarity:"LEGENDARY" },
+  { id:"vc054", name:"Basilisco de Olhar Mortal",   emoji:"👁️", desc:"Quem encara seus olhos vira estátua para sempre.", brl:18.90, usd:3.79, rarity:"LEGENDARY" },
+  { id:"vc055", name:"Fenrir das Neves",            emoji:"🐺", desc:"Lobo ancestral que uiva sob a aurora boreal.", brl:15.90, usd:3.19, rarity:"LEGENDARY" },
+  { id:"vc056", name:"Quimera Imortal",             emoji:"🐲", desc:"Cabeça de leão, corpo de cabra e cauda de serpente venenosa.", brl:17.90, usd:3.59, rarity:"LEGENDARY" },
+  { id:"vc057", name:"Centauro Estrelar",           emoji:"⭐", desc:"Galopa entre as constelações como um cometa.", brl:14.90, usd:2.99, rarity:"LEGENDARY" },
+  { id:"vc058", name:"Pégaso Sombrio",              emoji:"🦄", desc:"Suas asas são feitas de nuvens escuras e relâmpagos.", brl:16.90, usd:3.39, rarity:"LEGENDARY" },
+  { id:"vc059", name:"Mantícora Ardente",           emoji:"🦂", desc:"Seu ferrão injeta fogo líquido nas veias.", brl:18.90, usd:3.79, rarity:"LEGENDARY" },
+  { id:"vc060", name:"Cockatrice Real",             emoji:"🐔", desc:"Olhar petrificante e garras de águia dourada.", brl:15.90, usd:3.19, rarity:"LEGENDARY" },
+  { id:"vc061", name:"Troll da Montanha de Gelo",   emoji:"🧌", desc:"Maior que as árvores e mais frio que a neve eterna.", brl:17.90, usd:3.59, rarity:"LEGENDARY" },
+  { id:"vc062", name:"Goblin Mecânico",             emoji:"🔧", desc:"Suas invenções explodem tanto quanto suas risadas.", brl:14.90, usd:2.99, rarity:"LEGENDARY" },
+  { id:"vc063", name:"Orc General",                 emoji:"👹", desc:"Comanda exércitos inteiros com um único grunhido.", brl:16.90, usd:3.39, rarity:"LEGENDARY" },
+  { id:"vc064", name:"Elfo Noturno",                emoji:"🧝", desc:"Patrulha as florestas quando a lua está alta.", brl:15.90, usd:3.19, rarity:"LEGENDARY" },
+  { id:"vc065", name:"Anão Forjador de Estrelas",   emoji:"⛏️", desc:"Extrai minério de meteoros para forjar suas lâminas.", brl:18.90, usd:3.79, rarity:"LEGENDARY" },
+  { id:"vc066", name:"Halfling Emboscador",         emoji:"🦶", desc:"Pequeno, silencioso e mortal quando menos se espera.", brl:14.90, usd:2.99, rarity:"LEGENDARY" },
+  { id:"vc067", name:"Dríade dos Bosques Antigos",  emoji:"🌳", desc:"Uma com a floresta que a viu nascer.", brl:17.90, usd:3.59, rarity:"LEGENDARY" },
+  { id:"vc068", name:"Fada das Ilusões",            emoji:"🧚", desc:"Engana os sentidos e distorce a realidade.", brl:16.90, usd:3.39, rarity:"LEGENDARY" },
+  { id:"vc069", name:"Gnomo das Profundezas",       emoji:"💎", desc:"Encontra tesouros onde ninguém mais ousa olhar.", brl:15.90, usd:3.19, rarity:"LEGENDARY" },
+  { id:"vc070", name:"Kobold Dragão",               emoji:"🐲", desc:"Descendente de dragões, com escamas de ouro.", brl:18.90, usd:3.79, rarity:"LEGENDARY" },
+  { id:"vc071", name:"Pixie da Confusão",           emoji:"✨", desc:"Sua risada é o som do caos se aproximando.", brl:14.90, usd:2.99, rarity:"LEGENDARY" },
+
+  // ── MÍTICOS (vc072 – vc091) ─────────────────────────────────
+  { id:"vc072", name:"Anúbis dos Mil Julgamentos",    emoji:"⚰️", desc:"Pesa corações em uma balança de ouro e fogo.", brl:29.90, usd:5.99, rarity:"MYTHIC" },
+  { id:"vc073", name:"Quetzalcoatl da Alvorada",      emoji:"🐍", desc:"A serpente emplumada que trouxe o sol ao mundo.", brl:32.90, usd:6.59, rarity:"MYTHIC" },
+  { id:"vc074", name:"Perun dos Céus Trovejantes",    emoji:"⛈️", desc:"Lança raios que ecoam pelos nove reinos.", brl:30.90, usd:6.19, rarity:"MYTHIC" },
+  { id:"vc075", name:"Kali da Dança da Morte",        emoji:"🗡️", desc:"Sua dança é a coreografia do apocalipse.", brl:34.90, usd:6.99, rarity:"MYTHIC" },
+  { id:"vc076", name:"Entidade do Sono Eterno",       emoji:"💤", desc:"Quando desperta, o mundo inteiro treme.", brl:35.90, usd:7.19, rarity:"MYTHIC" },
+  { id:"vc077", name:"Amaterasu do Brilho Infinito",  emoji:"☀️", desc:"Sua luz expulsou a escuridão original.", brl:29.90, usd:5.99, rarity:"MYTHIC" },
+  { id:"vc078", name:"Baldr da Invulnerabilidade",    emoji:"🛡️", desc:"Imune a tudo, exceto ao próprio destino.", brl:31.90, usd:6.39, rarity:"MYTHIC" },
+  { id:"vc079", name:"Ymir dos Gigantes de Gelo",     emoji:"🧊", desc:"Seu corpo congelado ainda sustenta os mundos.", brl:33.90, usd:6.79, rarity:"MYTHIC" },
+  { id:"vc080", name:"Set da Tempestade de Areia",    emoji:"🌪️", desc:"Semeia caos em qualquer solo que toca.", brl:30.90, usd:6.19, rarity:"MYTHIC" },
+  { id:"vc081", name:"Freya da Guerra e Amor",        emoji:"💖", desc:"Tão implacável no amor quanto na batalha.", brl:28.90, usd:5.79, rarity:"MYTHIC" },
+  { id:"vc082", name:"Thor dos Mjölnir Eterno",       emoji:"🔨", desc:"O martelo que nunca falha em encontrar seu alvo.", brl:36.90, usd:7.39, rarity:"MYTHIC" },
+  { id:"vc083", name:"Loki da Mentira e Fogo",        emoji:"🔥", desc:"Trapaceia até os deuses com suas artimanhas.", brl:34.90, usd:6.99, rarity:"MYTHIC" },
+  { id:"vc084", name:"Odin do Olho de Sabedoria",     emoji:"🦅", desc:"Sacrificou um olho para ver o futuro completo.", brl:39.90, usd:7.99, rarity:"MYTHIC" },
+  { id:"vc085", name:"Hela da Morte Fria",            emoji:"💀", desc:"Seu reino é o fim para onde todos vão.", brl:32.90, usd:6.59, rarity:"MYTHIC" },
+  { id:"vc086", name:"Surtur da Espada Flamejante",   emoji:"⚔️", desc:"Sua espada incendeia até os céus de Asgard.", brl:37.90, usd:7.59, rarity:"MYTHIC" },
+  { id:"vc087", name:"Tyr da Justiça e Guerra",       emoji:"🐺", desc:"Perdeu a mão para salvar os deuses.", brl:30.90, usd:6.19, rarity:"MYTHIC" },
+  { id:"vc088", name:"Njord dos Mares Calmos",        emoji:"⛵", desc:"Acalma as águas mais revoltas com um gesto.", brl:28.90, usd:5.79, rarity:"MYTHIC" },
+  { id:"vc089", name:"Frey da Luz e Fertilidade",     emoji:"🌾", desc:"Traz prosperidade onde quer que vá.", brl:29.90, usd:5.99, rarity:"MYTHIC" },
+  { id:"vc090", name:"Helios da Carruagem Solar",     emoji:"🌞", desc:"Puxa o sol todos os dias através do céu.", brl:31.90, usd:6.39, rarity:"MYTHIC" },
+  { id:"vc091", name:"Selene da Lua Prateada",        emoji:"🌕", desc:"Ilumina a noite com seu manto de estrelas.", brl:33.90, usd:6.79, rarity:"MYTHIC" },
+
+  // ── ULTRA RAROS (vc092 – vc105) ────────────────────────────
+  { id:"vc092", name:"Vazio Primordial",               emoji:"🕳️", desc:"O nada que existia antes da primeira faísca.", brl:49.90, usd:9.99, rarity:"ULTRA_RARE" },
+  { id:"vc093", name:"Aeon do Tempo Curvo",            emoji:"⏳", desc:"Curva o espaço-tempo como se fosse papel.", brl:54.90, usd:10.99, rarity:"ULTRA_RARE" },
+  { id:"vc094", name:"Espectro do Multiverso",         emoji:"🌐", desc:"Vive em todas as realidades ao mesmo tempo.", brl:59.90, usd:11.99, rarity:"ULTRA_RARE" },
+  { id:"vc095", name:"Colapso Estelar",                emoji:"💫", desc:"Testemunhou o nascimento e a morte de um bilhão de sóis.", brl:49.90, usd:9.99, rarity:"ULTRA_RARE" },
+  { id:"vc096", name:"Núcleo da Criação",              emoji:"🔆", desc:"A energia bruta que moldou os primeiros mundos.", brl:55.90, usd:11.19, rarity:"ULTRA_RARE" },
+  { id:"vc097", name:"Silêncio Infinito",              emoji:"🤫", desc:"Onde ele está, nem os deuses ousam falar.", brl:52.90, usd:10.59, rarity:"ULTRA_RARE" },
+  { id:"vc098", name:"Guardião do Limiar",             emoji:"🚪", desc:"Porteiro entre o mundo dos vivos e o além.", brl:48.90, usd:9.79, rarity:"ULTRA_RARE" },
+  { id:"vc099", name:"Fogo da Criação",                emoji:"🔥", desc:"A chama que nunca se apaga, pois tudo nasceu dela.", brl:56.90, usd:11.39, rarity:"ULTRA_RARE" },
+  { id:"vc100", name:"Gelo do Fim Absoluto",           emoji:"❄️", desc:"Tão frio que até o movimento do tempo congelou.", brl:50.90, usd:10.19, rarity:"ULTRA_RARE" },
+  { id:"vc101", name:"Relâmpago Perpétuo",             emoji:"⚡", desc:"Um raio que nunca encontra o chão, eternamente viajando.", brl:53.90, usd:10.79, rarity:"ULTRA_RARE" },
+  { id:"vc102", name:"Abismo Devorador",               emoji:"🌀", desc:"Engole galáxias inteiras sem nem fazer esforço.", brl:58.90, usd:11.79, rarity:"ULTRA_RARE" },
+  { id:"vc103", name:"Semente da Vida Universal",      emoji:"🌱", desc:"A primeira semente, da qual toda vida floresceu.", brl:47.90, usd:9.59, rarity:"ULTRA_RARE" },
+  { id:"vc104", name:"Consciência Cósmica",            emoji:"🧠", desc:"O universo pensando sobre si mesmo.", brl:55.90, usd:11.19, rarity:"ULTRA_RARE" },
+  { id:"vc105", name:"Pilar da Realidade",             emoji:"🏛️", desc:"Sustenta a estrutura de tudo que existe.", brl:59.90, usd:11.99, rarity:"ULTRA_RARE" },
+
+  // ── ORIGENS ULTRA PREMIUM (vc106 – vc111) ──────────────────
+  { id:"vc106", name:"Criador das Constelações",       emoji:"🌌", desc:"Desenhou no céu as histórias de todos os guerreiros.", brl:79.90, usd:15.99, rarity:"ORIGENS" },
+  { id:"vc107", name:"Mãe do Caos e Ordem",            emoji:"♎", desc:"O equilíbrio perfeito entre criação e destruição.", brl:89.90, usd:17.99, rarity:"ORIGENS" },
+  { id:"vc108", name:"Sopro da Eternidade",            emoji:"💨", desc:"Um sopro que moldou os ventos primordiais.", brl:84.90, usd:16.99, rarity:"ORIGENS" },
+  { id:"vc109", name:"Lágrima do Infinito",            emoji:"💧", desc:"Uma lágrima que se tornou o primeiro oceano.", brl:79.90, usd:15.99, rarity:"ORIGENS" },
+  { id:"vc110", name:"Fúria do Criador",               emoji:"💥", desc:"A ira que destruiu os mundos imperfeitos.", brl:99.90, usd:19.99, rarity:"ORIGENS" },
+  { id:"vc111", name:"Alfa e Ômega Encarnados",        emoji:"♾️", desc:"O princípio e o fim de todas as histórias.", brl:129.90, usd:24.99, rarity:"ORIGENS" },
+];
+
+const GOLD_PACKS = [
+  { id:"g_500k",  name:"Bolsinha de Ouro",   emoji:"💰", amount:"500.000",   brl:4.90,  usd:0.99 },
+  { id:"g_1m",    name:"Saco de Ouro",        emoji:"💰", amount:"1.000.000", brl:8.90,  usd:1.79 },
+  { id:"g_3m",    name:"Baú de Ouro",         emoji:"💎", amount:"3.000.000", brl:19.90, usd:3.99 },
+  { id:"g_10m",   name:"Tesouro de Ouro",     emoji:"🏆", amount:"10.000.000",brl:49.90, usd:9.99 },
+  { id:"g_50m",   name:"Lendário Tesouro",    emoji:"👑", amount:"50.000.000",brl:189.90,usd:37.99},
+  { id:"g_100m",  name:"Tesouro Supremo",     emoji:"💎", amount:"100.000.000",brl:349.90,usd:69.99},
+  { id:"g_500m",  name:"Fortuna Lendária",    emoji:"👑", amount:"500.000.000",brl:1499.90,usd:299.99},
+];
+
+const XP_PACKS = [
+  { id:"xp_500k", name:"XP Simples",          emoji:"⭐", type:"xp",  amount:"500.000",    brl:3.90,  usd:0.79 },
+  { id:"xp_2m",   name:"XP Médio",            emoji:"🌟", type:"xp",  amount:"2.000.000",  brl:12.90, usd:2.59 },
+  { id:"xp_10m",  name:"XP Épico",            emoji:"💫", type:"xp",  amount:"10.000.000", brl:49.90, usd:9.99 },
+  { id:"xpp_100k",name:"XPP Simples",         emoji:"🎖️", type:"xpp", amount:"100.000",    brl:4.90,  usd:0.99 },
+  { id:"xpp_1m",  name:"XPP Médio",           emoji:"🏅", type:"xpp", amount:"1.000.000",  brl:19.90, usd:3.99 },
+  { id:"xpp_5m",  name:"XPP Lendário",        emoji:"🔱", type:"xpp", amount:"5.000.000",  brl:79.90, usd:15.99},
+  { id:"xpp_20m", name:"XPP Supremo",         emoji:"🌌", type:"xpp", amount:"20.000.000", brl:249.90, usd:49.99},
+  { id:"xpp_100m",name:"XPP Absoluto",        emoji:"🔥", type:"xpp", amount:"100.000.000",brl:999.90, usd:199.99},
+];
+
+// ── DESCONTO ROTATIVO ────────────────────────────────────────
+function getRotatingDiscount(isCreator) {
+  const isWeekend = [0, 6].includes(new Date().getDay());
+  const hourSlot  = Math.floor(Date.now() / 3600000); // muda a cada hora
+  // seed determinístico baseado na hora + se é criador
+  const seed = (hourSlot + (isCreator ? 777 : 0)) % 100;
+
+  let minD, maxD;
+  if (isCreator && isWeekend)      { minD = 30; maxD = 55; }
+  else if (isCreator && !isWeekend){ minD = 15; maxD = 40; }
+  else if (!isCreator && isWeekend){ minD = 10; maxD = 25; }
+  else                             { minD = 5;  maxD = 15; }
+
+  // desconto "pseudo-aleatório" mas fixo na hora
+  const disc = minD + (seed % (maxD - minD + 1));
+  return disc;
+}
+
+function buildDiscountInfo(isCreator) {
+  const isWeekend = [0, 6].includes(new Date().getDay());
+  const disc = getRotatingDiscount(isCreator);
+  const nextHour = Math.ceil(Date.now() / 3600000) * 3600000;
+  const rem = nextHour - Date.now();
+  const m = Math.floor(rem / 60000);
+  const s = Math.floor((rem % 60000) / 1000);
+
+  return `${isCreator
+    ? `<span class="disc-chip creator">🎬 Criador: ${disc}% OFF</span>`
+    : `<span class="disc-chip normal">👤 Desconto: ${disc}% OFF</span>`
+  }
+  ${isWeekend ? ` <span class="disc-chip weekend">🎉 Fim de semana!</span>` : ""}
+  <span style="color:#555;margin-left:6px;">Muda em ${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}</span>
+  <br><span style="font-size:10px;color:#555;">
+    ${isCreator
+      ? "Criadores: 15–40% (dias úteis) · 30–55% (fins de semana)"
+      : "Membros: 5–15% (dias úteis) · 10–25% (fins de semana)"
+    }
+  </span>`;
+}
+
+function applyDisc(price, disc) { return Math.round(price * (1 - disc/100) * 100) / 100; }
+
+// ── RENDER ───────────────────────────────────────────────────
+function renderMaestriaTab() {
+  const isC  = save.isVerifiedCreator;
+  const disc = getRotatingDiscount(isC);
+  const sym  = selectedCurrency === "BRL" ? "R$" : "US$";
+  document.getElementById("discount-info-maestria").innerHTML = buildDiscountInfo(isC);
+  
+  const products = [
+    { n:1, usd:9.99,   brl:49.90   },
+    { n:2, usd:14.99,  brl:74.90   },
+    { n:3, usd:49.99,  brl:249.90  },
+    { n:4, usd:99.99,  brl:499.90  },
+    { n:5, usd:149.99, brl:749.90  },
+    { n:6, usd:299.99, brl:1499.90 },
+  ];
+  products.forEach(p => {
+    const base   = selectedCurrency === "BRL" ? p.brl : p.usd;
+    const dPrice = applyDisc(base, disc);
+    const origEl = document.getElementById(`maestria-p${p.n}-original`);
+    const finEl  = document.getElementById(`maestria-p${p.n}-final`);
+    if (origEl) origEl.textContent = `${sym}${base.toFixed(2)}`;
+    if (finEl)  finEl.textContent  = `${sym} ${dPrice.toFixed(2)}`;
+    const discEl = document.getElementById(`disc-m${p.n}`);
+    if (discEl) {
+      if (disc > 0) { discEl.style.display=""; discEl.textContent = (isC?"🎬":"")+"-"+disc+"%"; }
+      else discEl.style.display = "none";
+    }
+  });
+}
+
+function addToCartMaestria(id, name, emoji, usd, brl) {
+  const base   = selectedCurrency === "BRL" ? brl : usd;
+  const disc   = getRotatingDiscount(save.isVerifiedCreator);
+  const dPrice = applyDisc(base, disc);
+  addToCart('maestria', id, name, dPrice, emoji);
+}
+
+// ── VARAS PREMIUM ────────────────────────────────────────────
+const ROD_PRICES = {
+  vara_origens:  { usd: 4.99, brl: 24.90 },
+  vara_divina:   { usd: 6.99, brl: 34.90 },
+  vara_infinita: { usd: 20.99, brl: 200.90 },
+};
+
+function renderVarasTab() {
+  const el = document.getElementById("varas-list");
+  if (!el) return;
+  if (typeof FISHING_RODS === "undefined") {
+    el.innerHTML = `<div style="text-align:center;padding:24px;color:#555;font-size:13px;">Sistema de pesca indisponível no momento.</div>`;
+    return;
+  }
+
+  const isC  = save.isVerifiedCreator;
+  const disc = getRotatingDiscount(isC);
+  const sym  = selectedCurrency === "BRL" ? "R$" : "US$";
+  document.getElementById("discount-info-varas").innerHTML = buildDiscountInfo(isC);
+
+  const premiumRods = FISHING_RODS.filter(r => r.realMoney);
+  el.innerHTML = premiumRods.map(rod => {
+    const priceInfo = ROD_PRICES[rod.id] || { usd: 9.99, brl: 49.90 };
+    const base   = selectedCurrency === "BRL" ? priceInfo.brl : priceInfo.usd;
+    const dPrice = applyDisc(base, disc);
+    const rarity = (typeof RARITY !== "undefined" && RARITY[rod.maxRarity]) || { name: rod.maxRarity, color: "#fff" };
+    return `<div class="item-buy-card" style="border-color:${rod.color};">
+      ${disc > 0 ? `<div class="discount-badge ${isC?"creator":""}">${isC?"🎬":""}-${disc}%</div>` : ""}
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-size:40px;">${rod.emoji}</div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:14px;color:${rod.color};">
+            ${rod.name}
+            ${rod.badge ? ` <span style="font-size:9px;background:${rod.color};color:#000;border-radius:4px;padding:1px 6px;">${rod.badge}</span>` : ""}
+          </div>
+          <div style="font-size:11px;color:#9e9e9e;margin-top:3px;">${rod.desc}</div>
+          <div style="font-size:10px;color:#9e9e9e;margin-top:2px;">Dur: ${rod.durability === Infinity ? "♾️ Infinita" : rod.durability} · Máx: <span style="color:${rarity.color};font-weight:700;">${rarity.name}</span></div>
+        </div>
+        <div style="text-align:right;">
+          <div class="price-row" style="justify-content:flex-end;"><span class="price-original">${sym}${base.toFixed(2)}</span></div>
+          <div class="price-final" style="font-size:17px;">${sym} ${dPrice.toFixed(2)}</div>
+          <button class="btn btn-gold btn-sm" style="margin-top:6px;" onclick="addToCartVara('${rod.id}','${rod.name}','${rod.emoji}',${priceInfo.usd},${priceInfo.brl})">🛒 Adicionar</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("") || "<div style='text-align:center;padding:24px;color:#555;font-size:13px;'>Nenhuma vara premium disponível no momento.</div>";
+}
+
+function addToCartVara(id, name, emoji, usd, brl) {
+  const base   = selectedCurrency === "BRL" ? brl : usd;
+  const disc   = getRotatingDiscount(save.isVerifiedCreator);
+  const dPrice = applyDisc(base, disc);
+  addToCart('vara', id, name, dPrice, emoji);
+}
+
+function init() {
+  save = getOrCreateSave();
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+  renderMaestriaTab();
+  renderVarasTab();
+  renderPowerupsVipTab();
+  renderVitrine();
+  renderGold();
+  renderXP();
+  startVitrineTimer();
+  startDiscTimer();
+  startAutoSave(() => save);
+}
+
+function switchTab(tab, btn) {
+  ["vitrine","gold","xp","ticket","maestria","varas","powerups","prime"].forEach(t => {
+    const el = document.getElementById("tab-"+t);
+    if (el) el.style.display = t === tab ? "block" : "none";
+  });
+  document.querySelectorAll(".shop-tab").forEach(b => b.classList.remove("active"));
+  if (tab === "maestria") renderMaestriaTab();
+  if (tab === "varas")    renderVarasTab();
+  if (tab === "powerups") renderPowerupsVipTab();
+  if (tab === "prime")    renderPrimeTab();
+  btn.classList.add("active");
+}
+
+/* ══════ PRIME TAB ══════ */
+const PRIME_BUY_PACKS = [
+  { pts: 5000,          brl: 4.90,    label: "Impulso Prime I",   sub: "5 mil pontos" },
+  { pts: 50000,         brl: 19.90,   label: "Impulso Prime II",  sub: "50 mil pontos" },
+  { pts: 500000,        brl: 79.90,   label: "Impulso Prime III", sub: "500 mil pontos" },
+  { pts: 5000000,       brl: 199.00,  label: "Impulso Prime IV",  sub: "5 milhoes de pontos" },
+  { pts: 50000000,      brl: 499.00,  label: "Impulso Prime V",   sub: "50 milhoes de pontos" },
+  { pts: 500000000,     brl: 999.00,  label: "Impulso Prime VI",  sub: "500 milhoes de pontos" },
+  { pts: 50000000000,   brl: 1990.00, label: "Impulso Prime VII", sub: "50 bilhoes de pontos" },
+];
+
+function renderPrimeTab() {
+  if (typeof primeEnsureFields === "function") primeEnsureFields(save);
+  const infoEl = document.getElementById("prime-current-info");
+  if (infoEl) {
+    const lvl  = primeGetLevel(save);
+    const inf  = primeGetInfo(lvl);
+    infoEl.innerHTML = `Prime atual: <strong style="color:${inf?inf.color:"#9e9e9e"};">${inf?inf.name:"Sem Prime"}</strong>
+                        · Pontos: <strong>${primeFormatNumber(primeGetTotalPoints(save))}</strong>`;
+  }
+  const list = document.getElementById("prime-buy-list");
+  if (!list) return;
+  list.innerHTML = PRIME_BUY_PACKS.map((p,i) => `
+    <div class="item-buy-card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="font-size:28px;filter:drop-shadow(0 0 8px #ff00aa);">8️⃣</span>
+        <div>
+          <div style="font-weight:700;color:#ff00aa;">${p.label}</div>
+          <div style="font-size:11px;color:#9e9e9e;">${p.sub}</div>
+        </div>
+      </div>
+      <div class="price-row" style="margin-bottom:10px;">
+        <span class="price-final">R$ ${p.brl.toFixed(2).replace(".",",")}</span>
+      </div>
+      <button class="btn btn-outline btn-block" onclick="buyPrimePack(${i})"
+              style="border-color:#ff00aa;color:#ff00aa;">Comprar</button>
+    </div>
+  `).join("");
+}
+
+function buyPrimePack(i) {
+  const p = PRIME_BUY_PACKS[i];
+  if (!p) return;
+  if (!confirm(`Confirmar compra de "${p.label}" por R$ ${p.brl.toFixed(2)}?\n(Ticket sera aberto no Discord.)`)) return;
+  primeAddPurchasedPoints(save, p.pts);
+  if (typeof showToast === "function") showToast(`+${primeFormatNumber(p.pts)} pontos de Prime creditados.`, "success");
+  renderPrimeTab();
+}
+
+function buyPrime8Full() {
+  if (!confirm("Desbloquear PRIME VIII COMPLETO por R$ 3.000,00?\nInclui o selo 8️⃣ e todos os beneficios.")) return;
+  primeBuyPrime8Complete(save);
+  if (typeof showToast === "function") showToast("Prime VIII desbloqueado. Selo 8️⃣ equipado.", "success");
+  renderPrimeTab();
+}
+
+function renderPowerupsVipTab() {
+  const isC  = save.isVerifiedCreator;
+  const disc = getRotatingDiscount(isC);
+  const sym  = selectedCurrency === "BRL" ? "R$" : "US$";
+  const dinfoEl = document.getElementById("discount-info-powerups");
+  if (dinfoEl) dinfoEl.innerHTML = buildDiscountInfo(isC);
+
+  const products = [
+    { n:1, usd:9.99,   brl:49.90   },
+    { n:2, usd:14.99,  brl:74.90   },
+    { n:3, usd:49.99,  brl:249.90  },
+    { n:4, usd:89.99,  brl:449.90  },
+    { n:5, usd:199.99, brl:999.90  },
+  ];
+  products.forEach(p => {
+    const base   = selectedCurrency === "BRL" ? p.brl : p.usd;
+    const dPrice = applyDisc(base, disc);
+    const origEl = document.getElementById(`pu-p${p.n}-original`);
+    const finEl  = document.getElementById(`pu-p${p.n}-final`);
+    if (origEl) origEl.textContent = `${sym}${base.toFixed(2)}`;
+    if (finEl)  finEl.textContent  = `${sym} ${dPrice.toFixed(2)}`;
+    const discEl = document.getElementById(`disc-pu${p.n}`);
+    if (discEl) {
+      if (disc > 0) { discEl.style.display = ""; discEl.textContent = (isC?"🎬":"")+"-"+disc+"%"; }
+      else discEl.style.display = "none";
+    }
+  });
+}
+
+function addToCartPU(id, name, emoji, usd, brl) {
+  const base   = selectedCurrency === "BRL" ? brl : usd;
+  const disc   = getRotatingDiscount(save.isVerifiedCreator);
+  const dPrice = applyDisc(base, disc);
+  addToCart('powerups', id, name, dPrice, emoji);
+}
+
+function getVitrineSlot() {
+  // 5 personagens, rodam a cada 3 horas (slot de 3h)
+  const slot3h = Math.floor(Date.now() / (3 * 3600000));
+  const start  = slot3h % VITRINE_CHARS.length; // qual personagem começa
+  // todos os 5 entram na vitrine (já que temos exatamente 5)
+  return VITRINE_CHARS.map((c, i) => VITRINE_CHARS[(start + i) % VITRINE_CHARS.length]);
+}
+
+function renderVitrine() {
+  const chars   = getVitrineSlot();
+  const isC     = save.isVerifiedCreator;
+  const disc    = getRotatingDiscount(isC);
+  document.getElementById("discount-info-box").innerHTML = buildDiscountInfo(isC);
+
+  const list = document.getElementById("vitrine-list");
+  list.innerHTML = chars.map(ch => {
+    const base   = selectedCurrency === "BRL" ? ch.brl : ch.usd;
+    const dPrice = applyDisc(base, disc);
+    const sym    = selectedCurrency === "BRL" ? "R$" : "US$";
+    const r      = RARITY[ch.rarity] || RARITY.COMMON;
+    const owned  = (save.ownedProfileItems||[]).includes(ch.id) || (save.vault||[]).includes(ch.id);
+    return `<div class="vitrine-card ${isC?"creator-disc":""}">
+      <div class="vitrine-exclusive">✨ EXCLUSIVO</div>
+      <div style="display:flex;gap:12px;align-items:center;">
+        <div style="font-size:48px;">${ch.emoji}</div>
+        <div style="flex:1;">
+          <div style="font-family:'Cinzel',serif;font-weight:700;font-size:14px;color:${r.color};">${ch.name}</div>
+          <div style="font-size:10px;color:${r.color};margin:2px 0 4px;">${r.name}</div>
+          <div style="font-size:11px;color:#9e9e9e;line-height:1.5;">${ch.desc}</div>
+        </div>
+      </div>
+      ${owned ? `<div style="color:#4CAF50;font-size:12px;font-weight:700;margin-top:10px;">✅ Você já tem este personagem!</div>` : `
+      <div style="margin-top:10px;">
+        <div class="price-row">
+          <span class="price-original">${sym} ${base.toFixed(2)}</span>
+          <span class="price-final">${sym} ${dPrice.toFixed(2)}</span>
+          <span class="discount-badge ${isC?"creator":""}">${isC?"🎬":""}-${disc}%</span>
+        </div>
+        <button class="btn btn-gold btn-block" style="margin-top:8px;" onclick="addToCart('vitrine','${ch.id}','${ch.name}',${dPrice},'${ch.emoji}')">
+          🛒 Adicionar ao Pedido
+        </button>
+      </div>`}
+    </div>`;
+  }).join("");
+}
+
+function renderGold() {
+  const isC = save.isVerifiedCreator;
+  const disc = getRotatingDiscount(isC);
+  document.getElementById("discount-info-gold").innerHTML = buildDiscountInfo(isC);
+  const list = document.getElementById("gold-list");
+  list.innerHTML = GOLD_PACKS.map(p => {
+    const base   = selectedCurrency === "BRL" ? p.brl : p.usd;
+    const dPrice = applyDisc(base, disc);
+    const sym    = selectedCurrency === "BRL" ? "R$" : "US$";
+    return `<div class="item-buy-card ${isC?"creator-disc":""}">
+      ${disc > 0 ? `<div class="discount-badge ${isC?"creator":""}">${isC?"🎬":""}-${disc}%</div>` : ""}
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-size:40px;">${p.emoji}</div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:14px;">${p.name}</div>
+          <div style="font-size:12px;color:#ffc107;">🪙 ${p.amount} de ouro</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="price-row" style="justify-content:flex-end;">
+            <span class="price-original">${sym}${base.toFixed(2)}</span>
+          </div>
+          <div class="price-final" style="font-size:17px;">${sym} ${dPrice.toFixed(2)}</div>
+          <button class="btn btn-gold btn-sm" style="margin-top:6px;" onclick="addToCart('gold','${p.id}','${p.name} (${p.amount} ouro)',${dPrice},'${p.emoji}')">
+            🛒 Adicionar
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function renderXP() {
+  const isC = save.isVerifiedCreator;
+  const disc = getRotatingDiscount(isC);
+  document.getElementById("discount-info-xp").innerHTML = buildDiscountInfo(isC);
+  const list = document.getElementById("xp-list");
+  list.innerHTML = XP_PACKS.map(p => {
+    const base   = selectedCurrency === "BRL" ? p.brl : p.usd;
+    const dPrice = applyDisc(base, disc);
+    const sym    = selectedCurrency === "BRL" ? "R$" : "US$";
+    return `<div class="item-buy-card ${isC?"creator-disc":""}">
+      ${disc > 0 ? `<div class="discount-badge ${isC?"creator":""}">${isC?"🎬":""}-${disc}%</div>` : ""}
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-size:40px;">${p.emoji}</div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:14px;">${p.name}</div>
+          <div style="font-size:12px;color:${p.type==="xpp"?"#ce93d8":"#90caf9"};">
+            ${p.type === "xpp" ? "🎖️" : "⭐"} ${p.amount} de ${p.type.toUpperCase()}
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div class="price-row" style="justify-content:flex-end;">
+            <span class="price-original">${sym}${base.toFixed(2)}</span>
+          </div>
+          <div class="price-final" style="font-size:17px;">${sym} ${dPrice.toFixed(2)}</div>
+          <button class="btn btn-gold btn-sm" style="margin-top:6px;" onclick="addToCart('xp','${p.id}','${p.name} (${p.amount} ${p.type.toUpperCase()})',${dPrice},'${p.emoji}')">
+            🛒 Adicionar
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ── CARRINHO / TICKET ────────────────────────────────────────
+function addToCart(type, id, name, price, emoji) {
+  const existing = cart.find(c => c.id === id);
+  if (existing) { showToast("✅ Item já no pedido!", "info"); return; }
+  cart.push({ type, id, name, price, emoji });
+  showToast(`✅ "${name}" adicionado ao pedido!`, "gold");
+  updateOrderSummary();
+}
+
+function updateOrderSummary() {
+  const sym = selectedCurrency === "BRL" ? "R$" : "US$";
+  if (cart.length === 0) {
+    document.getElementById("order-summary").style.display = "block";
+    document.getElementById("order-items").innerHTML = "";
+    document.getElementById("order-total").style.display = "none";
+    return;
+  }
+  document.getElementById("order-summary").style.display = "none";
+  const total = cart.reduce((s, c) => s + c.price, 0);
+  document.getElementById("order-items").innerHTML = cart.map((c, i) =>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;">
+      <span>${c.emoji} ${c.name}</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="color:#ffc107;font-weight:700;">${sym} ${c.price.toFixed(2)}</span>
+        <button onclick="removeFromCart(${i})" style="background:none;border:none;color:#f44336;cursor:pointer;font-size:16px;line-height:1;">×</button>
+      </div>
+    </div>`
+  ).join("");
+  document.getElementById("order-total").style.display = "block";
+  document.getElementById("total-price").textContent = `${sym} ${total.toFixed(2)}`;
+}
+
+function removeFromCart(idx) { cart.splice(idx, 1); updateOrderSummary(); }
+
+function setCurrency(cur) {
+  selectedCurrency = cur;
+  document.getElementById("btn-brl").className = "currency-btn" + (cur === "BRL" ? " active" : "");
+  document.getElementById("btn-usd").className = "currency-btn" + (cur === "USD" ? " active" : "");
+  cart = []; // reset ao trocar moeda
+  updateOrderSummary();
+  renderVitrine(); renderGold(); renderXP(); renderVarasTab();
+}
+
+function gerarTicket() {
+  if (cart.length === 0) { showToast("⚠️ Adicione itens ao pedido antes de gerar o ticket!", "error"); return; }
+  switchTab("ticket", document.querySelectorAll(".shop-tab")[3]);
+
+  const payload = {
+    player:   save.playerName,
+    currency: selectedCurrency,
+    ts:       Date.now(),
+    total:    cart.reduce((s, c) => s + c.price, 0).toFixed(2),
+    items:    cart.map(c => ({ id: c.id, name: c.name, price: c.price })),
+    hash:     btoa(save.playerName + "|" + Date.now() + "|origens_secure_cf_2025"),
+  };
+
+  const json      = JSON.stringify(payload);
+  const encoded   = btoa(encodeURIComponent(json));
+  const obfuscated= encoded.replace(/[A-Za-z]/g, ch => String.fromCharCode(
+    ch.charCodeAt(0) + (ch <= 'Z' ? 13 : 13) > (ch <= 'Z' ? 90 : 122)
+      ? ch.charCodeAt(0) - 13
+      : ch.charCodeAt(0) + 13
+  ));
+
+  document.getElementById("ticket-content").textContent = obfuscated;
+  document.getElementById("ticket-area").style.display = "block";
+  document.getElementById("btn-gerar-ticket").style.display = "none";
+  showToast("🎫 Ticket gerado! Leia as instruções abaixo.", "gold", 4000);
+}
+
+function copyTicket() {
+  const el = document.getElementById("ticket-content");
+  const text = el ? el.textContent.trim() : "";
+  if (!text || text === "Gerando ticket...") {
+    showToast("⚠️ Gere o ticket primeiro!", "error"); return;
+  }
+  // Tenta API moderna (requer HTTPS ou localhost)
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+    navigator.clipboard.writeText(text)
+      .then(() => showToast("📋 Ticket copiado! Cole no Discord.", "gold"))
+      .catch(() => _fallbackCopy(text));
+  } else {
+    _fallbackCopy(text);
+  }
+}
+
+function _fallbackCopy(text) {
+  // Fallback robusto via execCommand — funciona sem HTTPS
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.setAttribute("readonly", "");
+  ta.style.cssText = "position:fixed;left:-9999px;top:-9999px;opacity:0;pointer-events:none;";
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  ta.setSelectionRange(0, ta.value.length); // mobile
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch(e) {}
+  document.body.removeChild(ta);
+  if (ok) {
+    showToast("📋 Ticket copiado! Cole no Discord.", "gold");
+  } else {
+    showToast("⚠️ Não foi possível copiar automaticamente. Selecione e copie o ticket manualmente.", "info", 5000);
+  }
+}
+
+// ── TIMERS ───────────────────────────────────────────────────
+function startVitrineTimer() {
+  function update() {
+    const now  = Date.now();
+    const slot3h = Math.floor(now / (3 * 3600000));
+    const nextSlot = (slot3h + 1) * 3 * 3600000;
+    const rem  = nextSlot - now;
+    const h = Math.floor(rem / 3600000);
+    const m = Math.floor((rem % 3600000) / 60000);
+    const s = Math.floor((rem % 60000) / 1000);
+    const el = document.getElementById("vitrine-timer");
+    if (el) el.textContent = `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+    if (rem < 1000) setTimeout(() => { renderVitrine(); }, 1100);
+  }
+  update(); setInterval(update, 1000);
+}
+
+function startDiscTimer() {
+  setInterval(() => { renderVitrine(); renderGold(); renderXP(); renderVarasTab(); }, 60000);
+}
+
+init();
+</script>
+</body>
+</html>

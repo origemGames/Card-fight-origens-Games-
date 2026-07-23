@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Aldeia – Card Fight</title>
+<script>
+  var CF_BUILD = Date.now();
+  document.write('<link rel="stylesheet" href="game.css?v=' + CF_BUILD + '"/>');
+</script>
+<style>
+/* ═══════════════ ALDEIA — ESTILO ═══════════════ */
+.aldeia-hero{
+  background:linear-gradient(180deg,#070712 0%,#0d1a08 45%,#1a1206 100%);
+  border:2px solid #7cb342;border-radius:20px;
+  padding:20px 14px 18px;margin-bottom:14px;text-align:center;
+  position:relative;overflow:hidden;
+}
+.aldeia-hero::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(124,179,66,0.14) 0%,transparent 60%);pointer-events:none;}
+.aldeia-title{font-family:'Cinzel',serif;font-size:26px;font-weight:900;
+  background:linear-gradient(135deg,#7cb342 0%,#ffc107 50%,#ff6d00 100%);background-size:200%;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  letter-spacing:2px;margin:6px 0;animation:title-shimmer 4s linear infinite;}
+.aldeia-sub{font-size:11px;color:#9e9e9e;}
+
+.aldeia-tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:12px;}
+.aldeia-tab{background:#0e0e1e;border:1px solid #1e1e30;color:#c0c0d0;
+  padding:8px 4px;font-size:10.5px;font-weight:700;letter-spacing:0.6px;
+  border-radius:10px;cursor:pointer;text-align:center;transition:.2s;}
+.aldeia-tab.active{background:linear-gradient(135deg,#2a4a10,#4a7c1e);border-color:#7cb342;color:#fff;}
+.aldeia-tab .ic{display:block;font-size:16px;margin-bottom:2px;}
+
+.res-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.res-chip{background:linear-gradient(135deg,#0e1a08,#1a2a10);border:1px solid #2a3a1a;
+  border-radius:12px;padding:8px;text-align:center;}
+.res-chip .em{font-size:20px;}
+.res-chip .val{font-size:14px;font-weight:800;color:#fff;}
+.res-chip .lbl{font-size:9px;color:#9e9e9e;letter-spacing:0.5px;text-transform:uppercase;}
+
+.stock-bar{height:6px;background:#0a0a14;border-radius:4px;overflow:hidden;margin:6px 0 14px;border:1px solid #1e1e30;}
+.stock-bar>div{height:100%;background:linear-gradient(90deg,#66bb6a,#ffc107,#ff5252);transition:width .3s;}
+
+.b-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.b-card{background:linear-gradient(135deg,#0e0e1e,#141428);border:1px solid #1e1e30;
+  border-radius:14px;padding:10px;position:relative;overflow:hidden;}
+.b-card.locked{opacity:0.65;border-style:dashed;}
+.b-card .b-em{font-size:26px;}
+.b-card .b-nm{font-family:'Cinzel',serif;font-size:13px;font-weight:700;color:#fff;margin-top:2px;}
+.b-card .b-lv{font-size:10px;color:#ffc107;font-weight:700;letter-spacing:0.5px;}
+.b-card .b-desc{font-size:10px;color:#9e9e9e;line-height:1.4;margin-top:4px;min-height:28px;}
+.b-card .b-cost{font-size:11px;color:#ffc107;font-weight:700;margin-top:6px;}
+.b-card .b-btn{margin-top:6px;width:100%;padding:6px;border-radius:8px;border:none;font-size:11px;font-weight:700;cursor:pointer;
+  background:linear-gradient(135deg,#4a7c1e,#7cb342);color:#fff;letter-spacing:0.5px;}
+.b-card .b-btn:disabled{opacity:0.5;cursor:not-allowed;background:#333;}
+.btn.btn-sm:disabled{opacity:0.5;cursor:not-allowed;background:#333!important;}
+
+.stars{color:#ffc107;letter-spacing:2px;}
+.stars .off{color:#333;}
+
+.client-card{background:linear-gradient(135deg,#0e0e1e,#141428);border:1px solid #1e1e30;
+  border-radius:14px;padding:12px;margin-bottom:10px;position:relative;}
+.client-card.thief-hint{border-color:#5a2a2a;}
+.client-card.vip{border-color:#e6c36a;background:linear-gradient(135deg,#1a1408,#221a0a);}
+.client-head{display:flex;align-items:center;gap:10px;}
+.client-em{font-size:34px;line-height:1;}
+.client-info{flex:1;min-width:0;}
+.client-name{font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:#fff;}
+.client-tag{font-size:9px;padding:2px 6px;border-radius:6px;background:#2a3a1a;color:#7cb342;margin-left:6px;letter-spacing:0.5px;}
+.client-tag.vip{background:#3a2a08;color:#ffc107;}
+.client-phrase{font-size:12px;color:#c0c0d0;margin-top:8px;font-style:italic;line-height:1.5;}
+.client-sign{margin-top:6px;font-size:10.5px;color:#ff8a80;background:rgba(255,68,68,0.08);padding:4px 8px;border-radius:6px;}
+.client-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;}
+.client-actions button{padding:8px;border-radius:8px;border:none;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:0.5px;}
+.btn-serve{background:linear-gradient(135deg,#2a5a1a,#66bb6a);color:#fff;}
+.btn-expel{background:linear-gradient(135deg,#5a1a1a,#c62828);color:#fff;}
+.btn-nego{grid-column:span 2;background:linear-gradient(135deg,#2a1a5a,#7c4dff);color:#fff;padding:6px;font-size:10.5px;}
+
+.timer-bar{height:4px;background:#0a0a14;border-radius:3px;overflow:hidden;margin-top:8px;border:1px solid #1e1e30;}
+.timer-bar>div{height:100%;background:linear-gradient(90deg,#66bb6a,#ffc107,#ff5252);}
+
+.nego-box{background:#0a0018;border:1px solid #7c4dff;border-radius:10px;padding:10px;margin-top:8px;}
+.nego-line{display:block;width:100%;text-align:left;background:#150033;border:1px solid #3a1a5a;
+  color:#e0e0f0;padding:8px;margin-bottom:4px;border-radius:8px;font-size:11px;cursor:pointer;font-family:inherit;}
+.nego-line:hover{border-color:#7c4dff;}
+
+.panel{background:linear-gradient(135deg,#0e0e1e,#141428);border:1px solid #1e1e30;border-radius:14px;padding:14px;margin-bottom:12px;}
+.panel-title{font-family:'Cinzel',serif;font-size:13px;font-weight:700;color:#ffc107;margin-bottom:8px;letter-spacing:1px;text-transform:uppercase;}
+
+.rank-row{display:grid;grid-template-columns:36px 1fr auto;gap:8px;align-items:center;padding:6px 8px;border-bottom:1px solid #1e1e30;font-size:12px;}
+.rank-row.me{background:linear-gradient(90deg,rgba(124,179,66,0.15),transparent);border-left:3px solid #7cb342;}
+.rank-pos{font-weight:800;color:#ffc107;font-size:13px;}
+.rank-pos.top1{color:#ff4444;} .rank-pos.top2{color:#e0e0e0;} .rank-pos.top3{color:#c9932e;}
+.rank-pts{color:#7cb342;font-weight:700;font-size:11px;}
+
+.contract-row{background:#0e0e1e;border:1px solid #2a3a1a;border-radius:10px;padding:10px;margin-bottom:8px;}
+.contract-row .ct-title{font-weight:700;color:#fff;font-size:12px;}
+.contract-row .ct-meta{font-size:10px;color:#9e9e9e;margin-top:2px;}
+.contract-row .ct-bar{height:6px;background:#0a0a14;border-radius:3px;margin-top:6px;overflow:hidden;border:1px solid #1e1e30;}
+.contract-row .ct-bar>div{height:100%;background:linear-gradient(90deg,#66bb6a,#ffc107);}
+
+.help-h3{font-family:'Cinzel',serif;color:#7cb342;font-size:14px;margin:12px 0 6px;letter-spacing:1px;}
+.help-p{font-size:12px;color:#c0c0d0;line-height:1.7;}
+.help-p strong{color:#ffc107;}
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Início</a>
+  <span class="logo-title">🏘️ ALDEIA</span>
+  <span id="ald-gold-chip" style="font-size:12px;color:#ffc107;font-weight:700;">🪙 0</span>
+</header>
+
+<main class="content">
+
+  <div class="aldeia-hero">
+    <div style="font-size:52px;">🏘️</div>
+    <div class="aldeia-title">SUA ALDEIA</div>
+    <div class="aldeia-sub">Sistema de Evolução · v17.0</div>
+    <div style="margin-top:10px;">
+      <span id="ald-stars" class="stars">★★★★★</span>
+      <span id="ald-aval" style="font-size:11px;color:#9e9e9e;margin-left:6px;"></span>
+    </div>
+    <div id="ald-daytime" style="margin-top:8px;font-size:11px;color:#9e9e9e;"></div>
+  </div>
+
+  <div class="aldeia-tabs" id="ald-tabs">
+    <div class="aldeia-tab active" data-tab="cidade"><span class="ic">🏘️</span>Cidade</div>
+    <div class="aldeia-tab" data-tab="clientes"><span class="ic">🧍</span>Clientes<span id="tab-cli-badge" style="display:none;background:#ff4444;color:#fff;font-size:9px;padding:1px 5px;border-radius:8px;margin-left:2px;">0</span></div>
+    <div class="aldeia-tab" data-tab="contratos"><span class="ic">📜</span>Contratos</div>
+    <div class="aldeia-tab" data-tab="ranking"><span class="ic">🏅</span>Ranking</div>
+    <div class="aldeia-tab" data-tab="ajuda"><span class="ic">❓</span>Ajuda</div>
+  </div>
+
+  <!-- ═══ TAB: CIDADE ═══ -->
+  <div class="tab-pane" data-pane="cidade">
+    <div class="res-strip" id="ald-res-strip"></div>
+    <div style="font-size:10px;color:#9e9e9e;margin-bottom:2px;">Estoque total · <span id="ald-stock-txt">0/0</span></div>
+    <div class="stock-bar"><div id="ald-stock-bar" style="width:0%;"></div></div>
+
+    <div class="panel">
+      <div class="panel-title">🚪 Entrada da Aldeia</div>
+      <div id="ald-entrada-txt" style="font-size:12px;color:#c0c0d0;">Entrada aberta — clientes podem chegar.</div>
+      <button id="ald-entrada-btn" class="btn btn-sm" style="margin-top:8px;background:linear-gradient(135deg,#4a7c1e,#7cb342);color:#fff;border:none;padding:8px 14px;border-radius:8px;font-weight:700;">
+        Fechar Entrada
+      </button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">🗞️ Informante da Cidade</div>
+      <div id="ald-info-txt" style="font-size:12px;color:#c0c0d0;">Nenhum aviso ativo.</div>
+      <button id="ald-info-btn" class="btn btn-sm" style="margin-top:8px;background:linear-gradient(135deg,#2a1a5a,#7c4dff);color:#fff;border:none;padding:8px 14px;border-radius:8px;font-weight:700;">
+        Pagar Informante 🪙8.000 (1h)
+      </button>
+    </div>
+
+    <div class="panel-title" style="font-family:'Cinzel',serif;color:#7cb342;margin:14px 4px 8px;font-size:13px;letter-spacing:1px;">🏗️ Construções</div>
+    <div class="b-grid" id="ald-build-grid"></div>
+  </div>
+
+  <!-- ═══ TAB: CLIENTES ═══ -->
+  <div class="tab-pane" data-pane="clientes" style="display:none;">
+    <div id="ald-cli-empty" class="panel" style="text-align:center;color:#9e9e9e;font-size:12px;">
+      Nenhum cliente na porta. Suba <strong style="color:#ffc107;">Publicidade</strong> para atrair mais.
+    </div>
+    <div id="ald-cli-list"></div>
+  </div>
+
+  <!-- ═══ TAB: CONTRATOS ═══ -->
+  <div class="tab-pane" data-pane="contratos" style="display:none;">
+    <div class="panel">
+      <div class="panel-title">📜 Contratos Semanais</div>
+      <div style="font-size:12px;color:#c0c0d0;">Pedidos grandes com prazo. Cumpra para ganhar ouro extra e subir avaliação. Máx 3 ativos.</div>
+      <button id="ald-ct-gen" class="btn btn-sm" style="margin-top:8px;background:linear-gradient(135deg,#4a7c1e,#7cb342);color:#fff;border:none;padding:8px 14px;border-radius:8px;font-weight:700;">
+        + Gerar Novo Contrato
+      </button>
+    </div>
+    <div id="ald-ct-list"></div>
+  </div>
+
+  <!-- ═══ TAB: RANKING ═══ -->
+  <div class="tab-pane" data-pane="ranking" style="display:none;">
+    <div class="panel">
+      <div class="panel-title">🏅 Ranking de Aldeias · Top 100</div>
+      <div style="font-size:11px;color:#9e9e9e;margin-bottom:6px;">
+        Ranking dinâmico — os pontos das aldeias sobem sozinhos, então sua posição pode variar mesmo sem jogar.
+      </div>
+      <div style="font-size:12px;color:#ffc107;margin-bottom:6px;">Seus pontos: <strong id="ald-my-pts">0</strong></div>
+      <div id="ald-rank-list" style="max-height:520px;overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB: AJUDA ═══ -->
+  <div class="tab-pane" data-pane="ajuda" style="display:none;">
+    <div class="panel">
+      <div class="panel-title">❓ Como funciona a Aldeia</div>
+      <div class="help-h3">🏗️ Construções</div>
+      <div class="help-p">
+        Você começa com <strong>5 construções nível 1</strong>: Loja, Minas, Fazenda, Publicidade e Qualidade.
+        Loja gera <strong>💵 Dinheiro (não é ouro!)</strong>, Minas gera <strong>🪨 Carvão</strong>, Fazenda gera <strong>🌾 Trigo</strong>.
+        No nível 1, cada uma produz apenas <strong>10 itens em 30 min</strong>. Ao subir níveis (máx 8), a produção
+        aumenta até <strong>+59%</strong>. Upgrades custam <strong>muito ouro</strong>.
+      </div>
+      <div class="help-h3">📣 Publicidade</div>
+      <div class="help-p">No lvl 1 clientes chegam devagar. Subir Publicidade multiplica a chegada em até <strong>8×</strong> no nível máximo.</div>
+      <div class="help-h3">⭐ Qualidade</div>
+      <div class="help-p">
+        <strong>Não sobe com ouro!</strong> Só sobe atendendo clientes felizes. No nível 8 os clientes
+        esperam até <strong>1 hora</strong> e pagam quase <strong>3× mais</strong>. Também impede ladrões de escapar.
+      </div>
+      <div class="help-h3">📦 Armazém</div>
+      <div class="help-p">Aumenta capacidade de estoque. Sem espaço, <strong>a produção parada some</strong>. Suba conforme cresce.</div>
+      <div class="help-h3">🛡️ Guarda</div>
+      <div class="help-p">Reduz chance do ladrão dar certo e acelera a descoberta do disfarce (níveis 1–5).</div>
+      <div class="help-h3">🌸 Decoração</div>
+      <div class="help-p">Só cosmética, mas a partir do nível <strong>4 de "charme"</strong> clientes <strong>VIP</strong> raros começam a aparecer — pagam melhor mas têm <strong>menos paciência</strong>.</div>
+      <div class="help-h3">🧍 Clientes</div>
+      <div class="help-p">
+        Cada NPC pede um recurso (mínimo <strong>100</strong>). Frases variam por item e por NPC — atenda antes que a paciência acabe.
+        Alguns são <strong>ladrões disfarçados</strong> — dão sinais 🕶️ que ficam <strong>mais sutis</strong> conforme você atende mais gente.
+        Expulsar cliente honesto <strong>derruba muito</strong> a avaliação.
+      </div>
+      <div class="help-h3">💬 Negociação</div>
+      <div class="help-p">Cliente sem paciência dá chance de <strong>convencer</strong> escolhendo 1 de 3 frases. Cuidado: nem toda frase funciona pra todo tipo de NPC, e ainda há <strong>~20% de risco</strong> mesmo quando encaixa.</div>
+      <div class="help-h3">👑 VIPs & Fidelidade</div>
+      <div class="help-p">Atenda VIPs bem para fidelizá-los — voltam com pedidos maiores.</div>
+      <div class="help-h3">🗞️ Informante</div>
+      <div class="help-p">Pago (🪙8.000/hora), avisa se hoje tem mais ladrões, mais VIPs, ou dia calmo. Decisão estratégica.</div>
+      <div class="help-h3">📅 Dia & Hora</div>
+      <div class="help-p">Fins de semana e horário comercial (10h–20h) atraem <strong>muito mais</strong> clientes. Madrugada é fraca.</div>
+      <div class="help-h3">📜 Contratos</div>
+      <div class="help-p">Meta de médio prazo: entregue X de um recurso até a data. Recompensa em ouro e reputação.</div>
+      <div class="help-h3">🏅 Ranking</div>
+      <div class="help-p">Top 100 aldeias com pontos que só sobem (dinâmico). Sua pontuação é calculada pelo desempenho e <strong>não</strong> sobe sozinha como os NPCs.</div>
+    </div>
+  </div>
+
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="Aldeia.html" class="nav-btn active"><span class="icon">🏘️</span>Aldeia</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+
+</div>
+
+<script>
+  ["gamedata.js","gamedata2.js","gamedata3.js","gamedata-aldeia-patch.js"].forEach(function(src){
+    document.write('<scr'+'ipt src="'+src+'?v='+CF_BUILD+'"></scr'+'ipt>');
+  });
+</script>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   ALDEIA — UI
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+  if (!window.AldeiaAPI) { console.error("AldeiaAPI ausente"); return; }
+  var API = window.AldeiaAPI;
+
+  function fmt(n){ return (typeof fmtNum==="function")?fmtNum(n):Math.floor(n).toLocaleString("pt-BR"); }
+  function $(s,r){ return (r||document).querySelector(s); }
+  function $$(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); }
+  function save(){ return (typeof getOrCreateSave==="function")?getOrCreateSave():{gold:0}; }
+
+  // ── Tabs ────────────────────────────────────────────
+  $$("#ald-tabs .aldeia-tab").forEach(function(t){
+    t.addEventListener("click", function(){
+      $$("#ald-tabs .aldeia-tab").forEach(function(x){x.classList.remove("active");});
+      t.classList.add("active");
+      var tgt = t.getAttribute("data-tab");
+      $$(".tab-pane").forEach(function(p){
+        p.style.display = (p.getAttribute("data-pane")===tgt) ? "" : "none";
+      });
+      render();
+    });
+  });
+
+  // ── Render principal ────────────────────────────────
+  function renderStars(a){
+    var full = Math.round(a.avaliacao);
+    var s = "";
+    for (var i=1;i<=5;i++) s += (i<=full?"★":"<span class='off'>★</span>");
+    $("#ald-stars").innerHTML = s;
+    $("#ald-aval").textContent = "("+(a.avaliacao||1).toFixed(2)+")";
+  }
+  var DIAS_SEMANA = ["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+  function renderDayTime(){
+    var el = $("#ald-daytime");
+    if (!el) return;
+    var now = new Date();
+    var dia = DIAS_SEMANA[now.getDay()];
+    var hh = String(now.getHours()).padStart(2,"0");
+    var mm = String(now.getMinutes()).padStart(2,"0");
+    var h = now.getHours();
+    var isWeekend = (now.getDay()===0 || now.getDay()===6);
+    var isBusiness = (h>=10 && h<=20);
+    var isDawn = (h>=0 && h<6);
+    var tag, cor;
+    if (isDawn) { tag = "🌙 Madrugada — movimento fraco"; cor = "#7c7c9c"; }
+    else if (isWeekend && isBusiness) { tag = "🎉 Fim de semana + horário nobre — movimento forte"; cor = "#7cb342"; }
+    else if (isBusiness) { tag = "☀️ Horário comercial — movimento bom"; cor = "#7cb342"; }
+    else if (isWeekend) { tag = "🌤️ Fim de semana — movimento moderado"; cor = "#ffc107"; }
+    else { tag = "🌥️ Fora do horário nobre — movimento normal"; cor = "#9e9e9e"; }
+    el.innerHTML = "📅 "+dia+" · 🕒 "+hh+":"+mm+" — <span style='color:"+cor+";font-weight:700;'>"+tag+"</span>";
+  }
+  function renderResources(a){
+    var strip = $("#ald-res-strip");
+    if (!strip) return;
+    strip.innerHTML = "";
+    Object.keys(API.RES).forEach(function(k){
+      var r = API.RES[k];
+      var div = document.createElement("div");
+      div.className = "res-chip";
+      div.innerHTML = '<div class="em">'+r.emoji+'</div><div class="val" style="color:'+r.color+'">'+fmt(a.resources[k]||0)+'</div><div class="lbl">'+r.name+'</div>';
+      strip.appendChild(div);
+    });
+    var cap = API.capacity(a), tot = API.totalStock(a);
+    var pct = cap>0 ? Math.min(100, tot/cap*100) : 0;
+    $("#ald-stock-bar").style.width = pct+"%";
+    $("#ald-stock-txt").textContent = fmt(tot)+" / "+(cap>0?fmt(cap):"— (sem armazém!)");
+  }
+  function renderBuildings(a){
+    var grid = $("#ald-build-grid");
+    if (!grid) return;
+    grid.innerHTML = "";
+    API.BUILDINGS.forEach(function(b){
+      var lv = a.buildings[b.id] || 0;
+      var locked = lv === 0;
+      var cost = b.upgradeType === "happy" ? null : API.upgradeCost(b.id, lv);
+      var card = document.createElement("div");
+      card.className = "b-card"+(locked?" locked":"");
+      var btnLabel, canBuy = false;
+      if (b.upgradeType === "happy") {
+        var need = API.CFG.qualityHappyToUpgrade[lv+1];
+        btnLabel = lv >= b.maxLevel ? "MÁXIMO" : "Sobe atendendo bem ("+(a.happyClients||0)+"/"+need+")";
+      } else if (lv >= b.maxLevel) {
+        btnLabel = "NÍVEL MÁXIMO";
+      } else if (cost == null) {
+        btnLabel = "—";
+      } else {
+        btnLabel = (locked?"Construir":"Upgrade") + " · 🪙"+fmt(cost);
+        canBuy = (save().gold||0) >= cost;
+      }
+      card.innerHTML =
+        '<div style="display:flex;justify-content:space-between;align-items:center;">'+
+          '<div class="b-em">'+b.emoji+'</div>'+
+          '<div class="b-lv">Lv '+lv+' / '+b.maxLevel+'</div>'+
+        '</div>'+
+        '<div class="b-nm">'+b.name+'</div>'+
+        '<div class="b-desc">'+b.desc+'</div>'+
+        '<button class="b-btn" data-bid="'+b.id+'" '+(canBuy?"":"disabled")+'>'+btnLabel+'</button>';
+      grid.appendChild(card);
+    });
+    $$("#ald-build-grid .b-btn").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var r = API.upgrade(btn.getAttribute("data-bid"));
+        toast(r.msg);
+        render();
+      });
+    });
+  }
+  function renderClients(a){
+    var list = $("#ald-cli-list");
+    if (!list) return;
+    var empty = $("#ald-cli-empty");
+    list.innerHTML = "";
+    if (a.clientes.length === 0) { empty.style.display = ""; return; }
+    empty.style.display = "none";
+    a.clientes.forEach(function(c){
+      var elapsed = (Date.now()-c.arrivedAt)/1000;
+      var left = Math.max(0, c.patienceSec - elapsed);
+      var pct = Math.max(0, Math.min(100, left/c.patienceSec*100));
+      var canNego = (elapsed/c.patienceSec > 0.5) && !c.negotiated;
+      var card = document.createElement("div");
+      card.className = "client-card"+(c.thief?" thief-hint":"")+(c.type==="VIP"?" vip":"");
+      var tag = c.type==="VIP" ? '<span class="client-tag vip">VIP</span>' : '<span class="client-tag">Cliente</span>';
+      var vipFid = (a.vips[c.npcId]||0);
+      var signsHTML = c.signs.map(function(s){return '<div class="client-sign">'+s+'</div>';}).join("");
+      var negoBox = "";
+      var negoPicksForClient = null;
+      if (canNego) {
+        // As opções de negociação sorteadas aqui na UI nunca eram persistidas
+        // (o objeto "c" vem de API.ensure(), que reflete o save recarregado do
+        // localStorage a cada render). Resultado: as 3 frases mudavam sozinhas
+        // debaixo do jogador a cada 3s. O patch já resolve isso corretamente
+        // em API.getNegoPicks(), que sorteia uma vez e persiste no save —
+        // então usamos essa função central em vez de duplicar a lógica aqui.
+        negoPicksForClient = API.getNegoPicks(c.id);
+        negoBox = '<div class="nego-box" data-nego="'+c.id+'">'+
+          '<div style="font-size:11px;color:#ce93d8;margin-bottom:6px;">💬 Convencer:</div>'+
+          negoPicksForClient.map(function(p,i){ return '<button class="nego-line" data-idx="'+i+'">'+p.text+'</button>'; }).join("")+
+        '</div>';
+      }
+      card.innerHTML =
+        '<div class="client-head">'+
+          '<div class="client-em">'+c.emoji+'</div>'+
+          '<div class="client-info">'+
+            '<div class="client-name">'+c.name+tag+(vipFid?' <span style="font-size:9px;color:#ffc107;">⭐×'+vipFid+'</span>':'')+'</div>'+
+            '<div style="font-size:10px;color:#9e9e9e;">Pede: '+fmt(c.qty)+' de '+API.RES[c.want].name+' '+API.RES[c.want].emoji+'</div>'+
+          '</div>'+
+        '</div>'+
+        '<div class="client-phrase">"'+c.phrase+'"</div>'+
+        signsHTML+
+        '<div class="timer-bar"><div style="width:'+pct+'%"></div></div>'+
+        '<div style="font-size:9.5px;color:#9e9e9e;text-align:right;margin-top:2px;">Paciência: '+Math.floor(left)+'s / '+c.patienceSec+'s</div>'+
+        '<div class="client-actions">'+
+          '<button class="btn-serve" data-serve="'+c.id+'">✅ Atender</button>'+
+          '<button class="btn-expel" data-expel="'+c.id+'">🚪 Expulsar</button>'+
+        '</div>'+
+        negoBox;
+      list.appendChild(card);
+      if (canNego) {
+        $$(".nego-line", card).forEach(function(btn){
+          btn.addEventListener("click", function(){
+            var r = API.negotiate(c.id, parseInt(btn.getAttribute("data-idx"),10), negoPicksForClient);
+            toast(r.msg);
+            render();
+          });
+        });
+      }
+    });
+    $$("#ald-cli-list .btn-serve").forEach(function(b){
+      b.addEventListener("click", function(){
+        var r = API.serveClient(b.getAttribute("data-serve"));
+        toast(r.msg);
+        render();
+      });
+    });
+    $$("#ald-cli-list .btn-expel").forEach(function(b){
+      b.addEventListener("click", function(){
+        var r = API.expel(b.getAttribute("data-expel"));
+        toast(r.msg);
+        render();
+      });
+    });
+  }
+  function renderEntrada(a){
+    var txt = $("#ald-entrada-txt");
+    var btn = $("#ald-entrada-btn");
+    if (!txt || !btn) return;
+    if (a.entradaFechada) {
+      txt.innerHTML = '<span style="color:#ff8a80;">🚫 Fechada — nenhum cliente novo vai chegar.</span>';
+      btn.textContent = "Abrir Entrada";
+      btn.style.background = "linear-gradient(135deg,#5a1a1a,#c62828)";
+    } else {
+      txt.innerHTML = '<span style="color:#7cb342;">🔓 Aberta — clientes podem chegar normalmente.</span>';
+      btn.textContent = "Fechar Entrada";
+      btn.style.background = "linear-gradient(135deg,#4a7c1e,#7cb342)";
+    }
+  }
+  function renderInformante(a){
+    var txt = $("#ald-info-txt");
+    var btn = $("#ald-info-btn");
+    var ativo = a.informante.paidUntil > Date.now();
+    if (ativo) {
+      var mins = Math.ceil((a.informante.paidUntil-Date.now())/60000);
+      var map = {thieves:"🕶️ MAIS LADRÕES hoje. Cuidado!", vip:"👑 VIPs mais frequentes hoje.", calm:"🕊️ Dia calmo previsto."};
+      txt.innerHTML = '<div style="color:#ce93d8;">'+(map[a.informante.warning]||"Aviso ativo.")+'</div><div style="font-size:10px;color:#9e9e9e;margin-top:2px;">Expira em '+mins+' min</div>';
+    } else {
+      txt.textContent = "Nenhum aviso ativo.";
+    }
+    // O botão antes ficava sempre com o mesmo texto clicável, mesmo com um aviso
+    // ainda ativo (a chamada falhava silenciosamente do lado da lógica). Agora
+    // reflete visualmente o estado.
+    if (btn) {
+      if (ativo) {
+        btn.disabled = true;
+        btn.textContent = "Informante já ativo (aguarde expirar)";
+      } else {
+        btn.disabled = false;
+        btn.textContent = "Pagar Informante 🪙8.000 (1h)";
+      }
+    }
+  }
+  function renderContracts(a){
+    var list = $("#ald-ct-list");
+    var genBtn = $("#ald-ct-gen");
+    if (genBtn) {
+      // Antes o botão sempre ficava clicável mesmo com 3 contratos ativos
+      // (a chamada falhava e o jogador só via um toast de erro). Contratos
+      // já concluídos não contam para o limite — só os ainda em andamento.
+      var ativos = a.contratos.filter(function(ct){ return !ct.done; }).length;
+      if (ativos >= 3) {
+        genBtn.disabled = true;
+        genBtn.textContent = "Máx 3 contratos ativos";
+      } else {
+        genBtn.disabled = false;
+        genBtn.textContent = "+ Gerar Novo Contrato";
+      }
+    }
+    if (!list) return;
+    list.innerHTML = "";
+    if (a.contratos.length === 0) {
+      list.innerHTML = '<div style="text-align:center;color:#9e9e9e;font-size:12px;padding:14px;">Nenhum contrato ativo.</div>';
+      return;
+    }
+    a.contratos.forEach(function(ct){
+      var pct = Math.min(100, ct.progress/ct.target*100);
+      var hoursLeft = Math.max(0, (ct.deadline-Date.now())/3600000);
+      var row = document.createElement("div");
+      row.className = "contract-row";
+      row.innerHTML =
+        '<div class="ct-title">'+ct.title+'</div>'+
+        '<div class="ct-meta">⏳ '+hoursLeft.toFixed(1)+'h restantes · 🎁 🪙'+fmt(ct.rewardGold)+(ct.done?' · ✅ Concluído':'')+'</div>'+
+        '<div class="ct-bar"><div style="width:'+pct+'%"></div></div>'+
+        '<div style="font-size:10px;color:#9e9e9e;margin-top:2px;">'+fmt(ct.progress)+' / '+fmt(ct.target)+'</div>';
+      list.appendChild(row);
+    });
+  }
+  function renderRanking(){
+    var r = API.getRanking();
+    var list = $("#ald-rank-list");
+    if (!list) return;
+    $("#ald-my-pts").textContent = fmt(r.myPts);
+    list.innerHTML = "";
+    r.list.forEach(function(row){
+      var isMe = false; // jogador não entra no ranking dinâmico
+      var posCls = row.pos===1?"top1":row.pos===2?"top2":row.pos===3?"top3":"";
+      var div = document.createElement("div");
+      div.className = "rank-row"+(isMe?" me":"");
+      div.innerHTML =
+        '<div class="rank-pos '+posCls+'">#'+row.pos+'</div>'+
+        '<div>'+row.name+'</div>'+
+        '<div class="rank-pts">'+fmt(row.pts)+' pts</div>';
+      list.appendChild(div);
+    });
+  }
+
+  function updateBadge(a){
+    var b = $("#tab-cli-badge");
+    if (!b) return;
+    var n = a.clientes.length;
+    if (n>0){ b.style.display=""; b.textContent = n; } else { b.style.display="none"; }
+  }
+
+  function render(){
+    var s = save();
+    var a = API.ensure(s);
+    $("#ald-gold-chip").textContent = "🪙 "+fmt(s.gold||0);
+    renderStars(a);
+    renderDayTime();
+    renderResources(a);
+    renderEntrada(a);
+    renderBuildings(a);
+    renderClients(a);
+    renderInformante(a);
+    renderContracts(a);
+    renderRanking();
+    updateBadge(a);
+  }
+
+  // toast simples se o jogo não tiver
+  window.toast = window.toast || function(msg){
+    var c = document.getElementById("toast-container"); if (!c) return;
+    var d = document.createElement("div");
+    d.textContent = msg;
+    d.style.cssText = "background:#0e0e1e;border:1px solid #7cb342;color:#fff;padding:10px 14px;border-radius:10px;margin-top:6px;font-size:12px;box-shadow:0 4px 20px rgba(0,0,0,0.5);";
+    c.appendChild(d); setTimeout(function(){ d.style.opacity="0"; d.style.transition="0.4s"; setTimeout(function(){d.remove();},400); }, 2600);
+  };
+
+  $("#ald-info-btn").addEventListener("click", function(){ var r = API.payInformante(); toast(r.msg); render(); });
+  $("#ald-entrada-btn").addEventListener("click", function(){ var r = API.toggleEntrada(); toast(r.msg); render(); });
+  $("#ald-ct-gen").addEventListener("click",  function(){ var r = API.generateContract(); toast(r.msg); render(); });
+
+  render();
+  setInterval(render, 3000);
+  setInterval(renderDayTime, 1000); // relógio próprio: atualiza a cada segundo, não só a cada 3s do render geral
+})();
+</script>
+</body>
+</html>

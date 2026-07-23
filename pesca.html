@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Pesca – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+/* ═══════════════════════════════════════════
+   PESCA — Estilos exclusivos
+═══════════════════════════════════════════ */
+.pesca-hero {
+  background: linear-gradient(180deg, #000d1a 0%, #001a33 50%, #000d0a 100%);
+  border: 2px solid #29b6f6;
+  border-radius: 20px;
+  padding: 20px 16px 16px;
+  margin-bottom: 14px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.pesca-hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% -20%, rgba(41,182,246,0.12) 0%, transparent 65%);
+  pointer-events: none;
+}
+.pesca-hero-icon {
+  font-size: 64px;
+  display: block;
+  animation: float 2.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 24px rgba(41,182,246,0.5));
+  position: relative; z-index: 1;
+}
+.pesca-hero-title {
+  font-family: 'Cinzel', serif;
+  font-size: 26px; font-weight: 900;
+  background: linear-gradient(135deg, #29b6f6, #00e5ff, #4fc3f7);
+  background-size: 200%;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: title-shimmer 4s linear infinite;
+  position: relative; z-index: 1;
+  margin: 6px 0 4px;
+}
+
+/* Abas do sistema de pesca */
+.pesca-tabs {
+  display: flex;
+  background: #0e0e1c;
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 14px;
+  gap: 3px;
+  overflow-x: auto;
+}
+.pesca-tab {
+  flex: 1;
+  padding: 9px 6px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: #9e9e9e;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.pesca-tab.active {
+  background: linear-gradient(135deg, #006064, #00838f);
+  color: #fff;
+}
+
+/* Local de pesca */
+.local-card {
+  background: linear-gradient(135deg, #001a2e, #002d4e);
+  border: 2px solid #29b6f6;
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  position: relative;
+  overflow: hidden;
+}
+.local-card.origens-local {
+  border-color: #ff4444;
+  background: linear-gradient(135deg, #1a0010, #2a0030);
+  animation: pulse-glow-blue 2s infinite;
+}
+@keyframes pulse-glow-blue {
+  0%,100% { box-shadow: 0 4px 16px rgba(41,182,246,0.25); }
+  50%      { box-shadow: 0 4px 32px rgba(41,182,246,0.55); }
+}
+.local-card.origens-local { animation: pulse-glow-red 2s infinite; }
+@keyframes pulse-glow-red {
+  0%,100% { box-shadow: 0 4px 16px rgba(255,68,68,0.4); }
+  50%      { box-shadow: 0 4px 32px rgba(255,68,68,0.7); }
+}
+.local-name {
+  font-family: 'Cinzel', serif;
+  font-size: 16px; font-weight: 700;
+  margin-bottom: 4px;
+}
+.local-timer {
+  font-size: 11px; color: #9e9e9e;
+}
+
+/* Vara equipada */
+.vara-card {
+  background: #0e0e1c;
+  border: 1px solid #1e1e30;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: border-color 0.2s;
+}
+.vara-card:hover { border-color: #29b6f6; }
+.vara-durabilidade {
+  width: 100%;
+  height: 6px;
+  background: #1e1e30;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.vara-durabilidade-bar {
+  height: 100%;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #29b6f6, #00e5ff);
+  transition: width 0.5s;
+}
+
+/* Botão de pescar */
+.btn-pescar {
+  width: 100%;
+  padding: 20px;
+  font-size: 18px;
+  font-family: 'Cinzel', serif;
+  font-weight: 900;
+  border: none;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #006064, #00838f, #29b6f6);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+}
+.btn-pescar::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.12) 50%, transparent 70%);
+  background-size: 200%;
+  animation: btn-shimmer 2s ease infinite;
+}
+.btn-pescar:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(41,182,246,0.4); }
+.btn-pescar:active { transform: scale(0.97); }
+.btn-pescar:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* Seletor de isca */
+.bait-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.bait-option {
+  background: #0e0e1c;
+  border: 2px solid #1e1e30;
+  border-radius: 12px;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+.bait-option.selected { border-color: #29b6f6; background: rgba(41,182,246,0.08); }
+.bait-option:hover { border-color: #29b6f6; }
+.bait-option.unavailable { opacity: 0.4; cursor: not-allowed; }
+.bait-option .bait-emoji { font-size: 24px; display: block; margin-bottom: 4px; }
+.bait-option .bait-name { font-size: 11px; font-weight: 700; color: #fff; }
+.bait-option .bait-count { font-size: 10px; color: #9e9e9e; margin-top: 2px; }
+.bait-option .bait-bonus { font-size: 10px; color: #29b6f6; }
+
+/* Resultado da pesca */
+.resultado-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.resultado-overlay.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+.resultado-box {
+  background: #0d0d1a;
+  border-radius: 24px;
+  padding: 28px 24px;
+  text-align: center;
+  max-width: 340px;
+  width: 90%;
+  position: relative;
+  transform: scale(0.85);
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+.resultado-overlay.visible .resultado-box { transform: scale(1); }
+
+/* Animação Origens/Ultra Raro */
+.resultado-box.origens-anim {
+  border: 2px solid #ff4444;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255,68,68,0.15) 0%, #0d0d1a 65%);
+  animation: origens-pulse 0.8s ease-out;
+}
+@keyframes origens-pulse {
+  0%   { box-shadow: 0 0 0 rgba(255,68,68,0); }
+  50%  { box-shadow: 0 0 60px rgba(255,68,68,0.5); }
+  100% { box-shadow: 0 0 20px rgba(255,68,68,0.2); }
+}
+.resultado-box.ultra-anim {
+  border: 2px solid #00e5ff;
+  background: radial-gradient(ellipse at 50% 0%, rgba(0,229,255,0.12) 0%, #0d0d1a 65%);
+}
+.card-reveal {
+  font-size: 72px;
+  display: block;
+  animation: card-reveal-anim 0.6s ease-out;
+  margin-bottom: 10px;
+}
+@keyframes card-reveal-anim {
+  0%   { transform: scale(0) rotate(-15deg); opacity: 0; }
+  70%  { transform: scale(1.2) rotate(3deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); }
+}
+.resultado-rarity {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 12px;
+  border-radius: 20px;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+.resultado-card-name {
+  font-family: 'Cinzel', serif;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.resultado-desc {
+  font-size: 12px;
+  color: #9e9e9e;
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+/* Vara quebrada */
+.rod-break-anim {
+  border: 2px solid #ff6d00;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255,109,0,0.12) 0%, #0d0d1a 65%);
+}
+.rod-break-icon {
+  font-size: 56px;
+  display: block;
+  animation: shake 0.5s ease-out;
+  margin-bottom: 8px;
+}
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20%      { transform: translateX(-8px) rotate(-5deg); }
+  40%      { transform: translateX(8px) rotate(5deg); }
+  60%      { transform: translateX(-6px) rotate(-3deg); }
+  80%      { transform: translateX(6px) rotate(3deg); }
+}
+
+/* Fuga do peixe */
+.escape-icon {
+  font-size: 56px;
+  display: block;
+  animation: escape-anim 0.6s ease-out;
+  margin-bottom: 8px;
+}
+@keyframes escape-anim {
+  0%   { transform: translateX(0); }
+  30%  { transform: translateX(-20px); }
+  60%  { transform: translateX(80px); opacity: 0.5; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+/* Partículas especiais Origens */
+.origens-particles {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 999;
+  display: none;
+}
+.origens-particles.active { display: block; }
+.particle-star {
+  position: absolute;
+  font-size: 20px;
+  animation: particle-float 2s ease-out forwards;
+  opacity: 0;
+}
+@keyframes particle-float {
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-150px) scale(0); }
+}
+
+/* Lista de varas na loja */
+.rod-item {
+  background: #0e0e1c;
+  border: 1px solid #1e1e30;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: border-color 0.2s;
+}
+.rod-item:hover { border-color: #29b6f6; }
+.rod-item.owned { border-color: #4CAF50; }
+.rod-item.equipped { border-color: #ffc107; background: rgba(255,193,7,0.04); }
+
+/* Ranking */
+.rank-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #0e0e1c;
+  border-radius: 10px;
+  margin-bottom: 6px;
+  transition: background 0.2s;
+}
+.rank-row.player-row { background: rgba(41,182,246,0.08); border: 1px solid #29b6f6; }
+.rank-num {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  font-weight: 900;
+  min-width: 28px;
+  text-align: center;
+}
+.rank-num.gold-rank   { color: #ffd700; }
+.rank-num.silver-rank { color: #90caf9; }
+.rank-num.bronze-rank { color: #a1887f; }
+
+/* Iscas diárias barra */
+.iscas-bar {
+  background: #1e1e30;
+  border-radius: 10px;
+  height: 8px;
+  overflow: hidden;
+  margin: 6px 0;
+}
+.iscas-bar-fill {
+  height: 100%;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #29b6f6, #00e5ff);
+  transition: width 0.4s;
+}
+
+/* Restos de isca */
+.restos-card {
+  background: linear-gradient(135deg, #1a0010, #2a0020);
+  border: 1px solid #ff4444;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 10px;
+}
+
+/* Stats de pesca */
+.pesca-stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #1e1e30;
+  font-size: 13px;
+}
+.pesca-stat-row:last-child { border-bottom: none; }
+.pesca-stat-label { color: #9e9e9e; }
+.pesca-stat-val { font-weight: 700; }
+
+/* Log de pesca */
+.pesca-log {
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+.pesca-log-item {
+  font-size: 12px;
+  padding: 6px 10px;
+  background: #0e0e1c;
+  border-radius: 8px;
+  color: #c0c0d0;
+  border-left: 3px solid #29b6f6;
+}
+.pesca-log-item.log-escape { border-color: #ff6d00; }
+.pesca-log-item.log-miss   { border-color: #555; color: #666; }
+.pesca-log-item.log-break  { border-color: #ff4444; }
+.pesca-log-item.log-origens{ border-color: #ff4444; color: #ff9999; font-weight:700; }
+.pesca-log-item.log-ultra  { border-color: #00e5ff; color: #80deea; font-weight:700; }
+
+/* Tabs de varas (lista completa) */
+.rod-rarity-badge {
+  font-size: 9px; font-weight: 700;
+  padding: 2px 7px; border-radius: 10px;
+  display: inline-block; margin-left: 6px;
+}
+
+/* Cartas de pesca no cofre mini */
+.fishing-card-mini {
+  background: #0e0e1c;
+  border: 1px solid #1e1e30;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  transition: border-color 0.2s;
+}
+.fishing-card-mini:hover { border-color: #29b6f6; }
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<!-- Partículas Origens -->
+<div class="origens-particles" id="origens-particles"></div>
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title">🎣 PESCA</span>
+  <div class="player-quick">
+    <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+  </div>
+</header>
+
+<main class="content">
+
+  <!-- Hero -->
+  <div class="pesca-hero">
+    <span class="pesca-hero-icon">🎣</span>
+    <div class="pesca-hero-title">SISTEMA DE PESCA</div>
+    <div style="font-size:12px;color:#80deea;margin-bottom:12px;position:relative;z-index:1;">Pesque cartas exclusivas nas águas de Origens</div>
+    <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1;">
+      <span style="font-size:10px;background:rgba(41,182,246,0.12);border:1px solid #29b6f6;color:#80deea;border-radius:8px;padding:2px 8px;">🃏 Cartas Exclusivas</span>
+      <span style="font-size:10px;background:rgba(255,193,7,0.12);border:1px solid #ffc107;color:#ffe082;border-radius:8px;padding:2px 8px;">🏆 Ranking de Pesca</span>
+      <span style="font-size:10px;background:rgba(255,68,68,0.12);border:1px solid #ff4444;color:#ff8888;border-radius:8px;padding:2px 8px;">🌌 Lago Origens</span>
+      <span style="font-size:10px;background:rgba(76,175,80,0.12);border:1px solid #4CAF50;color:#a5d6a7;border-radius:8px;padding:2px 8px;">🆕 v10.0</span>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="pesca-tabs">
+    <button class="pesca-tab active" onclick="switchPescaTab('pescar',this)">🎣 Pescar</button>
+    <button class="pesca-tab" onclick="switchPescaTab('varas',this)">🪵 Varas</button>
+    <button class="pesca-tab" onclick="switchPescaTab('iscas',this)">🪱 Iscas</button>
+    <button class="pesca-tab" onclick="switchPescaTab('ranking',this)">🏆 Ranking</button>
+    <button class="pesca-tab" onclick="switchPescaTab('colecao',this)">📦 Coleção</button>
+    <button class="pesca-tab" onclick="switchPescaTab('info',this)">ℹ️ Info</button>
+  </div>
+
+  <!-- ══════════ TAB: PESCAR ══════════ -->
+  <div id="tab-pescar">
+
+    <!-- Local Atual -->
+    <div id="local-atual-card"></div>
+
+    <!-- Iscas do dia -->
+    <div class="panel" style="margin-bottom:12px;">
+      <div class="panel-title" style="font-size:13px;">🪱 Suas Iscas</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <span style="font-size:12px;color:#9e9e9e;">Iscas Comuns de Hoje</span>
+        <span style="font-size:13px;font-weight:700;color:#29b6f6;" id="iscas-comuns-count">0</span>
+      </div>
+      <div class="iscas-bar">
+        <div class="iscas-bar-fill" id="iscas-bar-fill" style="width:0%"></div>
+      </div>
+      <div id="iscas-extras-info" style="font-size:11px;color:#9e9e9e;margin-top:4px;"></div>
+    </div>
+
+    <!-- Vara equipada -->
+    <div id="vara-equipada-card" style="margin-bottom:12px;"></div>
+
+    <!-- Seletor de isca -->
+    <div style="margin-bottom:10px;">
+      <div style="font-size:12px;color:#9e9e9e;margin-bottom:8px;font-weight:700;">🎯 Escolha sua Isca:</div>
+      <div class="bait-selector" id="bait-selector"></div>
+    </div>
+
+    <!-- Botão principal de pescar -->
+    <button class="btn-pescar" id="btn-pescar" onclick="lancarIsca()">
+      🎣 LANÇAR ISCA!
+    </button>
+
+    <!-- Comprar iscas extras -->
+    <div style="background:#0e0e1c;border:1px solid #1e1e30;border-radius:12px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:12px;color:#9e9e9e;margin-bottom:8px;">+ Comprar iscas comuns extras hoje <span style="color:#ffc107;">(máx. 30/dia · 🪙 1.000 cada)</span></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-gold btn-sm" style="flex:1;" onclick="comprarIscaExtraUI(5)">+5 → 🪙 5.000</button>
+        <button class="btn btn-gold btn-sm" style="flex:1;" onclick="comprarIscaExtraUI(15)">+15 → 🪙 15.000</button>
+        <button class="btn btn-gold btn-sm" style="flex:1;" onclick="comprarIscaExtraUI(30)">+30 → 🪙 30.000</button>
+      </div>
+      <div style="font-size:11px;color:#9e9e9e;margin-top:6px;" id="extras-compradas-today"></div>
+    </div>
+
+    <!-- Log de pesca -->
+    <div class="panel">
+      <div class="panel-title">📋 Histórico de Pesca</div>
+      <div class="pesca-log" id="pesca-log">
+        <div style="font-size:12px;color:#555;text-align:center;padding:16px;">Jogue uma isca para começar!</div>
+      </div>
+    </div>
+
+    <!-- Stats rápidos -->
+    <div class="panel" style="margin-top:12px;">
+      <div class="panel-title">📊 Suas Estatísticas</div>
+      <div class="pesca-stat-row">
+        <span class="pesca-stat-label">🐟 Total de cartas pescadas</span>
+        <span class="pesca-stat-val" id="stat-pescados" style="color:#29b6f6;">0</span>
+      </div>
+      <div class="pesca-stat-row">
+        <span class="pesca-stat-label">🏆 Pontos de ranking</span>
+        <span class="pesca-stat-val" id="stat-rank-pts" style="color:#ffc107;">0</span>
+      </div>
+      <div class="pesca-stat-row">
+        <span class="pesca-stat-label">💨 Restos de Isca</span>
+        <span class="pesca-stat-val" id="stat-restos" style="color:#ff6d00;">0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ TAB: VARAS ══════════ -->
+  <div id="tab-varas" style="display:none;">
+    <div class="panel" style="margin-bottom:14px;background:linear-gradient(135deg,#001a2e,#002d4e);">
+      <div style="font-size:12px;color:#80deea;line-height:1.8;">
+        🪵 <strong style="color:#29b6f6;">Varas de pesca</strong> determinam qual raridade máxima você pode capturar.<br>
+        ⚠️ Se uma carta sorteada superar o limite da sua vara, <strong style="color:#ff6d00;">a vara quebra!</strong><br>
+        ♾️ Varas premium marcadas com <span style="color:#ff4444;font-weight:700;">PREMIUM</span> usam dinheiro real.
+      </div>
+    </div>
+
+    <!-- Vara equipada atualmente -->
+    <div id="vara-equipada-section" style="margin-bottom:12px;"></div>
+
+    <!-- Lista de varas disponíveis -->
+    <div style="font-family:'Cinzel',serif;font-size:13px;font-weight:700;color:#29b6f6;margin-bottom:10px;">
+      🛒 Varas Disponíveis
+    </div>
+    <div id="varas-lista"></div>
+  </div>
+
+  <!-- ══════════ TAB: ISCAS ══════════ -->
+  <div id="tab-iscas" style="display:none;">
+
+    <div class="panel" style="margin-bottom:14px;background:linear-gradient(135deg,#001a2e,#002d4e);">
+      <div style="font-size:12px;color:#80deea;line-height:1.8;">
+        🪱 Cada tipo de isca altera as chances de pesca.<br>
+        💎 <strong style="color:#ff4444;">Isca Origens</strong> garante 0% de fuga e +6% de chance — somente premium.<br>
+        🔁 <strong style="color:#ffc107;">1.000 Restos de Isca</strong> = 1 Isca Origens (colete restos quando o peixe foge!)
+      </div>
+    </div>
+
+    <!-- Restos de isca -->
+    <div class="restos-card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span style="font-size:32px;">💨</span>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:14px;color:#ff8888;">Restos de Isca</div>
+          <div style="font-size:11px;color:#9e9e9e;margin-top:2px;">Coletados quando o peixe-carta foge com a isca</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:22px;font-weight:900;color:#ff4444;" id="restos-count">0</div>
+          <div style="font-size:10px;color:#9e9e9e;">restos</div>
+        </div>
+      </div>
+      <div style="background:rgba(0,0,0,0.3);border-radius:8px;height:8px;overflow:hidden;margin-bottom:10px;">
+        <div id="restos-bar" style="height:100%;border-radius:8px;background:linear-gradient(90deg,#ff4444,#ff6d00);transition:width 0.4s;width:0%;"></div>
+      </div>
+      <div style="font-size:11px;color:#9e9e9e;margin-bottom:8px;" id="restos-progresso"></div>
+      <button class="btn btn-primary btn-block" id="btn-trocar-restos" onclick="trocarRestosUI()"
+              style="background:linear-gradient(135deg,#8b0000,#c62828);">
+        🎣 Trocar 1.000 restos → 1 Isca Origens
+      </button>
+    </div>
+
+    <!-- Iscas disponíveis -->
+    <div style="font-family:'Cinzel',serif;font-size:13px;font-weight:700;color:#29b6f6;margin:14px 0 10px;">
+      🛒 Iscas Disponíveis
+    </div>
+    <div id="iscas-lista"></div>
+  </div>
+
+  <!-- ══════════ TAB: RANKING ══════════ -->
+  <div id="tab-ranking" style="display:none;">
+    <div class="panel" style="margin-bottom:14px;background:linear-gradient(135deg,#1a1000,#2d1e00);">
+      <div style="font-size:12px;color:#ffe082;line-height:1.8;">
+        🏆 <strong>Ranking de Pesca</strong> — Pontos acumulados por pesca ativa e passiva.<br>
+        🎣 +<strong style="color:#ffc107;">5 pts</strong> por carta pescada · <strong style="color:#29b6f6;">+1 pt passivo</strong> a cada ~5 min (aleatório).<br>
+        ✅ Criadores verificados acumulam passivo mais rápido!
+      </div>
+    </div>
+    <div id="ranking-lista"></div>
+  </div>
+
+  <!-- ══════════ TAB: COLEÇÃO ══════════ -->
+  <div id="tab-colecao" style="display:none;">
+    <div class="panel" style="margin-bottom:14px;">
+      <div style="font-size:12px;color:#9e9e9e;line-height:1.8;">
+        📦 Cartas exclusivas de pesca que você já capturou.<br>
+        Estas cartas são obtidas APENAS pelo sistema de pesca!
+      </div>
+    </div>
+    <div id="colecao-pesca"></div>
+  </div>
+
+  <!-- ══════════ TAB: INFO ══════════ -->
+  <div id="tab-info" style="display:none;">
+
+    <div class="panel" style="margin-bottom:10px;">
+      <div class="panel-title">🎣 Como Funciona a Pesca</div>
+      <ul style="font-size:12px;color:#c0c0d0;padding-left:16px;line-height:2.2;margin:0;">
+        <li>Cada isca tem <strong style="color:#29b6f6;">67%</strong> de chance de resultar em uma carta</li>
+        <li>Desses 67%, <strong>80% são cartas Comuns</strong> — raras ficam progressivamente mais difíceis</li>
+        <li>Jogadores comuns: <strong style="color:#ffc107;">10 iscas/dia</strong> · Criadores verificados: <strong style="color:#29b6f6;">100 iscas/dia</strong></li>
+        <li>Compre até <strong>30 iscas extras</strong> por dia por 🪙 1.000 cada</li>
+        <li>Há chance baixa de o <strong style="color:#ff6d00;">peixe-carta fugir</strong> com a isca → 2 Restos</li>
+        <li>1.000 Restos de Isca = 1 <strong style="color:#ff4444;">Isca Origens</strong> grátis</li>
+        <li>O <strong style="color:#ff4444;">local de pesca muda a cada 1 hora</strong> automaticamente</li>
+        <li>Se a carta sorteada superar o <strong style="color:#ff6d00;">limite da vara, ela quebra!</strong></li>
+        <li>Criadores verificados têm acesso a <strong>100 iscas/dia</strong> para conteúdo de vídeo</li>
+      </ul>
+    </div>
+
+    <div class="panel" style="margin-bottom:10px;">
+      <div class="panel-title">📍 Locais Especiais</div>
+      <div style="font-size:12px;color:#c0c0d0;line-height:1.8;">
+        Cada local dá bônus diferente de chance de pesca.<br>
+        O <strong style="color:#ff4444;">🌌 Lago Origens</strong> é extremamente raro na rotação — aparece pouquíssimas vezes!<br>
+        Ele concede <strong style="color:#ff4444;">+7% geral</strong> e <strong style="color:#00e5ff;">+1% Ultra Raro</strong> — aproveite quando aparecer!
+      </div>
+      <div id="all-locations-list" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="panel" style="margin-bottom:10px;">
+      <div class="panel-title">🎬 Para Criadores de Conteúdo</div>
+      <div style="font-size:12px;color:#c0c0d0;line-height:1.8;">
+        ✅ Criadores verificados têm <strong style="color:#29b6f6;">100 iscas por dia</strong> — suficiente para fazer vídeos do tipo:<br>
+        <em style="color:#ffc107;">"Pescando até pegar uma carta Origens! — Card Fight"</em><br>
+        O sistema de varas e iscas cria momentos únicos de tensão e celebração para o conteúdo!
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">🃏 Cartas Exclusivas de Pesca</div>
+      <div style="font-size:12px;color:#c0c0d0;margin-bottom:10px;">
+        Cartas marcadas com 🎣 só podem ser obtidas pela pesca. Nunca aparecem em pacotes!
+      </div>
+      <div id="info-fishing-cards"></div>
+    </div>
+
+  </div>
+
+  <div style="height:80px;"></div>
+</main>
+
+<!-- Modal de resultado da pesca -->
+<div class="resultado-overlay" id="resultado-overlay" onclick="fecharResultado()">
+  <div class="resultado-box" id="resultado-box" onclick="event.stopPropagation()">
+    <div id="resultado-content"></div>
+    <button class="btn btn-primary btn-block" onclick="fecharResultado()" style="margin-top:12px;">
+      ✅ Continuar Pescando
+    </button>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js?v=8.1"></script>
+<script src="gamedata2.js?v=8.1"></script>
+<script src="gamedata3.js?v=8.1"></script>
+<script src="gamedata-v7-patch.js?v=8.1"></script>
+<script src="gamedata-pesca.js?v=8.1"></script>
+<script src="gamedata-pesca-patch.js?v=8.1"></script>
+<script>
+"use strict";
+
+let save;
+
+// FIX: mesmo problema de battle.html — o hook de drop de craft
+// (cfRollPescaDrop, em gamedata-crafting.js) recarregava um objeto "save"
+// separado via getOrCreateSave() e salvava a engrenagem/gasolina nele.
+// O writeSave(save) que a própria pesca.html chama logo depois (com o
+// objeto "save" desta página, sem o drop) sobrescrevia esse progresso.
+// Redireciona getOrCreateSave para o "save" desta página assim que ele
+// já estiver inicializado, preservando o comportamento original antes disso.
+(function(){
+  const _origGetOrCreateSave = window.getOrCreateSave;
+  window.getOrCreateSave = function() {
+    if (typeof save !== "undefined" && save) return save;
+    return (_origGetOrCreateSave || function(){}).apply(this, arguments);
+  };
+})();
+let selectedBait = "isca_comum";
+let pescaLog = [];
+
+// ══════ INIT ══════
+function init() {
+  save = getOrCreateSave();
+  ensureDailyBaitReset(save);
+  tickFishingPassivePoints(save);
+  writeSave(save);
+
+  renderHeader();
+  renderLocalAtual();
+  renderVaraEquipada();
+  renderBaitSelector();
+  renderIscasInfo();
+  renderStats();
+  renderTabVaras();
+  renderTabIscas();
+  renderTabRanking();
+  renderTabColecao();
+  renderTabInfo();
+
+  // Timer do local
+  setInterval(() => {
+    renderLocalAtual();
+    renderLocalTimer();
+  }, 1000);
+
+  // Pontos passivos
+  setInterval(() => {
+    save = getOrCreateSave();
+    const changed = tickFishingPassivePoints(save);
+    if (changed) {
+      writeSave(save);
+      renderStats();
+      renderTabRanking();
+    }
+  }, 30000);
+
+  startAutoSave(() => save);
+}
+
+// ══════ HEADER ══════
+function renderHeader() {
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+}
+
+// ══════ LOCAL ATUAL ══════
+function renderLocalAtual() {
+  const loc = getCurrentFishingLocation();
+  const el  = document.getElementById("local-atual-card");
+  const isOrigens = !!loc.isOrigens;
+
+  el.innerHTML = `
+    <div class="local-card ${isOrigens ? "origens-local" : ""}" style="${isOrigens ? "" : "animation:none;"}">
+      ${isOrigens ? '<div style="position:absolute;top:8px;right:10px;font-size:9px;font-weight:700;background:#ff4444;color:#fff;padding:2px 8px;border-radius:6px;">🌌 RARÍSSSIMO!</div>' : ""}
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:36px;">${loc.emoji}</span>
+        <div style="flex:1;">
+          <div class="local-name" style="color:${isOrigens ? "#ff8888" : "#29b6f6"};">📍 ${loc.name}</div>
+          <div style="font-size:11px;color:#9e9e9e;margin-bottom:4px;">${loc.desc}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            ${loc.bonusChance > 0 ? `<span style="font-size:10px;background:rgba(41,182,246,0.12);border:1px solid #29b6f6;color:#80deea;border-radius:6px;padding:1px 6px;">+${loc.bonusChance}% chance</span>` : '<span style="font-size:10px;color:#555;">Sem bônus especial</span>'}
+            ${loc.bonusUltra > 0 ? `<span style="font-size:10px;background:rgba(0,229,255,0.12);border:1px solid #00e5ff;color:#80deea;border-radius:6px;padding:1px 6px;">+${loc.bonusUltra}% Ultra Raro</span>` : ""}
+          </div>
+        </div>
+      </div>
+      <div class="local-timer" style="margin-top:8px;text-align:right;" id="local-timer-txt">
+        ⏱️ Próximo local em: <span id="local-countdown" style="color:#ffc107;font-weight:700;">--:--</span>
+      </div>
+    </div>`;
+
+  renderLocalTimer();
+}
+
+function renderLocalTimer() {
+  const msLeft = getFishingLocationTimeLeft();
+  const m = Math.floor(msLeft / 60000);
+  const s = Math.floor((msLeft % 60000) / 1000);
+  const el = document.getElementById("local-countdown");
+  if (el) el.textContent = `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+}
+
+// ══════ VARA EQUIPADA ══════
+function renderVaraEquipada() {
+  const el  = document.getElementById("vara-equipada-card");
+  if (!save.pesca) { el.innerHTML = ""; return; }
+
+  const rodId = save.pesca.varaEquipada;
+  const rod   = FISHING_RODS.find(r => r.id === rodId);
+
+  if (!rod) {
+    el.innerHTML = `
+      <div class="vara-card" style="border-color:#ff4444;background:rgba(255,68,68,0.05);">
+        <span style="font-size:28px;">⚠️</span>
+        <div style="flex:1;">
+          <div style="font-weight:700;color:#ef9a9a;font-size:14px;">Nenhuma vara equipada!</div>
+          <div style="font-size:11px;color:#9e9e9e;margin-top:2px;">Vá na aba <strong style="color:#29b6f6;">Varas</strong> para comprar e equipar uma.</div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const dur   = save.pesca.varaDurabilidade;
+  const maxDur = rod.durability === Infinity ? 1 : rod.durability;
+  const pct   = rod.durability === Infinity ? 100 : Math.round((dur / maxDur) * 100);
+  const barColor = pct > 50 ? "#29b6f6" : pct > 20 ? "#ffc107" : "#f44336";
+
+  el.innerHTML = `
+    <div class="vara-card" style="border-color:${rod.color};">
+      <span style="font-size:28px;">${rod.emoji}</span>
+      <div style="flex:1;">
+        <div style="font-weight:700;font-size:14px;color:${rod.color};">
+          ${rod.name}
+          <span style="font-size:9px;background:rgba(255,255,255,0.08);border-radius:6px;padding:1px 6px;color:#9e9e9e;margin-left:4px;">Máx: ${RARITY[rod.maxRarity]?.name || rod.maxRarity}</span>
+        </div>
+        <div style="font-size:11px;color:#9e9e9e;margin-top:2px;">
+          Durabilidade: ${rod.durability === Infinity ? "∞ Infinita" : `${dur} / ${rod.durability}`}
+        </div>
+        <div class="vara-durabilidade">
+          <div class="vara-durabilidade-bar" style="width:${pct}%;background:${barColor};"></div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ══════ SELETOR DE ISCA ══════
+function renderBaitSelector() {
+  const el = document.getElementById("bait-selector");
+  const p  = save.pesca || {};
+
+  el.innerHTML = BAIT_TYPES.map(b => {
+    let count;
+    if (b.id === "isca_comum") {
+      count = p.iscasComunsHoje || 0;
+    } else {
+      count = (p.iscas && p.iscas[b.id]) || 0;
+    }
+
+    // ⚠️ CORREÇÃO: antes, iscas "realMoney" (ex: Isca Origens) nunca ficavam
+    // esmaecidas mesmo com 0 unidades, dando a falsa impressão de que
+    // estavam disponíveis de graça para qualquer jogador. Agora qualquer
+    // isca com quantidade 0 aparece indisponível, tenha ela preço em ouro
+    // ou seja premium.
+    const unavailable = count <= 0;
+    const sel = selectedBait === b.id;
+
+    return `<div class="bait-option ${sel ? "selected" : ""} ${unavailable ? "unavailable" : ""}"
+              onclick="selectBait('${b.id}')" style="border-color:${sel ? b.color : "#1e1e30"};">
+      <span class="bait-emoji">${b.emoji}</span>
+      <div class="bait-name" style="color:${b.color};">${b.name}</div>
+      <div class="bait-count">
+        ${b.id === "isca_comum" ? `${count} hoje` : (b.realMoney && count <= 0) ? "Premium" : `${count} unid.`}
+      </div>
+      ${b.bonusChance > 0 ? `<div class="bait-bonus">+${b.bonusChance}% chance</div>` : ""}
+    </div>`;
+  }).join("");
+}
+
+function selectBait(id) {
+  selectedBait = id;
+  renderBaitSelector();
+}
+
+// ══════ INFO DE ISCAS ══════
+function renderIscasInfo() {
+  const p   = save.pesca || {};
+  const max = save.isVerifiedCreator ? PESCA_CONFIG.iscasDiariasCreator : PESCA_CONFIG.iscasDiariasBase;
+  const cur = p.iscasComunsHoje || 0;
+  const pct = Math.round((cur / max) * 100);
+
+  document.getElementById("iscas-comuns-count").textContent = `${cur} / ${max}`;
+  document.getElementById("iscas-bar-fill").style.width     = `${pct}%`;
+  document.getElementById("iscas-extras-info").textContent  =
+    save.isVerifiedCreator ? "✅ Criador verificado: 100 iscas/dia!" :
+    `Extras compradas hoje: ${p.iscasExtrasHoje || 0} / ${PESCA_CONFIG.iscasExtraMaxCompra}`;
+
+  const extEl = document.getElementById("extras-compradas-today");
+  if (extEl) extEl.textContent = `Extras compradas hoje: ${p.iscasExtrasHoje || 0} / ${PESCA_CONFIG.iscasExtraMaxCompra}`;
+}
+
+// ══════ STATS ══════
+function renderStats() {
+  const p = save.pesca || {};
+  document.getElementById("stat-pescados").textContent  = fmtNum(p.totalPescados || 0);
+  document.getElementById("stat-rank-pts").textContent  = fmtNum(p.rankPts || 0);
+  document.getElementById("stat-restos").textContent    = fmtNum(p.restos || 0);
+
+  // iscas tab
+  const restosEl = document.getElementById("restos-count");
+  if (restosEl) {
+    const restos = p.restos || 0;
+    restosEl.textContent = fmtNum(restos);
+    const pct = Math.min(100, (restos / PESCA_CONFIG.restosParaIsca) * 100);
+    const barEl = document.getElementById("restos-bar");
+    if (barEl) barEl.style.width = pct + "%";
+    const progEl = document.getElementById("restos-progresso");
+    if (progEl) {
+      progEl.textContent = `${fmtNum(restos)} / ${fmtNum(PESCA_CONFIG.restosParaIsca)} para uma Isca Origens`;
+    }
+    const trocaBtn = document.getElementById("btn-trocar-restos");
+    if (trocaBtn) trocaBtn.disabled = restos < PESCA_CONFIG.restosParaIsca;
+  }
+}
+
+// ══════ LANÇAR ISCA ══════
+function lancarIsca() {
+  const bait = BAIT_TYPES.find(b => b.id === selectedBait);
+  const p    = save.pesca || {};
+
+  // Verificar vara
+  const rod = FISHING_RODS.find(r => r.id === p.varaEquipada);
+  if (!rod) {
+    showToast("⚠️ Equipe uma vara na aba Varas primeiro!", "error");
+    return;
+  }
+  if (rod.durability !== Infinity && (p.varaDurabilidade || 0) <= 0) {
+    showToast("💔 Sua vara está quebrada! Compre uma nova.", "error");
+    return;
+  }
+
+  // Verificar iscas
+  if (selectedBait === "isca_comum" && (p.iscasComunsHoje || 0) <= 0) {
+    showToast("🪱 Sem iscas comuns hoje! Compre extras ou aguarde amanhã.", "error");
+    return;
+  }
+  if (selectedBait !== "isca_comum") {
+    const qtdIsca = (p.iscas && p.iscas[selectedBait]) || 0;
+    if (qtdIsca <= 0) {
+      // ⚠️ CORREÇÃO CRÍTICA: antes, qualquer isca "realMoney" (ex: Isca Origens)
+      // era bloqueada aqui mesmo quando o jogador já a possuía (ex: obtida
+      // trocando Restos de Isca). Agora só bloqueia de verdade quando o
+      // jogador não tem nenhuma unidade dessa isca no inventário.
+      if (bait && bait.realMoney) {
+        showToast(`${bait.emoji} Você não tem essa isca ainda! Troque Restos de Isca ou compre via Discord.`, "error");
+      } else {
+        showToast(`${bait.emoji} Você não tem esse tipo de isca! Compre na aba Iscas.`, "error");
+      }
+      return;
+    }
+  }
+
+  // Desabilitar botão temporariamente
+  const btn = document.getElementById("btn-pescar");
+  btn.disabled = true;
+  btn.textContent = "🎣 Pescando...";
+
+  // Animação de "lançando"
+  setTimeout(() => {
+    const resultado = executarPescaria(save, selectedBait);
+    writeSave(save);
+    renderHeader();
+    renderVaraEquipada();
+    renderBaitSelector();
+    renderIscasInfo();
+    renderStats();
+
+    processarResultado(resultado);
+
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = "🎣 LANÇAR ISCA!";
+    }, 800);
+  }, 600);
+}
+
+// ══════ PROCESSAR RESULTADO ══════
+function processarResultado(res) {
+  const loc  = res.location || getCurrentFishingLocation();
+  const overlay = document.getElementById("resultado-overlay");
+  const box     = document.getElementById("resultado-box");
+  const content = document.getElementById("resultado-content");
+
+  // Limpar classes anteriores
+  box.className = "resultado-box";
+
+  if (res.result === "rod_break") {
+    const card = res.card;
+    box.classList.add("rod-break-anim");
+    content.innerHTML = `
+      <span class="rod-break-icon">💔</span>
+      <div style="font-family:'Cinzel',serif;font-size:17px;font-weight:700;color:#ff6d00;margin-bottom:8px;">
+        VARA QUEBRADA!
+      </div>
+      <div style="font-size:12px;color:#c0c0d0;line-height:1.8;margin-bottom:10px;">
+        A vara de pesca não aguentou o poder desse peixe-carta:<br>
+        <strong style="color:${RARITY[card.rarity]?.color || "#fff"};">${card.img} ${card.name}</strong>
+      </div>
+      <div style="font-size:11px;color:#9e9e9e;">Equipe uma vara mais resistente na aba Varas!</div>`;
+    addLog(`💔 VARA QUEBRADA! Peixe escorregou: ${card.img} ${card.name}`, "log-break");
+    showToast("💔 Sua vara não aguentou! Compre uma nova.", "error", 4000);
+
+  } else if (res.result === "escape") {
+    box.classList.add("rod-break-anim");
+    content.innerHTML = `
+      <span class="escape-icon">💨</span>
+      <div style="font-family:'Cinzel',serif;font-size:17px;font-weight:700;color:#ff6d00;margin-bottom:8px;">
+        PEIXE FUGIU!
+      </div>
+      <div style="font-size:12px;color:#c0c0d0;line-height:1.8;margin-bottom:10px;">
+        O peixe-carta agarrou a isca e escapou...<br>
+        <strong style="color:#ff6d00;">+${res.restos} Restos de Isca</strong> coletados!
+      </div>
+      <div style="font-size:11px;color:#9e9e9e;">Use Isca Origens para garantir 0% de fuga!</div>`;
+    addLog(`💨 Peixe fugiu! +${res.restos} Restos de Isca`, "log-escape");
+    showToast(`💨 O peixe fugiu! +${res.restos} Restos de Isca`, "warning", 3000);
+
+  } else if (res.result === "miss") {
+    overlay.classList.remove("visible");
+    overlay.style.display = "none";
+    addLog(`🌊 Sem mordida... (${loc.emoji} ${loc.name})`, "log-miss");
+    showToast("🌊 Sem mordida desta vez...", "info", 2000);
+    return; // Sem modal para miss
+
+  } else if (res.result === "vault_full") {
+    const card = res.card;
+    box.classList.add("rod-break-anim");
+    content.innerHTML = `
+      <span class="rod-break-icon">🔐</span>
+      <div style="font-family:'Cinzel',serif;font-size:17px;font-weight:700;color:#ff6d00;margin-bottom:8px;">
+        COFRE CHEIO!
+      </div>
+      <div style="font-size:12px;color:#c0c0d0;line-height:1.8;margin-bottom:10px;">
+        Você fisgou <strong style="color:${RARITY[card.rarity]?.color || "#fff"};">${card.img} ${card.name}</strong>,
+        mas não há espaço no cofre para guardá-la!
+      </div>
+      <div style="font-size:11px;color:#9e9e9e;">Expanda o cofre na Loja para não perder a próxima captura.</div>`;
+    addLog(`🔐 Cofre cheio! ${card.img} ${card.name} não pôde ser guardada.`, "log-break");
+    showToast("🔐 Cofre cheio! Expanda-o na Loja antes de continuar pescando.", "error", 4500);
+
+  } else if (res.result === "card") {
+    const card = res.card;
+    const rar  = RARITY[card.rarity] || RARITY.COMMON;
+    const isOrigens    = card.rarity === "ORIGENS";
+    const isUltraRare  = card.rarity === "ULTRA_RARE";
+
+    if (isOrigens) {
+      box.classList.add("origens-anim");
+      launchOrigensParticles();
+      save.pesca.origens_fished = true;
+      writeSave(save);
+    } else if (isUltraRare) {
+      box.classList.add("ultra-anim");
+    }
+
+    // BUGFIX (item 5): cfRollPescaDrop existia em gamedata-crafting.js mas
+    // nunca era chamada aqui — engrenagem/gasolina não dropavam da pesca.
+    if (typeof cfRollPescaDrop === "function") {
+      cfRollPescaDrop();
+    }
+
+    content.innerHTML = `
+      <div style="font-size:11px;font-weight:700;color:#9e9e9e;margin-bottom:6px;">📍 ${loc.emoji} ${loc.name}</div>
+      <span class="card-reveal">${card.img}</span>
+      <div class="resultado-rarity" style="background:${rar.color}22;border:1px solid ${rar.color};color:${rar.color};">
+        ${rar.name} ${card.fishingOnly ? "🎣 Exclusiva de Pesca" : ""}
+      </div>
+      <div class="resultado-card-name" style="color:${rar.color};">${card.name}</div>
+      <div class="resultado-desc">${card.desc}</div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#9e9e9e;">
+        <span>⚔️ ATK: <strong style="color:#ff8888;">${card.atk}</strong></span>
+        <span>❤️ HP: <strong style="color:#66bb6a;">${card.hp}</strong></span>
+      </div>`;
+
+    let logClass = "pesca-log-item";
+    if (isOrigens)   logClass += " log-origens";
+    else if (isUltraRare) logClass += " log-ultra";
+
+    addLog(`${rar.name}: ${card.img} ${card.name} adicionada ao cofre! (${loc.emoji} ${loc.name})`, logClass.replace("pesca-log-item ",""));
+
+    // Verificar conquistas
+    const newAch = checkFishingAchievements(save);
+    if (newAch.length > 0) {
+      writeSave(save);
+      setTimeout(() => {
+        newAch.forEach(a => showToast(`🏅 Conquista: ${a.emoji} ${a.label}!`, "gold", 4000));
+      }, 1500);
+    }
+  }
+
+  overlay.style.display = "flex";
+  setTimeout(() => overlay.classList.add("visible"), 10);
+
+  // Atualizar tab de coleção
+  renderTabColecao();
+}
+
+function fecharResultado() {
+  const overlay = document.getElementById("resultado-overlay");
+  overlay.classList.remove("visible");
+  setTimeout(() => { overlay.style.display = "none"; }, 300);
+}
+
+// ══════ PARTÍCULAS ORIGENS ══════
+function launchOrigensParticles() {
+  const el = document.getElementById("origens-particles");
+  el.classList.add("active");
+  el.innerHTML = "";
+
+  const emojis = ["⭐","🌟","✨","💫","🌌","🔥","💎","🎣"];
+  for (let i = 0; i < 20; i++) {
+    const star = document.createElement("div");
+    star.className = "particle-star";
+    star.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    star.style.left = Math.random() * 100 + "%";
+    star.style.top  = (40 + Math.random() * 40) + "%";
+    star.style.animationDelay = (Math.random() * 0.8) + "s";
+    el.appendChild(star);
+  }
+
+  setTimeout(() => {
+    el.classList.remove("active");
+    el.innerHTML = "";
+  }, 3000);
+}
+
+// ══════ LOG ══════
+function addLog(msg, cls) {
+  pescaLog.unshift({ msg, cls });
+  if (pescaLog.length > 50) pescaLog.pop();
+  renderLog();
+}
+
+function renderLog() {
+  const el = document.getElementById("pesca-log");
+  if (pescaLog.length === 0) {
+    el.innerHTML = '<div style="font-size:12px;color:#555;text-align:center;padding:16px;">Jogue uma isca para começar!</div>';
+    return;
+  }
+  el.innerHTML = pescaLog.map(l => `<div class="pesca-log-item ${l.cls || ""}">${l.msg}</div>`).join("");
+}
+
+// ══════ TAB: VARAS ══════
+function renderTabVaras() {
+  // Vara equipada
+  const secEl = document.getElementById("vara-equipada-section");
+  const rod   = save.pesca && FISHING_RODS.find(r => r.id === save.pesca.varaEquipada);
+  secEl.innerHTML = rod
+    ? `<div style="background:rgba(41,182,246,0.08);border:2px solid ${rod.color};border-radius:12px;padding:12px 14px;margin-bottom:4px;">
+        <div style="font-size:11px;color:#9e9e9e;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;">Vara Equipada</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:28px;">${rod.emoji}</span>
+          <div>
+            <div style="font-weight:700;color:${rod.color};">${rod.name}</div>
+            <div style="font-size:11px;color:#9e9e9e;">Durabilidade: ${rod.durability === Infinity ? "∞ Infinita" : `${save.pesca.varaDurabilidade} / ${rod.durability}`} · Máx: ${RARITY[rod.maxRarity]?.name}</div>
+          </div>
+        </div>
+      </div>`
+    : `<div style="background:rgba(255,68,68,0.06);border:1px solid #ff4444;border-radius:10px;padding:10px;margin-bottom:4px;font-size:12px;color:#ef9a9a;text-align:center;">
+        ⚠️ Nenhuma vara equipada — compre e equipe uma abaixo!
+      </div>`;
+
+  // Lista de varas
+  const listaEl = document.getElementById("varas-lista");
+  listaEl.innerHTML = FISHING_RODS.map(rod => {
+    const owned    = save.pesca && save.pesca.varasCompradas && save.pesca.varasCompradas[rod.id];
+    const equipped = save.pesca && save.pesca.varaEquipada === rod.id;
+    const canAfford = save.gold >= rod.price;
+
+    return `<div class="rod-item ${owned ? "owned" : ""} ${equipped ? "equipped" : ""}" style="border-color:${equipped ? "#ffc107" : owned ? "#4CAF50" : "#1e1e30"};">
+      <span style="font-size:28px;">${rod.emoji}</span>
+      <div style="flex:1;">
+        <div style="font-weight:700;font-size:13px;color:${rod.color};">
+          ${rod.name}
+          ${rod.badge ? `<span style="font-size:9px;background:#ff4444;color:#fff;border-radius:4px;padding:1px 6px;margin-left:4px;">${rod.badge}</span>` : ""}
+          ${equipped ? '<span style="font-size:9px;background:#ffc107;color:#000;border-radius:4px;padding:1px 6px;margin-left:4px;">✅ EQUIPADA</span>' : ""}
+        </div>
+        <div style="font-size:11px;color:#9e9e9e;margin-top:2px;">${rod.desc}</div>
+        <div style="font-size:10px;color:#9e9e9e;margin-top:2px;">
+          Máx: <span style="color:${RARITY[rod.maxRarity]?.color||"#fff"};font-weight:700;">${RARITY[rod.maxRarity]?.name||rod.maxRarity}</span>
+          · Dur: ${rod.durability === Infinity ? "♾️ Infinita" : rod.durability}
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        ${rod.realMoney
+          ? `<div style="font-size:11px;color:#ff4444;font-weight:700;margin-bottom:4px;">💎 Premium</div>
+             <a href="comprar.html" class="btn btn-sm btn-outline" style="border-color:#ff4444;color:#ff4444;font-size:10px;">Comprar</a>`
+          : owned
+            ? (equipped
+                ? `<div class="btn btn-sm" style="background:#ffc107;color:#000;font-size:10px;">Equipada ✅</div>`
+                : `<button class="btn btn-sm btn-outline" style="border-color:#29b6f6;color:#29b6f6;font-size:10px;" onclick="equiparVaraUI('${rod.id}')">Equipar</button>`)
+            : `<div style="font-size:13px;font-weight:700;color:#ffc107;margin-bottom:4px;">🪙 ${fmtNum(rod.price)}</div>
+               <button class="btn btn-sm btn-gold" style="${!canAfford ? "opacity:0.5;" : ""}" onclick="comprarVaraUI('${rod.id}')" ${!canAfford ? "disabled" : ""}>Comprar</button>`
+        }
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function comprarVaraUI(rodId) {
+  const result = comprarVara(save, rodId);
+  if (!result.ok) { showToast("❌ " + result.reason, "error"); return; }
+  writeSave(save);
+  renderHeader();
+  renderTabVaras();
+  showToast(`✅ ${result.rod.emoji} ${result.rod.name} comprada! Equipe na aba Varas.`, "gold", 3000);
+}
+
+function equiparVaraUI(rodId) {
+  const result = equiparVara(save, rodId);
+  if (!result.ok) { showToast("❌ " + result.reason, "error"); return; }
+  writeSave(save);
+  renderVaraEquipada();
+  renderTabVaras();
+  showToast(`🎣 ${result.rod.emoji} ${result.rod.name} equipada com sucesso!`, "gold", 3000);
+}
+
+// ══════ TAB: ISCAS ══════
+function renderTabIscas() {
+  const el = document.getElementById("iscas-lista");
+  const p  = save.pesca || {};
+
+  el.innerHTML = BAIT_TYPES.map(b => {
+    const count = b.id === "isca_comum"
+      ? p.iscasComunsHoje || 0
+      : (p.iscas && p.iscas[b.id]) || 0;
+
+    return `<div style="background:#0e0e1c;border:1px solid ${b.color}44;border-radius:12px;padding:14px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span style="font-size:32px;">${b.emoji}</span>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:14px;color:${b.color};">${b.name}</div>
+          <div style="font-size:11px;color:#9e9e9e;margin-top:2px;">${b.desc}</div>
+          ${b.bonusChance > 0 ? `<div style="font-size:10px;color:#29b6f6;margin-top:2px;">+${b.bonusChance}% chance peixe-carta</div>` : ""}
+          ${b.noEscape ? `<div style="font-size:10px;color:#ff4444;font-weight:700;margin-top:2px;">✨ 0% de fuga garantido!</div>` : ""}
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:18px;font-weight:900;color:${b.color};">${b.id === "isca_comum" ? `${count}/dia` : count}</div>
+          <div style="font-size:10px;color:#9e9e9e;">${b.realMoney ? "premium" : "und."}</div>
+        </div>
+      </div>
+      ${b.realMoney
+        ? `<a href="comprar.html" class="btn btn-sm btn-block btn-outline" style="border-color:#ff4444;color:#ff4444;">💎 Comprar via Discord</a>`
+        : b.id === "isca_comum"
+          ? `<div style="font-size:11px;color:#9e9e9e;text-align:center;">✅ Grátis — ${save.isVerifiedCreator ? "100" : "10"} por dia automaticamente</div>`
+          : `<div style="display:flex;gap:6px;">
+               <button class="btn btn-gold btn-sm" style="flex:1;" onclick="comprarIscaUI('${b.id}',1)">+1 → 🪙${fmtNum(b.price)}</button>
+               <button class="btn btn-gold btn-sm" style="flex:1;" onclick="comprarIscaUI('${b.id}',5)">+5 → 🪙${fmtNum(b.price*5)}</button>
+               <button class="btn btn-gold btn-sm" style="flex:1;" onclick="comprarIscaUI('${b.id}',10)">+10 → 🪙${fmtNum(b.price*10)}</button>
+             </div>`
+      }
+    </div>`;
+  }).join("");
+}
+
+function comprarIscaUI(baitId, qtd) {
+  const result = comprarIscaEspecial(save, baitId, qtd);
+  if (!result.ok) { showToast("❌ " + result.reason, "error"); return; }
+  writeSave(save);
+  renderHeader();
+  renderTabIscas();
+  renderBaitSelector();
+  renderStats();
+  const bait = BAIT_TYPES.find(b => b.id === baitId);
+  showToast(`✅ +${qtd} ${bait.emoji} ${bait.name}!`, "gold", 2500);
+}
+
+function comprarIscaExtraUI(qtd) {
+  const result = comprarIscaExtra(save, qtd);
+  if (!result.ok) { showToast("❌ " + result.reason, "error"); return; }
+  writeSave(save);
+  renderHeader();
+  renderBaitSelector();
+  renderIscasInfo();
+  renderStats();
+  showToast(`✅ +${result.compradas} iscas comuns extras! 🪙 -${fmtNum(result.custo)}`, "gold", 3000);
+}
+
+function trocarRestosUI() {
+  const result = trocarRestosIsca(save);
+  if (!result.ok) { showToast("❌ " + result.reason, "error"); return; }
+  writeSave(save);
+  renderTabIscas();
+  renderBaitSelector();
+  renderStats();
+  showToast("🎉 Trocou 1.000 Restos → 1 Isca Origens! 💎", "gold", 4000);
+}
+
+// ══════ TAB: RANKING ══════
+function renderTabRanking() {
+  const el = document.getElementById("ranking-lista");
+  if (!el) return;
+  const board = getFishingLeaderboard(save);
+
+  el.innerHTML = board.map((p, i) => {
+    const pos = i + 1;
+    let numClass = "";
+    if (pos === 1) numClass = "gold-rank";
+    else if (pos === 2) numClass = "silver-rank";
+    else if (pos === 3) numClass = "bronze-rank";
+
+    const medal = pos === 1 ? "🥇" : pos === 2 ? "🥈" : pos === 3 ? "🥉" : "";
+
+    return `<div class="rank-row ${p.isPlayer ? "player-row" : ""}">
+      <div class="rank-num ${numClass}">${medal || "#" + pos}</div>
+      <div style="flex:1;">
+        <span style="font-weight:700;font-size:13px;">${p.name}</span>
+        ${p.verified ? `<span style="font-size:9px;background:rgba(41,182,246,0.12);border:1px solid #29b6f6;color:#29b6f6;border-radius:6px;padding:1px 6px;margin-left:4px;">✅ Criador</span>` : ""}
+        ${p.isPlayer ? `<span style="font-size:9px;background:rgba(255,193,7,0.12);border:1px solid #ffc107;color:#ffc107;border-radius:6px;padding:1px 6px;margin-left:4px;">Você</span>` : ""}
+      </div>
+      <div style="font-weight:700;color:#ffc107;font-size:13px;">🏆 ${fmtNum(p.pts)}</div>
+    </div>`;
+  }).join("");
+}
+
+// ══════ TAB: COLEÇÃO ══════
+function renderTabColecao() {
+  const el = document.getElementById("colecao-pesca");
+  if (!el) return;
+
+  const fishCardIds = FISHING_CARDS.map(c => c.id);
+  const owned       = (save.vault || []).filter(id => fishCardIds.includes(id));
+  const unique      = [...new Set(owned)];
+
+  if (unique.length === 0) {
+    el.innerHTML = `
+      <div style="text-align:center;padding:32px;color:#555;">
+        <div style="font-size:48px;margin-bottom:10px;">🎣</div>
+        <div style="font-size:14px;">Você ainda não pescou nenhuma carta exclusiva!</div>
+        <div style="font-size:12px;color:#444;margin-top:6px;">Vá pescar para descobrir os segredos das profundezas.</div>
+      </div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div style="font-size:12px;color:#9e9e9e;margin-bottom:10px;">
+      ${unique.length} carta(s) exclusiva(s) de pesca coletadas
+    </div>` +
+    unique.map(id => {
+      const card  = FISHING_CARDS.find(c => c.id === id) || (typeof getCardById !== "undefined" && getCardById(id));
+      if (!card) return "";
+      const rar   = RARITY[card.rarity] || RARITY.COMMON;
+      const count = owned.filter(x => x === id).length;
+      return `<div class="fishing-card-mini" style="border-color:${rar.color}44;">
+        <span style="font-size:24px;">${card.img}</span>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:13px;color:${rar.color};">${card.name} 🎣</div>
+          <div style="font-size:10px;color:#9e9e9e;">⚔️ ${card.atk}  ❤️ ${card.hp}  ·  ${rar.name}</div>
+        </div>
+        ${count > 1 ? `<div style="font-size:11px;color:#9e9e9e;">×${count}</div>` : ""}
+      </div>`;
+    }).join("");
+}
+
+// ══════ TAB: INFO ══════
+function renderTabInfo() {
+  // Lista de locais
+  const locEl = document.getElementById("all-locations-list");
+  if (locEl) {
+    locEl.innerHTML = FISHING_LOCATIONS.map(loc => `
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #1e1e30;">
+        <span style="font-size:18px;">${loc.emoji}</span>
+        <div style="flex:1;">
+          <div style="font-size:12px;font-weight:700;color:${loc.isOrigens ? "#ff8888" : "#fff"};">${loc.name}</div>
+          <div style="font-size:10px;color:#9e9e9e;">${loc.desc}</div>
+        </div>
+        <div style="text-align:right;font-size:10px;">
+          ${loc.bonusChance > 0 ? `<div style="color:#29b6f6;">+${loc.bonusChance}%</div>` : ""}
+          ${loc.bonusUltra  > 0 ? `<div style="color:#00e5ff;">+${loc.bonusUltra}% UR</div>` : ""}
+        </div>
+      </div>`).join("");
+  }
+
+  // Cartas de pesca
+  const cardsEl = document.getElementById("info-fishing-cards");
+  if (cardsEl) {
+    const byRarity = {};
+    FISHING_CARDS.forEach(c => {
+      if (!byRarity[c.rarity]) byRarity[c.rarity] = [];
+      byRarity[c.rarity].push(c);
+    });
+
+    const order = ["COMMON","RARE","EPIC","LEGENDARY","MYTHIC","ULTRA_RARE","ORIGENS"];
+    cardsEl.innerHTML = order.filter(r => byRarity[r]).map(r => {
+      const rar = RARITY[r] || RARITY.COMMON;
+      return `<div style="margin-bottom:10px;">
+        <div style="font-size:11px;font-weight:700;color:${rar.color};margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">${rar.name} (${byRarity[r].length})</div>
+        ${byRarity[r].map(c => `
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:rgba(0,0,0,0.3);border-radius:8px;border-left:3px solid ${rar.color};margin-bottom:4px;">
+            <span style="font-size:18px;">${c.img}</span>
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:700;color:${rar.color};">${c.name}</div>
+              <div style="font-size:10px;color:#9e9e9e;">⚔️ ${c.atk} · ❤️ ${c.hp}</div>
+            </div>
+          </div>`).join("")}
+      </div>`;
+    }).join("");
+  }
+}
+
+// ══════ SWITCH TAB ══════
+function switchPescaTab(tab, btn) {
+  ["pescar","varas","iscas","ranking","colecao","info"].forEach(t => {
+    document.getElementById("tab-" + t).style.display = t === tab ? "block" : "none";
+  });
+  document.querySelectorAll(".pesca-tab").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+
+  // Re-render dinâmico por aba
+  if (tab === "varas")    renderTabVaras();
+  if (tab === "iscas")    { renderTabIscas(); renderStats(); }
+  if (tab === "ranking")  renderTabRanking();
+  if (tab === "colecao")  renderTabColecao();
+}
+
+// ══════ START ══════
+init();
+</script>
+<script>
+(function loadCraftingScript() {
+  var s = document.createElement('script');
+  s.src = 'gamedata-crafting.js?v=' + (window.CF_BUILD || Date.now());
+  document.body.appendChild(s);
+})();
+</script>
+
+<script>
+// v16.0 — Drop hook para pesca: chamado a cada "pescar" bem sucedido.
+(function(){
+  var lastTs = 0;
+  function tryHook(){
+    // Intercepta cliques em botoes de pescar; roda drop apos 400ms.
+    document.addEventListener("click", function(e){
+      var t = e.target;
+      if (!t) return;
+      var txt = (t.textContent||"").toLowerCase();
+      if (/pescar|jogar\s*isca|puxar/.test(txt)) {
+        var now = Date.now();
+        if (now - lastTs < 1500) return;
+        lastTs = now;
+        setTimeout(function tryDrop(attempt){
+          attempt = attempt || 0;
+          if (typeof window.cfRollPescaDrop === "function") {
+            window.cfRollPescaDrop();
+          } else if (attempt < 10) {
+            // script de craft ainda carregando (assíncrono) — tenta de novo
+            setTimeout(function(){ tryDrop(attempt + 1); }, 300);
+          }
+        }, 500);
+      }
+    }, true);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", tryHook);
+  else tryHook();
+})();
+</script>
+</body>
+</html>

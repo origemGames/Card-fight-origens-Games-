@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Guildas – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+.guilda-hero {
+  background:linear-gradient(135deg,#0a0020,#1a0035,#0a0020);
+  border:2px solid #7c4dff; border-radius:16px;
+  padding:20px 16px; margin-bottom:14px; text-align:center;
+  position:relative; overflow:hidden;
+}
+.guilda-hero::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(124,77,255,0.10) 0%,transparent 60%);
+  pointer-events:none;
+}
+.guilda-hero .icon { font-size:52px; display:block; margin-bottom:8px;
+  animation:float 2.5s ease-in-out infinite;
+  filter:drop-shadow(0 0 16px rgba(124,77,255,0.5)); }
+.guilda-hero .title { font-family:'Cinzel',serif; font-size:20px; font-weight:900; color:#e040fb; margin-bottom:4px; }
+.guilda-hero .sub { font-size:12px; color:#9e9e9e; }
+
+.guilda-card {
+  background:var(--bg-card); border:2px solid #2a2a4a; border-radius:14px;
+  padding:14px; margin-bottom:10px; transition:all 0.2s; position:relative; overflow:hidden;
+  cursor:pointer;
+}
+.guilda-card:hover { border-color:#7c4dff; transform:translateY(-2px); }
+.guilda-card.joined  { border-color:#66bb6a; box-shadow:0 0 14px rgba(102,187,106,0.15); }
+.guilda-card.locked  { border-color:#ffc107; }
+
+.guilda-avatar {
+  width:50px; height:50px; border-radius:12px;
+  border:2px solid var(--gu-color,#7c4dff);
+  display:flex; align-items:center; justify-content:center;
+  font-size:28px; flex-shrink:0;
+  background:linear-gradient(135deg,#1a0035,#2d0060);
+  box-shadow:0 0 12px var(--gu-color,#7c4dff44);
+}
+
+.guilda-level-badge {
+  display:inline-flex; align-items:center; gap:3px;
+  font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px;
+  background:rgba(124,77,255,0.15); border:1px solid #7c4dff; color:#ce93d8;
+}
+
+.member-bar-wrap { background:#1e1e30; border-radius:20px; height:5px; overflow:hidden; margin:4px 0; }
+.member-bar-fill { height:100%; border-radius:20px; background:linear-gradient(90deg,#4a148c,#7c4dff); }
+
+.req-chip {
+  display:inline-flex; align-items:center; gap:3px;
+  font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px;
+  background:rgba(255,193,7,0.12); border:1px solid #ffc107; color:#ffe082;
+}
+
+.guilda-tag {
+  position:absolute; top:10px; right:10px;
+  font-size:9px; font-weight:700; padding:2px 8px; border-radius:10px;
+  color:#fff;
+}
+.guilda-tag.elite   { background:linear-gradient(135deg,#b71c1c,#e53935); }
+.guilda-tag.open    { background:linear-gradient(135deg,#1b5e20,#388e3c); }
+.guilda-tag.popular { background:linear-gradient(135deg,#e65100,#ff6d00); }
+.guilda-tag.new     { background:linear-gradient(135deg,#0d47a1,#1565c0); }
+
+.my-guilda-banner {
+  background:linear-gradient(135deg,#0a0020,#180040);
+  border:2px solid #66bb6a; border-radius:14px;
+  padding:14px; margin-bottom:14px;
+}
+
+.filter-row {
+  display:flex; gap:6px; margin-bottom:12px; overflow-x:auto; padding-bottom:4px;
+}
+.filter-btn {
+  flex-shrink:0; padding:6px 14px; border-radius:20px; font-size:12px; font-weight:700;
+  border:1px solid #2a2a4a; background:transparent; color:#9e9e9e; cursor:pointer;
+  transition:all 0.2s; white-space:nowrap;
+}
+.filter-btn.active { border-color:#7c4dff; color:#e040fb; background:rgba(124,77,255,0.1); }
+
+.guilda-detail-panel { display:none; }
+.guilda-detail-panel.open { display:block; }
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title" style="background:linear-gradient(135deg,#7c4dff,#e040fb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">⚜️ GUILDAS</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content">
+
+  <div class="guilda-hero">
+    <span class="icon">⚜️</span>
+    <div class="title">Sistema de Guildas</div>
+    <div class="sub">Junte-se a uma guilda, batalhe junto e conquiste glória</div>
+  </div>
+
+  <!-- Minha guilda -->
+  <div id="my-guilda-wrap"></div>
+
+  <!-- Filtros -->
+  <div class="filter-row" id="filter-row">
+    <button class="filter-btn active" onclick="setFilter('all',this)">🌐 Todas</button>
+    <button class="filter-btn" onclick="setFilter('open',this)">🟢 Abertas</button>
+    <button class="filter-btn" onclick="setFilter('elite',this)">👑 Elite</button>
+    <button class="filter-btn" onclick="setFilter('new',this)">🆕 Novas</button>
+    <button class="filter-btn" onclick="setFilter('popular',this)">🔥 Populares</button>
+  </div>
+
+  <!-- Busca -->
+  <input type="text" id="search-input" class="input" placeholder="🔍 Buscar guilda por nome..."
+         oninput="renderGuildas()" style="margin-bottom:12px;"/>
+
+  <!-- Lista de guildas -->
+  <div id="guildas-list"></div>
+
+  <div style="height:70px;"></div>
+</main>
+
+<!-- Modal de guilda -->
+<div class="modal-overlay hidden" id="guilda-modal">
+  <div class="modal-box">
+    <div id="modal-guilda-content"></div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
+      <button class="btn btn-gold btn-block" id="btn-entrar-guilda" onclick="entrarGuilda()">⚜️ Entrar na Guilda</button>
+      <button class="btn btn-outline btn-block" onclick="document.getElementById('guilda-modal').classList.add('hidden')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js"></script>
+<script src="gamedata2.js"></script>
+<script src="gamedata3.js"></script>
+<script>
+let save, currentFilter = "all", selectedGuilda = null;
+
+const GUILDAS = [
+  {
+    id:"gu_origens",    name:"Lança das Origens",   emoji:"🔱", color:"#ff4444",
+    level:7,            members:48,  maxMembers:50,
+    desc:"A guilda mais antiga e poderosa de Card Fight. Aceita apenas os melhores guerreiros das terras de Origens.",
+    tag:"elite",        req:"Diamante I",            reqXpp:10000000,
+    benefits:["🏆 Bônus de XP +15% em batalhas","🪙 +10% de ouro ao vencer","📬 Cartas VIP no Correio","⚜️ Título exclusivo da guilda"],
+    members_list:["KairoMaster ✅","VoidHunterX","ShadowOrigens","BladeEternal","FrostReaper"],
+    img:"🔱"
+  },
+  {
+    id:"gu_shadow",     name:"Sombras do Abismo",   emoji:"🌑", color:"#9c27b0",
+    level:6,            members:35,  maxMembers:40,
+    desc:"Guerreiros das trevas que dominam as artes sombrias. Elite de batalha com táticas implacáveis.",
+    tag:"elite",        req:"Mestre",                reqXpp:5000000,
+    benefits:["🌑 Avatar exclusivo de Sombras","🃏 +5% chance de raridades em pacotes","⚡ Boosts diários gratuitos"],
+    members_list:["NightVandal","IronStorm99","CrimsonFang","StarForged"],
+    img:"🌑"
+  },
+  {
+    id:"gu_storm",      name:"Tempestade Eterna",   emoji:"⚡", color:"#2196F3",
+    level:5,            members:28,  maxMembers:45,
+    desc:"Velocidade e poder elétrico. Um dos clãs mais ativos em eventos e batalhas.",
+    tag:"popular",      req:"Ouro de Honra I",       reqXpp:500000,
+    benefits:["⚡ Bônus de dano em combos","📋 Missões diárias extras","🏆 Torneios internos semanais"],
+    members_list:["DragonSlayerZ","RuneMaster7","GrimWatcher"],
+    img:"⚡"
+  },
+  {
+    id:"gu_phoenix",    name:"Ordem da Fênix",      emoji:"🔥", color:"#ff6d00",
+    level:4,            members:22,  maxMembers:40,
+    desc:"Guerreiros que renascem das cinzas a cada derrota. Focados em progressão e aprendizado.",
+    tag:"open",         req:null,                    reqXpp:0,
+    benefits:["🔥 Bônus de XP +10% pra novatos","📚 Mentoria de membros veteranos","🎁 Kit de boas-vindas"],
+    members_list:["PhoenixRising","SilverEdge","NovaBlade","YoungKnight"],
+    img:"🔥"
+  },
+  {
+    id:"gu_crystal",    name:"Cristal Eterno",      emoji:"💠", color:"#00e5ff",
+    level:4,            members:19,  maxMembers:35,
+    desc:"Coletores de raridades e amantes das cartas ultra raras. Se tem uma Ultra Rara, eles querem.",
+    tag:"popular",      req:"Prata",                 reqXpp:15000,
+    benefits:["💠 +15% chance de Ultra Raro em eventos","📦 Cofre expandido grátis por semana","🎨 Moldura exclusiva Cristal"],
+    members_list:["IronGuard01","StarterHero"],
+    img:"💠"
+  },
+  {
+    id:"gu_nova",       name:"Nova Ascensão",        emoji:"🌠", color:"#4CAF50",
+    level:2,            members:8,   maxMembers:30,
+    desc:"Guilda nova e cheia de energia! Focada em crescer rápido. Todos são bem-vindos.",
+    tag:"new",          req:null,                    reqXpp:0,
+    benefits:["🌠 Bônus de starter","📬 Carta extra no Correio por semana"],
+    members_list:["IronGuard01","StarterHero"],
+    img:"🌠"
+  },
+  {
+    id:"gu_dragon",     name:"Dragões da Noite",    emoji:"🐉", color:"#ffc107",
+    level:6,            members:41,  maxMembers:45,
+    desc:"Os mestres das cartas lendárias e míticas. Dragões de verdade não perdem batalhas.",
+    tag:"elite",        req:"Elite I",               reqXpp:50000000,
+    benefits:["🐉 Avatar Dragão exclusivo","🃏 +20% chance de Lendário em pacotes","🏅 Badge de Dragão no perfil","🪙 +15% de ouro"],
+    members_list:["KairoMaster ✅","VoidHunterX","ShadowOrigens"],
+    img:"🐉"
+  },
+  {
+    id:"gu_sky",        name:"Sentinelas do Céu",   emoji:"🦅", color:"#90caf9",
+    level:3,            members:14,  maxMembers:30,
+    desc:"Vigias eternos. Protegem os membros mais fracos e ensinam táticas de batalha.",
+    tag:"open",         req:"Bronze III",            reqXpp:5000,
+    benefits:["🦅 Bônus de defesa em batalhas","📋 Missões especiais de guilda"],
+    members_list:["NovaBlade","YoungKnight","IronGuard01"],
+    img:"🦅"
+  },
+];
+
+function init() {
+  save = getOrCreateSave();
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+  renderMyGuilda();
+  renderGuildas();
+  startAutoSave(() => save);
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderGuildas();
+}
+
+function renderMyGuilda() {
+  const wrap = document.getElementById("my-guilda-wrap");
+  if (!save.guildaId) {
+    wrap.innerHTML = `<div style="text-align:center;background:#0e0e1c;border:1px dashed #2a2a4a;border-radius:12px;padding:16px;margin-bottom:14px;font-size:12px;color:#555;">
+      Você não está em nenhuma guilda. Explore a lista abaixo e entre em uma!
+    </div>`;
+    return;
+  }
+  const g = GUILDAS.find(x => x.id === save.guildaId);
+  if (!g) { save.guildaId = null; writeSave(save); wrap.innerHTML = ""; return; }
+
+  wrap.innerHTML = `<div class="my-guilda-banner">
+    <div class="panel-title" style="color:#66bb6a;">⚜️ Minha Guilda</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+      <div class="guilda-avatar" style="--gu-color:${g.color};">${g.emoji}</div>
+      <div style="flex:1;">
+        <div style="font-family:'Cinzel',serif;font-weight:700;font-size:15px;color:${g.color};">${g.name}</div>
+        <div style="font-size:11px;color:#9e9e9e;margin-top:2px;">
+          Nível ${g.level} · ${g.members}/${g.maxMembers} membros
+          ${g.level >= 7 ? " · 📸 Foto de Perfil desbloqueada" : ""}
+        </div>
+        <div class="guilda-level-badge" style="margin-top:4px;">⚜️ Nível ${g.level}</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#c0c0d0;margin-bottom:10px;line-height:1.7;">${g.desc}</div>
+    <button class="btn btn-sm" style="background:#b71c1c;color:#fff;border:none;width:100%;" onclick="sairGuilda()">
+      🚪 Sair da Guilda
+    </button>
+  </div>`;
+}
+
+function renderGuildas() {
+  const query = document.getElementById("search-input").value.trim().toLowerCase();
+  let list = GUILDAS.filter(g => {
+    if (g.id === save.guildaId) return false; // não mostra a guilda atual
+    if (query && !g.name.toLowerCase().includes(query) && !g.desc.toLowerCase().includes(query)) return false;
+    if (currentFilter !== "all" && g.tag !== currentFilter) return false;
+    return true;
+  });
+
+  const container = document.getElementById("guildas-list");
+  if (list.length === 0) {
+    container.innerHTML = `<div style="text-align:center;padding:30px;color:#555;font-size:12px;">Nenhuma guilda encontrada.</div>`;
+    return;
+  }
+
+  container.innerHTML = list.map(g => {
+    const rankXpp = save.xpp || 0;
+    const meetsReq = !g.reqXpp || rankXpp >= g.reqXpp;
+    const pct = Math.min(100, Math.round((g.members / g.maxMembers) * 100));
+    const tagLabel = { elite:"👑 ELITE", open:"🟢 ABERTA", popular:"🔥 POPULAR", new:"🆕 NOVA" }[g.tag] || "";
+
+    return `<div class="guilda-card ${!meetsReq?"locked":""}" onclick="openGuilda('${g.id}')">
+      ${tagLabel ? `<div class="guilda-tag ${g.tag}">${tagLabel}</div>` : ""}
+      <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:8px;">
+        <div class="guilda-avatar" style="--gu-color:${g.color};">${g.emoji}</div>
+        <div style="flex:1;">
+          <div style="font-family:'Cinzel',serif;font-weight:700;font-size:14px;color:${g.color};">${g.name}</div>
+          <div class="guilda-level-badge" style="margin:3px 0;">⚜️ Nível ${g.level}</div>
+          <div style="font-size:11px;color:#9e9e9e;margin-top:3px;line-height:1.5;">${g.desc.substring(0,80)}...</div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#9e9e9e;margin-bottom:3px;">
+        <span>👥 ${g.members}/${g.maxMembers} membros</span>
+        <span style="color:${meetsReq?"#a5d6a7":"#ef9a9a"};">
+          ${g.req ? (meetsReq ? "✅ Você pode entrar" : "🔒 " + g.req) : "✅ Aberta para todos"}
+        </span>
+      </div>
+      <div class="member-bar-wrap"><div class="member-bar-fill" style="width:${pct}%;background:linear-gradient(90deg,${g.color}88,${g.color});"></div></div>
+    </div>`;
+  }).join("");
+}
+
+function openGuilda(id) {
+  selectedGuilda = GUILDAS.find(g => g.id === id);
+  if (!selectedGuilda) return;
+  const g = selectedGuilda;
+  const rankXpp = save.xpp || 0;
+  const meetsReq = !g.reqXpp || rankXpp >= g.reqXpp;
+  const alreadyIn = save.guildaId === g.id;
+
+  document.getElementById("modal-guilda-content").innerHTML = `
+    <div style="text-align:center;margin-bottom:14px;">
+      <div style="font-size:60px;margin-bottom:6px;">${g.emoji}</div>
+      <div class="modal-title" style="color:${g.color};">${g.name}</div>
+      <div class="guilda-level-badge">⚜️ Nível ${g.level} · ${g.members}/${g.maxMembers} membros</div>
+    </div>
+    <p style="font-size:12px;color:#c0c0d0;line-height:1.7;margin-bottom:12px;">${g.desc}</p>
+    ${g.req ? `<div style="background:rgba(255,193,7,0.08);border:1px solid #ffc107;border-radius:10px;padding:10px;font-size:12px;color:#ffe082;margin-bottom:10px;">
+      🔒 <strong>Requisito:</strong> ${g.req}<br>
+      ${!meetsReq ? `<span style="color:#ef9a9a;">⚠️ Seu XPP atual não é suficiente.</span>` : `<span style="color:#a5d6a7;">✅ Você cumpre o requisito!</span>`}
+    </div>` : `<div style="background:rgba(102,187,106,0.08);border:1px solid #66bb6a;border-radius:10px;padding:10px;font-size:12px;color:#a5d6a7;margin-bottom:10px;">
+      🟢 Aberta para todos — sem requisitos!
+    </div>`}
+    <div style="font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:#ffc107;margin-bottom:8px;">🎁 Benefícios</div>
+    ${g.benefits.map(b => `<div style="font-size:12px;color:#c0c0d0;padding:4px 0;border-bottom:1px solid var(--border);">${b}</div>`).join("")}
+    <div style="font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:#9e9e9e;margin:10px 0 6px;">👥 Membros Conhecidos</div>
+    ${g.members_list.map(m => `<div style="font-size:11px;color:#9e9e9e;padding:3px 0;">· ${m}</div>`).join("")}
+    ${g.level >= 7 ? `<div style="margin-top:10px;background:rgba(124,77,255,0.1);border:1px solid #7c4dff;border-radius:8px;padding:8px;font-size:11px;color:#ce93d8;">📸 Esta guilda tem <strong>Foto de Perfil</strong> desbloqueada (Nível 7)</div>` : ""}
+  `;
+
+  const btnEntrar = document.getElementById("btn-entrar-guilda");
+  if (alreadyIn) {
+    btnEntrar.style.display = "none";
+  } else if (!meetsReq) {
+    btnEntrar.textContent = "🔒 Requisito não cumprido";
+    btnEntrar.disabled = true; btnEntrar.style.opacity = "0.5";
+    btnEntrar.style.display = "block";
+  } else {
+    btnEntrar.textContent = "⚜️ Entrar na Guilda";
+    btnEntrar.disabled = false; btnEntrar.style.opacity = "1";
+    btnEntrar.style.display = "block";
+  }
+
+  document.getElementById("guilda-modal").classList.remove("hidden");
+}
+
+function entrarGuilda() {
+  if (!selectedGuilda) return;
+  const g = selectedGuilda;
+  const rankXpp = save.xpp || 0;
+  if (g.reqXpp && rankXpp < g.reqXpp) { showToast("🔒 Requisito não cumprido!", "error"); return; }
+  if (g.members >= g.maxMembers) { showToast("❌ Guilda cheia!", "error"); return; }
+
+  if (save.guildaId && save.guildaId !== g.id) {
+    if (!confirm(`Você já está em outra guilda. Sair e entrar em "${g.name}"?`)) return;
+  }
+  save.guildaId = g.id;
+  save.guildaName = g.name;
+  save.guildaColor = g.color;
+  save.guildaLevel = g.level;
+  writeSave(save);
+
+  document.getElementById("guilda-modal").classList.add("hidden");
+  renderMyGuilda();
+  renderGuildas();
+  showToast(`⚜️ Bem-vindo à guilda "${g.name}"! O nome da guilda aparece no seu perfil.`, "gold", 4000);
+}
+
+function sairGuilda() {
+  if (!confirm("Sair da guilda? Você pode entrar em outra depois.")) return;
+  const name = save.guildaName || "guilda";
+  save.guildaId = null; save.guildaName = null;
+  save.guildaColor = null; save.guildaLevel = null;
+  writeSave(save);
+  renderMyGuilda();
+  renderGuildas();
+  showToast(`🚪 Você saiu de "${name}".`, "info");
+}
+
+init();
+</script>
+</body>
+</html>

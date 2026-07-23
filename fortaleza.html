@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Fortaleza – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+.fortaleza-hero {
+  background:linear-gradient(180deg,#0a0518 0%,#1a0a2e 40%,#07120a 100%);
+  border:2px solid #9c27b0; border-radius:20px;
+  padding:24px 16px 20px; margin-bottom:16px; text-align:center; position:relative; overflow:hidden;
+}
+.fortaleza-hero::before {
+  content:'🏰'; position:absolute; top:-30px; right:-10px; font-size:140px; opacity:0.04;
+}
+.fortaleza-title {
+  font-family:'Cinzel',serif; font-size:26px; font-weight:900;
+  background:linear-gradient(135deg,#ce93d8,#7c4dff,#ce93d8); background-size:200%;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent; background-clip:text;
+  margin:6px 0 4px; letter-spacing:2px; animation:title-shimmer 4s linear infinite;
+}
+.fortaleza-sub {
+  font-size:12px; color:#9e9e9e; margin-bottom:8px;
+}
+.level-display {
+  display:flex; align-items:center; justify-content:center; gap:12px;
+  margin:14px 0 8px;
+}
+.level-number {
+  font-family:'Cinzel',serif; font-size:56px; font-weight:900;
+  background:linear-gradient(135deg,#ce93d8,#e040fb); -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.level-label {
+  font-size:12px; color:#9e9e9e; text-transform:uppercase; letter-spacing:1px;
+}
+.progress-wrap {
+  background:#0e0e1c; border-radius:20px; height:12px; overflow:hidden; margin:8px 0 4px;
+}
+.progress-fill {
+  height:100%; border-radius:20px;
+  background:linear-gradient(90deg,#7c4dff,#e040fb,#7c4dff); background-size:200%;
+  animation:bg-scroll 3s linear infinite;
+  transition:width 0.5s ease;
+}
+@keyframes bg-scroll { 0%{background-position:0% 0%} 100%{background-position:200% 0%} }
+.xp-text {
+  font-size:12px; color:#9e9e9e; text-align:center;
+}
+.xp-text strong { color:#ce93d8; }
+
+.bonus-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:14px 0;
+}
+.bonus-box {
+  background:#0e0e1c; border:1px solid #2a2a4a; border-radius:10px;
+  padding:10px; text-align:center; transition:border-color 0.3s;
+}
+.bonus-box:hover { border-color:#7c4dff; }
+.bonus-box .val { font-size:18px; font-weight:900; color:#ce93d8; }
+.bonus-box .lbl { font-size:10px; color:#9e9e9e; margin-top:2px; }
+
+.evolve-area {
+  background:linear-gradient(135deg,#0a0015,#1a0028); border:2px solid #7c4dff44; border-radius:16px;
+  padding:16px; margin-bottom:12px;
+}
+.evolve-cost {
+  font-size:13px; color:#ffc107; font-weight:700; text-align:center; margin-bottom:8px;
+}
+.evolve-btn {
+  width:100%; padding:12px; font-family:'Cinzel',serif; font-size:16px; font-weight:700;
+  border:none; border-radius:12px; cursor:pointer;
+  background:linear-gradient(135deg,#4a0072,#9c27b0); color:#fff;
+  transition:all 0.25s; box-shadow:0 4px 20px rgba(156,39,176,0.4);
+}
+.evolve-btn:hover { filter:brightness(1.15); transform:translateY(-2px); }
+.evolve-btn:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
+.evolve-btn.maxed { background:linear-gradient(135deg,#1a1a2e,#2a2a4e); color:#9e9e9e; box-shadow:none; }
+
+.daily-card-area {
+  background:linear-gradient(135deg,#0a1a0a,#1a2a1a); border:2px solid #4CAF5044; border-radius:16px;
+  padding:16px; margin-bottom:12px; text-align:center;
+}
+.daily-card-btn {
+  padding:10px 20px; font-family:'Cinzel',serif; font-size:14px; font-weight:700;
+  border:none; border-radius:10px; cursor:pointer;
+  background:linear-gradient(135deg,#1b5e20,#388e3c); color:#fff;
+  transition:all 0.25s; box-shadow:0 4px 16px rgba(76,175,80,0.3);
+}
+.daily-card-btn:hover { filter:brightness(1.15); transform:translateY(-2px); }
+.daily-card-btn:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
+
+.info-section {
+  background:#0e0e1c; border:1px solid #2a2a4a; border-radius:14px;
+  padding:16px; margin-bottom:14px; font-size:12px; color:#c0c0d0; line-height:1.9;
+}
+.info-section h3 {
+  font-family:'Cinzel',serif; font-size:14px; color:#ce93d8; margin-bottom:8px;
+}
+.info-section ul { margin:4px 0 6px 18px; }
+.info-section ul li { margin-bottom:4px; }
+.info-section .highlight { color:#ffc107; font-weight:700; }
+.info-section .purple { color:#ce93d8; font-weight:700; }
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Início</a>
+  <span class="logo-title">🏰 FORTALEZA</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content" style="padding-bottom:70px;">
+
+  <!-- HERO -->
+  <div class="fortaleza-hero">
+    <div style="font-size:56px;animation:float 2s ease-in-out infinite;">🏰</div>
+    <div class="fortaleza-title">FORTALEZA</div>
+    <div class="fortaleza-sub">Sua base de poder. Quanto mais forte, maiores os benefícios.</div>
+
+    <div class="level-display">
+      <div>
+        <div class="level-number" id="fort-level">1</div>
+        <div class="level-label">Nível</div>
+      </div>
+      <div style="font-size:30px;color:#555;">/</div>
+      <div>
+        <div class="level-number" style="font-size:36px;color:#555;">20</div>
+        <div class="level-label">Máximo</div>
+      </div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-fill" id="fort-progress" style="width:0%;"></div>
+    </div>
+    <div class="xp-text">
+      XP: <strong id="fort-xp">0</strong> / <strong id="fort-xp-needed">50</strong>
+      <span id="fort-max-label" style="display:none;color:#66bb6a;font-weight:700;"> 🏆 MÁXIMO!</span>
+    </div>
+  </div>
+
+  <!-- BÔNUS ATUAIS -->
+  <div style="font-family:'Cinzel',serif;font-size:13px;font-weight:700;color:#ce93d8;margin-bottom:6px;">
+    ⚡ Bônus Ativos
+  </div>
+  <div class="bonus-grid" id="bonus-grid">
+    <div class="bonus-box"><div class="val" id="bonus-gold">0%</div><div class="lbl">🪙 Ouro</div></div>
+    <div class="bonus-box"><div class="val" id="bonus-xp">0%</div><div class="lbl">⭐ XP</div></div>
+    <div class="bonus-box"><div class="val" id="bonus-xpp">0%</div><div class="lbl">🎖️ XPP</div></div>
+    <div class="bonus-box"><div class="val" id="bonus-atk">0%</div><div class="lbl">⚔️ ATK</div></div>
+  </div>
+
+  <!-- EVOLUIR COM OURO -->
+  <div class="evolve-area">
+    <div class="evolve-cost" id="evolve-cost-display">💰 Custo: 10.000 ouro</div>
+    <button class="evolve-btn" id="btn-evolve" onclick="evolveFortaleza()">
+      🏗️ EVOLUIR FORTALEZA
+    </button>
+    <div style="font-size:10px;color:#666;text-align:center;margin-top:6px;">
+      Cada evolução adiciona XP à fortaleza. Quanto maior o nível, mais caro.
+    </div>
+  </div>
+
+  <!-- CARTA DIÁRIA -->
+  <div class="daily-card-area">
+    <div style="font-size:13px;font-weight:700;color:#66bb6a;margin-bottom:4px;">📬 Carta Diária da Fortaleza</div>
+    <div style="font-size:11px;color:#9e9e9e;margin-bottom:8px;">
+      Disponível apenas no <strong style="color:#ffc107;">nível 20</strong>.
+      Chances: Comum 70% · Rara 20% · Épica 7% · Lendária 2.5% · Mítica 0.4% · Ultra Rara 0.09% · Origens 0.01%
+    </div>
+    <button class="daily-card-btn" id="btn-daily-card" onclick="claimDailyCard()">
+      📨 Coletar Carta Diária
+    </button>
+    <div id="daily-card-status" style="font-size:11px;color:#9e9e9e;margin-top:6px;"></div>
+  </div>
+
+  <!-- EXPLICAÇÃO -->
+  <div class="info-section">
+    <h3>🏰 Como funciona a Fortaleza</h3>
+    <ul>
+      <li><strong class="purple">Níveis:</strong> A fortaleza tem <strong class="highlight">20 níveis</strong>. Quanto maior o nível, maiores os bônus passivos.</li>
+      <li><strong class="purple">XP da Fortaleza:</strong> Ganhe XP de três formas:
+        <ul>
+          <li>✅ <strong>Missões diárias</strong> — 5 missões específicas da Fortaleza.</li>
+          <li>✅ <strong>Batalhas clássicas</strong> — +1 XP por batalha, +1 XP extra se vencer.</li>
+          <li>✅ <strong>Evolução com ouro</strong> — Gaste ouro para ganhar XP (valor sobe com o nível).</li>
+        </ul>
+      </li>
+      <li><strong class="purple">Bônus passivos (nível 20):</strong>
+        <ul>
+          <li>🪙 <strong>+10%</strong> de ouro em batalhas</li>
+          <li>⭐ <strong>+15%</strong> de XP em batalhas</li>
+          <li>🎖️ <strong>+15%</strong> de XPP em batalhas</li>
+          <li>⚔️ <strong>+2%</strong> de ATK em todas as cartas</li>
+          <li>❤️ <strong>+3%</strong> de HP em todas as cartas</li>
+        </ul>
+        Em níveis menores, os bônus são proporcionais (ex: nível 10 = ~metade do máximo).
+      </li>
+      <li><strong class="purple">Carta diária:</strong> No <strong class="highlight">nível 20</strong>, você pode coletar <strong>1 carta aleatória por dia</strong>.
+        Chances de cartas raras são muito baixas, mas existe!
+      </li>
+      <li><strong class="purple">Conquistas:</strong> Ao atingir os níveis 5, 10, 15 e 20, você desbloqueia conquistas exclusivas.</li>
+    </ul>
+    <div style="margin-top:8px;font-size:11px;color:#666;border-top:1px solid #1e1e30;padding-top:8px;">
+      ⏳ A progressão da fortaleza é <strong style="color:#ffc107;">lenta e cara</strong> propositalmente. 
+      Chegar ao nível 20 é uma marca de <strong style="color:#ce93d8;">dedicação e persistência</strong>.
+    </div>
+  </div>
+
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js"></script>
+<script src="gamedata2.js"></script>
+<script src="gamedata3.js"></script>
+<script src="gamedata-fortaleza-patch.js"></script>
+<script>
+let save;
+
+function init() {
+  save = getOrCreateSave();
+  renderFortaleza();
+  updateHeader();
+  startAutoSave(() => save);
+}
+
+function renderFortaleza() {
+  const f = save.fortaleza || { level: 1, xp: 0, lastDailyCard: "" };
+  const level = f.level || 1;
+  const xp = f.xp || 0;
+  const needed = CF_Fortress.getXPNeeded(level);
+  const isMax = level >= 20;
+
+  document.getElementById('fort-level').textContent = level;
+  document.getElementById('fort-xp').textContent = fmtNum(xp);
+  document.getElementById('fort-xp-needed').textContent = isMax ? '—' : fmtNum(needed);
+
+  const pct = isMax ? 100 : Math.min(100, Math.round((xp / needed) * 100));
+  document.getElementById('fort-progress').style.width = pct + '%';
+  document.getElementById('fort-max-label').style.display = isMax ? 'inline' : 'none';
+
+  // Bônus
+  const bonusGold = CF_Fortress.getBonus(save, 'gold');
+  const bonusXP   = CF_Fortress.getBonus(save, 'xp');
+  const bonusXPP  = CF_Fortress.getBonus(save, 'xpp');
+  const bonusATK  = CF_Fortress.getBonus(save, 'atk');
+
+  document.getElementById('bonus-gold').textContent = (bonusGold * 100).toFixed(1) + '%';
+  document.getElementById('bonus-xp').textContent  = (bonusXP  * 100).toFixed(1) + '%';
+  document.getElementById('bonus-xpp').textContent = (bonusXPP * 100).toFixed(1) + '%';
+  document.getElementById('bonus-atk').textContent = (bonusATK * 100).toFixed(1) + '%';
+
+  // Custo de evolução
+  const cost = CF_Fortress.getGoldCost(level);
+  const costEl = document.getElementById('evolve-cost-display');
+  const btnEvolve = document.getElementById('btn-evolve');
+
+  if (isMax) {
+    costEl.textContent = '🏆 FORTALEZA NO NÍVEL MÁXIMO!';
+    btnEvolve.textContent = '✅ MÁXIMO';
+    btnEvolve.disabled = true;
+    btnEvolve.className = 'evolve-btn maxed';
+  } else {
+    costEl.textContent = `💰 Custo: ${fmtNum(cost)} ouro`;
+    btnEvolve.textContent = '🏗️ EVOLUIR FORTALEZA';
+    btnEvolve.disabled = false;
+    btnEvolve.className = 'evolve-btn';
+  }
+
+  // Carta diária
+  const btnCard = document.getElementById('btn-daily-card');
+  const statusEl = document.getElementById('daily-card-status');
+  const today = new Date().toDateString();
+
+  if (isMax) {
+    if (f.lastDailyCard === today) {
+      btnCard.disabled = true;
+      btnCard.textContent = '✅ Coletado hoje!';
+      statusEl.textContent = '📬 Volte amanhã para uma nova carta.';
+    } else {
+      btnCard.disabled = false;
+      btnCard.textContent = '📨 Coletar Carta Diária';
+      statusEl.textContent = '🎁 Clique para receber sua carta grátis!';
+    }
+  } else {
+    btnCard.disabled = true;
+    btnCard.textContent = '🔒 Nível 20 necessário';
+    statusEl.textContent = '🏰 Chegue ao nível 20 para desbloquear a carta diária.';
+  }
+}
+
+function evolveFortaleza() {
+  const result = CF_Fortress.evolveWithGold(save);
+  if (!result.ok) {
+    showToast(result.message, 'error');
+    return;
+  }
+  showToast(result.message, 'gold');
+  if (result.leveled) {
+    showToast(`🎉 Fortaleza subiu para o nível ${result.newLevel}!`, 'gold');
+  }
+  updateHeader();
+  renderFortaleza();
+}
+
+function claimDailyCard() {
+  const result = CF_Fortress.claimDailyCard(save);
+  if (!result.ok) {
+    showToast(result.message, 'error');
+    return;
+  }
+  const r = RARITY[result.card.rarity] || RARITY.COMMON;
+  showToast(`${result.message} (${r.name})`, 'gold');
+  renderFortaleza();
+}
+
+function updateHeader() {
+  document.getElementById('hdr-gold').textContent = fmtNum(save.gold);
+}
+
+init();
+</script>
+</body>
+</html>

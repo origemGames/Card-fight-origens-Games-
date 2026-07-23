@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Companheiros – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+.comp-hero {
+  background:linear-gradient(135deg,#001a2a,#002d40,#001a1a);
+  border:2px solid #00e5ff; border-radius:16px;
+  padding:20px 16px; margin-bottom:14px; text-align:center;
+  position:relative; overflow:hidden;
+}
+.comp-hero::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(0,229,255,0.10) 0%,transparent 60%);
+  pointer-events:none;
+}
+.comp-hero .hero-icon {
+  font-size:64px; display:block; margin-bottom:8px;
+  animation:float 2.5s ease-in-out infinite;
+  filter:drop-shadow(0 0 20px rgba(0,229,255,0.5));
+}
+.comp-hero-title {
+  font-family:'Cinzel',serif; font-size:20px; font-weight:900;
+  background:linear-gradient(135deg,#00e5ff,#66bb6a);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  margin-bottom:4px;
+}
+
+/* Tabs */
+.comp-tabs { display:flex; background:#0e0e1c; border-radius:12px; padding:4px; margin-bottom:14px; gap:3px; }
+.comp-tab  { flex:1; padding:8px 4px; border:none; border-radius:9px; background:transparent;
+  color:#9e9e9e; font-family:'Rajdhani',sans-serif; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.2s; }
+.comp-tab.active { background:linear-gradient(135deg,#004d6b,#006d8f); color:#fff; }
+
+/* Companion card */
+.comp-card {
+  background:var(--bg-card); border:2px solid var(--comp-border,#2a2a4a);
+  border-radius:14px; padding:14px; margin-bottom:10px;
+  transition:all 0.2s; position:relative; overflow:hidden;
+  cursor:pointer;
+}
+.comp-card:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,0.4); }
+.comp-card.equipped { border-color:#ffc107; box-shadow:0 0 14px rgba(255,193,7,0.2); }
+.comp-card.owned    { border-color:#66bb6a; }
+
+.comp-emoji-big { font-size:48px; filter:drop-shadow(0 0 12px var(--comp-glow,#00e5ff)); }
+.comp-rarity-badge {
+  display:inline-flex; align-items:center; gap:3px;
+  font-size:10px; font-weight:700; padding:2px 10px; border-radius:20px;
+  border:1px solid var(--comp-border,#2a2a4a); color:var(--comp-color,#9e9e9e);
+  background:var(--comp-bg,transparent); margin-bottom:4px;
+}
+.comp-buff-list { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+.comp-buff-pill {
+  background:rgba(0,229,255,0.1); border:1px solid rgba(0,229,255,0.3);
+  border-radius:20px; padding:2px 10px; font-size:11px; font-weight:700; color:#00e5ff;
+}
+
+/* Stars */
+.comp-stars { display:flex; gap:2px; margin:4px 0; }
+.comp-star { font-size:14px; }
+
+/* Price tag */
+.price-tag {
+  display:flex; align-items:center; gap:4px;
+  font-size:13px; font-weight:700; color:#ffc107;
+}
+
+/* Evolution panel */
+.evo-panel {
+  background:linear-gradient(135deg,#0a0020,#1a0035);
+  border:2px solid #7c4dff; border-radius:14px;
+  padding:14px; margin-bottom:10px;
+}
+.evo-cost { background:#0e0e1c; border:1px solid #2a2a4a; border-radius:10px; padding:10px 12px; margin-bottom:8px; }
+.evo-arrow { text-align:center; font-size:20px; margin:6px 0; color:#9e9e9e; }
+
+/* Active companion display */
+.active-comp-display {
+  background:linear-gradient(135deg,#001a0a,#002d15);
+  border:2px solid #66bb6a; border-radius:14px;
+  padding:14px; margin-bottom:14px;
+  display:flex; align-items:center; gap:12px;
+}
+.active-comp-display .acd-emoji { font-size:44px; filter:drop-shadow(0 0 12px #66bb6a88); }
+.active-comp-display .acd-info { flex:1; }
+.active-comp-display .acd-name { font-family:'Cinzel',serif; font-weight:700; font-size:15px; color:#66bb6a; }
+.active-comp-display .acd-buff { font-size:12px; color:#a5d6a7; margin-top:3px; }
+.active-comp-display .acd-status { font-size:10px; color:#9e9e9e; margin-top:2px; }
+
+/* Shop grid */
+.shop-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+.shop-comp-card {
+  background:var(--bg-card); border:2px solid var(--comp-border,#2a2a4a);
+  border-radius:12px; padding:12px; text-align:center; cursor:pointer;
+  transition:all 0.2s; position:relative;
+}
+.shop-comp-card:hover { transform:translateY(-2px); border-color:var(--comp-color,#00e5ff); }
+.shop-comp-card.owned-in-shop { border-color:#2a4a2a; opacity:0.7; }
+
+.rarity-label-common   { --comp-color:#9e9e9e; --comp-border:#4a4a4a; --comp-bg:rgba(158,158,158,0.1); --comp-glow:#9e9e9e; }
+.rarity-label-rare     { --comp-color:#2196F3; --comp-border:#1a3a6a; --comp-bg:rgba(33,150,243,0.1);  --comp-glow:#2196F3; }
+.rarity-label-epic     { --comp-color:#9c27b0; --comp-border:#3a1a5a; --comp-bg:rgba(156,39,176,0.1); --comp-glow:#9c27b0; }
+.rarity-label-legendary{ --comp-color:#ffc107; --comp-border:#6a4a00; --comp-bg:rgba(255,193,7,0.12); --comp-glow:#ffc107; }
+.rarity-label-mythic   { --comp-color:#ff4444; --comp-border:#6a1a1a; --comp-bg:rgba(255,68,68,0.12); --comp-glow:#ff4444; }
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title" style="background:linear-gradient(135deg,#00e5ff,#66bb6a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">🐾 COMPANHEIROS</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content">
+
+  <!-- Hero -->
+  <div class="comp-hero">
+    <span class="hero-icon">🐾</span>
+    <div class="comp-hero-title">COMPANHEIROS</div>
+    <div style="font-size:12px;color:#9e9e9e;">Mascotes que te acompanham e dão buffs passivos</div>
+  </div>
+
+  <!-- Companheiro ativo -->
+  <div id="active-comp-wrap"></div>
+
+  <!-- Tabs -->
+  <div class="comp-tabs">
+    <button class="comp-tab active" onclick="switchTab('colecao',this)">📦 Coleção</button>
+    <button class="comp-tab" onclick="switchTab('loja',this)">🛒 Loja</button>
+    <button class="comp-tab" onclick="switchTab('evolucao',this)">⭐ Evolução</button>
+  </div>
+
+  <!-- TAB: COLEÇÃO -->
+  <div id="tab-colecao">
+    <div id="collection-list">
+      <div style="text-align:center;padding:30px;color:#555;font-size:12px;">
+        <div style="font-size:40px;margin-bottom:8px;">🥚</div>
+        Você ainda não tem nenhum companheiro.<br>
+        Visite a <strong style="color:#00e5ff;">Loja</strong> para obter o seu primeiro!
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: LOJA -->
+  <div id="tab-loja" style="display:none;">
+    <div style="background:linear-gradient(135deg,#001a2a,#002d40);border:1px solid #00e5ff;border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:12px;color:#80deea;line-height:1.7;">
+      🛒 <strong>Loja de Companheiros</strong> — adquira mascotes raros que te darão buffs passivos!<br>
+      Companheiros são <strong>colecionáveis separados</strong> das cartas de batalha — cada um tem raridade, evolução e habilidade única.
+    </div>
+    <div class="shop-grid" id="shop-grid"></div>
+  </div>
+
+  <!-- TAB: EVOLUÇÃO -->
+  <div id="tab-evolucao" style="display:none;">
+    <div style="background:linear-gradient(135deg,#0d0025,#1a003a);border:1px solid #7c4dff;border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:12px;color:#ce93d8;line-height:1.7;">
+      ⭐ <strong>Evolução de Companheiros</strong> — use ouro e cartas do seu cofre para evoluir seus companheiros até o nível máximo!<br>
+      Cada estrela aumenta o buff passivo do companheiro.
+    </div>
+    <div id="evo-list"></div>
+  </div>
+
+  <div style="height:70px;"></div>
+</main>
+
+<!-- Modal: detalhe do companheiro -->
+<div class="modal-overlay hidden" id="comp-modal">
+  <div class="modal-box" style="max-width:360px;">
+    <div id="comp-modal-content"></div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;" id="comp-modal-actions"></div>
+  </div>
+</div>
+
+<!-- Modal: comprar companheiro -->
+<div class="modal-overlay hidden" id="buy-modal">
+  <div class="modal-box" style="max-width:340px;">
+    <div id="buy-modal-content"></div>
+    <button class="btn btn-gold btn-block" id="confirm-buy-btn" onclick="confirmBuy()" style="margin-top:10px;">🛒 Confirmar Compra</button>
+    <button class="btn btn-outline btn-block" onclick="document.getElementById('buy-modal').classList.add('hidden')" style="margin-top:8px;">Cancelar</button>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js"></script>
+<script src="gamedata2.js"></script>
+<script src="gamedata3.js"></script>
+<script src="gamedata-v7-patch.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   COMPANHEIROS — Card Fight v7.0
+   Sistema de Mascotes com Buffs Passivos
+═══════════════════════════════════════════════════════════ */
+
+const COMPANIONS = [
+  // id, name, emoji, rarity, rarityClass, price, buffs, desc, maxLevel, evoGold, evoCards
+  { id:"c_slime",     name:"Slimezinho",      emoji:"🟢", rarity:"Comum",    rarityClass:"common",    price:50000,
+    buffs:["+1% ouro"], desc:"O mascote mais simples, mas fiel como ninguém.",
+    maxLevel:5, evoGold:[30000,60000,100000,200000], evoCards:[2,3,4,6] },
+
+  { id:"c_bat",       name:"Morceguinho",     emoji:"🦇", rarity:"Comum",    rarityClass:"common",    price:80000,
+    buffs:["+1% XP"], desc:"Guia você pelas trevas, iluminando o caminho do conhecimento.",
+    maxLevel:5, evoGold:[30000,60000,100000,200000], evoCards:[2,3,4,6] },
+
+  { id:"c_fox",       name:"Raposa de Fogo",  emoji:"🦊", rarity:"Raro",     rarityClass:"rare",      price:350000,
+    buffs:["+2% ouro", "+1% XP"], desc:"Ardilosa e esperta, atrai riqueza com seu passo de chamas.",
+    maxLevel:5, evoGold:[100000,200000,400000,800000], evoCards:[4,6,8,12] },
+
+  { id:"c_owl",       name:"Coruja Sábia",    emoji:"🦉", rarity:"Raro",     rarityClass:"rare",      price:300000,
+    buffs:["+2% XP", "+1% XPP"], desc:"Acumula conhecimento de batalha e repassa para o dono.",
+    maxLevel:5, evoGold:[100000,200000,400000,800000], evoCards:[4,6,8,12] },
+
+  { id:"c_wolf",      name:"Lobo Lunar",      emoji:"🐺", rarity:"Épico",    rarityClass:"epic",      price:1200000,
+    buffs:["+3% ouro", "+2% XP"], desc:"Uiva para a lua e atrai sorte e riqueza em cada batalha.",
+    maxLevel:5, evoGold:[300000,600000,1000000,2000000], evoCards:[8,12,18,25] },
+
+  { id:"c_dragon",    name:"Dragonzinho",     emoji:"🐲", rarity:"Épico",    rarityClass:"epic",      price:1500000,
+    buffs:["+3% ouro", "+1% ATK"], desc:"Um dragão jovem que impõe respeito — e dano — em batalha.",
+    maxLevel:5, evoGold:[300000,600000,1000000,2000000], evoCards:[8,12,18,25] },
+
+  { id:"c_phoenix",   name:"Fênix Dourada",   emoji:"🔥", rarity:"Lendário", rarityClass:"legendary", price:5000000,
+    buffs:["+5% ouro", "+3% XP", "+2% XPP"], desc:"Renasce das cinzas e carrega parte desse poder para você.",
+    maxLevel:5, evoGold:[800000,1500000,3000000,6000000], evoCards:[15,22,30,45] },
+
+  { id:"c_unicorn",   name:"Unicórnio Astral", emoji:"🦄", rarity:"Lendário", rarityClass:"legendary", price:6000000,
+    buffs:["+5% ouro", "+5% XP"], desc:"Ser mítico de outra dimensão — sua presença é pura sorte.",
+    maxLevel:5, evoGold:[800000,1500000,3000000,6000000], evoCards:[15,22,30,45] },
+
+  { id:"c_titan",     name:"Titan das Sombras", emoji:"👹", rarity:"Mítico",  rarityClass:"mythic",   price:20000000,
+    buffs:["+10% ouro", "+5% XP", "+3% XPP", "+2% ATK"], desc:"Entidade ancestral que amplifica todos os teus poderes.",
+    maxLevel:5, evoGold:[2000000,4000000,8000000,15000000], evoCards:[30,50,80,120] },
+
+  { id:"c_cosmos",    name:"Guardião Cósmico", emoji:"🌌", rarity:"Mítico",  rarityClass:"mythic",   price:25000000,
+    buffs:["+10% ouro", "+8% XP", "+5% XPP"], desc:"Tecido com a matéria das estrelas — o mais poderoso de todos.",
+    maxLevel:5, evoGold:[2000000,4000000,8000000,15000000], evoCards:[30,50,80,120] },
+];
+
+const RARITY_COLORS = {
+  common:    "#9e9e9e", rare:    "#2196F3",
+  epic:      "#9c27b0", legendary:"#ffc107", mythic: "#ff4444"
+};
+
+let save, currentTab = "colecao", selectedBuyComp = null;
+
+function init() {
+  save = getOrCreateSave();
+  if (!save.companions)      save.companions = [];
+  if (!save.activeCompanion) save.activeCompanion = null;
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+
+  renderActiveComp();
+  renderCollection();
+  renderShop();
+  renderEvolution();
+}
+
+/* ── Companheiro ativo ── */
+function renderActiveComp() {
+  const wrap = document.getElementById("active-comp-wrap");
+  if (!save.activeCompanion) {
+    wrap.innerHTML = `<div style="text-align:center;background:#0e0e1c;border:1px dashed #2a2a4a;border-radius:12px;padding:12px;margin-bottom:14px;font-size:12px;color:#555;">
+      🐾 Nenhum companheiro equipado. Equipe um da sua coleção!
+    </div>`;
+    return;
+  }
+  const c  = COMPANIONS.find(x => x.id === save.activeCompanion);
+  const ce = save.companions.find(x => x.id === save.activeCompanion);
+  if (!c || !ce) { save.activeCompanion = null; writeSave(save); renderActiveComp(); return; }
+  const lv = ce.level || 1;
+  const buffs = getBuffsAtLevel(c, lv);
+  wrap.innerHTML = `<div class="active-comp-display">
+    <div class="acd-emoji">${c.emoji}</div>
+    <div class="acd-info">
+      <div class="acd-name">${c.name}</div>
+      <div class="acd-buff">${buffs.join("  ·  ")}</div>
+      <div class="acd-status">⭐ Nível ${lv}/5 · ${c.rarity} · Equipado</div>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="unequip()" style="flex-shrink:0;">❌</button>
+  </div>`;
+}
+
+/* ── Coleção ── */
+function renderCollection() {
+  const list = document.getElementById("collection-list");
+  if (save.companions.length === 0) {
+    list.innerHTML = `<div style="text-align:center;padding:30px;color:#555;font-size:12px;"><div style="font-size:40px;margin-bottom:8px;">🥚</div>Você ainda não tem nenhum companheiro.<br>Visite a <strong style="color:#00e5ff;">Loja</strong> para obter o seu primeiro!</div>`;
+    return;
+  }
+  list.innerHTML = save.companions.map(ce => {
+    const c   = COMPANIONS.find(x => x.id === ce.id);
+    if (!c) return "";
+    const lv  = ce.level || 1;
+    const eq  = save.activeCompanion === c.id;
+    const buffs = getBuffsAtLevel(c, lv);
+    const color = RARITY_COLORS[c.rarityClass] || "#9e9e9e";
+    return `<div class="comp-card ${eq?"equipped":""} rarity-label-${c.rarityClass}" style="--comp-border:${color}44;" onclick="openCompModal('${c.id}')">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="comp-emoji-big" style="--comp-glow:${color}88;">${c.emoji}</span>
+        <div style="flex:1;">
+          <div style="font-family:'Cinzel',serif;font-weight:700;font-size:14px;color:${color};">${c.name}</div>
+          <div class="comp-rarity-badge rarity-label-${c.rarityClass}" style="--comp-color:${color};--comp-border:${color}44;--comp-bg:rgba(0,0,0,0.2);">${c.rarity}</div>
+          <div class="comp-stars">${"⭐".repeat(lv)}${"☆".repeat(5-lv)}</div>
+          <div class="comp-buff-list">${buffs.map(b=>`<span class="comp-buff-pill" style="border-color:${color}44;color:${color};">${b}</span>`).join("")}</div>
+        </div>
+        ${eq?`<div style="background:#ffc10722;border:1px solid #ffc107;border-radius:8px;padding:4px 8px;font-size:10px;font-weight:700;color:#ffc107;">✅ ATIVO</div>`:""}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+/* ── Loja ── */
+function renderShop() {
+  const grid = document.getElementById("shop-grid");
+  grid.innerHTML = COMPANIONS.map(c => {
+    const owned = save.companions.some(x => x.id === c.id);
+    const color = RARITY_COLORS[c.rarityClass] || "#9e9e9e";
+    return `<div class="shop-comp-card rarity-label-${c.rarityClass} ${owned?"owned-in-shop":""}" style="--comp-border:${color}44;--comp-color:${color};" onclick="${owned?"showToast('Você já possui esse companheiro!','info')":"openBuyModal('"+c.id+"')"}">
+      <div style="font-size:38px;margin-bottom:6px;filter:drop-shadow(0 0 10px ${color}88);">${c.emoji}</div>
+      <div style="font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:${color};margin-bottom:3px;">${c.name}</div>
+      <div style="font-size:10px;font-weight:700;color:${color};background:${color}15;border:1px solid ${color}33;border-radius:10px;padding:1px 8px;margin-bottom:6px;">${c.rarity}</div>
+      <div style="font-size:11px;color:#9e9e9e;margin-bottom:6px;">${c.buffs.join(" · ")}</div>
+      ${owned
+        ? `<div style="font-size:11px;color:#66bb6a;font-weight:700;">✅ Possuído</div>`
+        : `<div class="price-tag" style="justify-content:center;"><span>🪙</span><span>${fmtNum(c.price)}</span></div>`
+      }
+    </div>`;
+  }).join("");
+}
+
+/* ── Evolução ── */
+function renderEvolution() {
+  const list = document.getElementById("evo-list");
+  if (save.companions.length === 0) {
+    list.innerHTML = `<div style="text-align:center;padding:30px;color:#555;font-size:12px;"><div style="font-size:40px;margin-bottom:8px;">🥚</div>Você precisa ter companheiros para evoluir!</div>`;
+    return;
+  }
+  list.innerHTML = save.companions.map(ce => {
+    const c   = COMPANIONS.find(x => x.id === ce.id);
+    if (!c) return "";
+    const lv  = ce.level || 1;
+    const max = c.maxLevel || 5;
+    const color = RARITY_COLORS[c.rarityClass] || "#9e9e9e";
+    const buffs = getBuffsAtLevel(c, lv);
+    const nextBuffs = lv < max ? getBuffsAtLevel(c, lv+1) : null;
+    const goldCost  = lv < max ? c.evoGold[lv-1] : 0;
+    const cardCost  = lv < max ? c.evoCards[lv-1] : 0;
+    const cardsHave = save.vault ? save.vault.length : 0;
+    const canEvo    = lv < max && save.gold >= goldCost && cardsHave >= cardCost;
+
+    return `<div class="evo-panel">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span style="font-size:36px;">${c.emoji}</span>
+        <div style="flex:1;">
+          <div style="font-family:'Cinzel',serif;font-weight:700;color:${color};">${c.name}</div>
+          <div class="comp-stars" style="margin-top:3px;">${"⭐".repeat(lv)}${"☆".repeat(max-lv)}</div>
+        </div>
+        <div style="font-size:11px;color:#9e9e9e;">Nível ${lv}/${max}</div>
+      </div>
+      <div style="font-size:12px;color:#c0c0d0;margin-bottom:8px;">
+        <strong>Buffs atuais:</strong> ${buffs.join(", ")}
+        ${nextBuffs ? `<br><strong style="color:#66bb6a;">Próximo nível:</strong> ${nextBuffs.join(", ")}` : ""}
+      </div>
+      ${lv < max ? `
+      <div class="evo-cost">
+        <div style="font-size:11px;color:#9e9e9e;margin-bottom:6px;font-weight:700;">Custo para evoluir para ⭐${lv+1}:</div>
+        <div style="display:flex;gap:12px;font-size:12px;">
+          <span>🪙 ${fmtNum(goldCost)} ouro <span style="color:${save.gold>=goldCost?"#66bb6a":"#ef9a9a"}">(${save.gold>=goldCost?"✅":"❌"})</span></span>
+          <span>🃏 ${cardCost} cartas do cofre <span style="color:${cardsHave>=cardCost?"#66bb6a":"#ef9a9a"}">(${cardsHave>=cardCost?"✅":"❌"})</span></span>
+        </div>
+      </div>
+      <button class="btn btn-block btn-sm ${canEvo?"btn-gold":"btn-outline"}" onclick="evolveComp('${c.id}')" ${canEvo?"":"disabled style='opacity:0.5;'"}>
+        ${canEvo?"⭐ Evoluir para Nível "+(lv+1):"❌ Recursos insuficientes"}
+      </button>` : `
+      <div style="text-align:center;background:rgba(255,193,7,0.08);border:1px solid #ffc107;border-radius:8px;padding:8px;font-size:12px;color:#ffe082;">
+        🏆 Nível máximo atingido!
+      </div>`}
+    </div>`;
+  }).join("");
+}
+
+/* ── Helpers ── */
+function getBuffsAtLevel(comp, level) {
+  // Cada level multiplica os buffs
+  return comp.buffs.map(b => {
+    return b.replace(/(\d+)%/g, (_,n) => `${Math.round(n * (1 + (level-1)*0.4))}%`);
+  });
+}
+
+function openCompModal(id) {
+  const c   = COMPANIONS.find(x => x.id === id);
+  const ce  = save.companions.find(x => x.id === id);
+  if (!c || !ce) return;
+  const lv    = ce.level || 1;
+  const eq    = save.activeCompanion === id;
+  const color = RARITY_COLORS[c.rarityClass] || "#9e9e9e";
+  const buffs = getBuffsAtLevel(c, lv);
+
+  document.getElementById("comp-modal-content").innerHTML = `
+    <div style="text-align:center;margin-bottom:14px;">
+      <div style="font-size:60px;margin-bottom:6px;filter:drop-shadow(0 0 16px ${color}88);">${c.emoji}</div>
+      <div class="modal-title" style="color:${color};">${c.name}</div>
+      <div class="comp-rarity-badge" style="--comp-color:${color};--comp-border:${color}44;justify-content:center;">${c.rarity}</div>
+    </div>
+    <div class="comp-stars" style="justify-content:center;margin-bottom:10px;font-size:20px;">${"⭐".repeat(lv)}${"☆".repeat(5-lv)}</div>
+    <p style="font-size:12px;color:#c0c0d0;text-align:center;margin-bottom:10px;line-height:1.7;">${c.desc}</p>
+    <div style="font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:#ffc107;margin-bottom:6px;">⚡ Buffs Passivos (Nível ${lv}):</div>
+    ${buffs.map(b=>`<div style="font-size:13px;color:#00e5ff;padding:4px 0;border-bottom:1px solid #1e1e30;">${b}</div>`).join("")}
+  `;
+
+  document.getElementById("comp-modal-actions").innerHTML = eq
+    ? `<button class="btn btn-outline btn-block" onclick="unequip();document.getElementById('comp-modal').classList.add('hidden')">❌ Desequipar</button>`
+    : `<button class="btn btn-gold btn-block" onclick="equipComp('${id}');document.getElementById('comp-modal').classList.add('hidden')">✅ Equipar Companheiro</button>`;
+
+  document.getElementById("comp-modal-actions").innerHTML +=
+    `<button class="btn btn-outline btn-block" onclick="document.getElementById('comp-modal').classList.add('hidden')">Fechar</button>`;
+
+  document.getElementById("comp-modal").classList.remove("hidden");
+}
+
+function openBuyModal(id) {
+  const c = COMPANIONS.find(x => x.id === id);
+  if (!c) return;
+  selectedBuyComp = id;
+  const color = RARITY_COLORS[c.rarityClass] || "#9e9e9e";
+  document.getElementById("buy-modal-content").innerHTML = `
+    <div class="modal-title" style="color:${color};">🛒 Comprar Companheiro</div>
+    <div style="text-align:center;margin:10px 0;">
+      <div style="font-size:52px;margin-bottom:6px;">${c.emoji}</div>
+      <div style="font-family:'Cinzel',serif;font-weight:700;color:${color};font-size:15px;">${c.name}</div>
+      <div style="font-size:11px;color:#9e9e9e;margin-top:4px;line-height:1.7;">${c.desc}</div>
+    </div>
+    <div style="font-size:12px;color:#c0c0d0;margin:8px 0;">Buffs: <strong style="color:${color};">${c.buffs.join(", ")}</strong></div>
+    <div style="background:#0e0e1c;border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:8px;">
+      💰 Custo: <strong style="color:#ffc107;">${fmtNum(c.price)} ouro</strong><br>
+      🪙 Seu ouro: <strong style="color:${save.gold>=c.price?"#66bb6a":"#ef9a9a"};">${fmtNum(save.gold)}</strong>
+    </div>
+    ${save.gold < c.price ? `<div style="background:rgba(244,67,54,0.08);border:1px solid #f44336;border-radius:8px;padding:8px;font-size:12px;color:#ef9a9a;">❌ Ouro insuficiente!</div>` : ""}
+  `;
+  document.getElementById("confirm-buy-btn").disabled = save.gold < c.price;
+  document.getElementById("confirm-buy-btn").style.opacity = save.gold < c.price ? "0.5" : "1";
+  document.getElementById("buy-modal").classList.remove("hidden");
+}
+
+function confirmBuy() {
+  const c = COMPANIONS.find(x => x.id === selectedBuyComp);
+  if (!c || save.gold < c.price) { showToast("❌ Ouro insuficiente!", "error"); return; }
+  if (save.companions.some(x => x.id === c.id)) { showToast("Você já possui esse companheiro!", "info"); return; }
+
+  save.gold -= c.price;
+  save.companions.push({ id: c.id, level: 1 });
+  writeSave(save);
+
+  document.getElementById("buy-modal").classList.add("hidden");
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+  showToast(`🐾 ${c.name} adicionado à sua coleção!`, "gold", 3000);
+
+  renderActiveComp();
+  renderCollection();
+  renderShop();
+  renderEvolution();
+}
+
+function equipComp(id) {
+  save.activeCompanion = id;
+  writeSave(save);
+  renderActiveComp();
+  renderCollection();
+  const c = COMPANIONS.find(x => x.id === id);
+  showToast(`✅ ${c.name} equipado!`, "gold", 2500);
+}
+
+function unequip() {
+  save.activeCompanion = null;
+  writeSave(save);
+  renderActiveComp();
+  renderCollection();
+  showToast("❌ Companheiro desequipado.", "info");
+}
+
+function evolveComp(id) {
+  const c  = COMPANIONS.find(x => x.id === id);
+  const ce = save.companions.find(x => x.id === id);
+  if (!c || !ce) return;
+  const lv = ce.level || 1;
+  if (lv >= c.maxLevel) { showToast("Já está no nível máximo!", "info"); return; }
+  const goldCost = c.evoGold[lv-1];
+  const cardCost = c.evoCards[lv-1];
+  if (save.gold < goldCost) { showToast("❌ Ouro insuficiente!", "error"); return; }
+  if ((save.vault?.length || 0) < cardCost) { showToast(`❌ Você precisa de ${cardCost} cartas no cofre!`, "error"); return; }
+
+  save.gold -= goldCost;
+  // Consome cartas genéricas (remove as mais fracas/comuns)
+  const removed = save.vault.splice(0, cardCost);
+  ce.level = lv + 1;
+  writeSave(save);
+
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+  showToast(`⭐ ${c.name} evoluiu para Nível ${ce.level}!`, "gold", 3000);
+  renderActiveComp();
+  renderCollection();
+  renderEvolution();
+}
+
+/* ── Tabs ── */
+function switchTab(tab, btn) {
+  ["colecao","loja","evolucao"].forEach(t => {
+    document.getElementById("tab-"+t).style.display = "none";
+  });
+  document.querySelectorAll(".comp-tab").forEach(b => b.classList.remove("active"));
+  document.getElementById("tab-"+tab).style.display = "block";
+  btn.classList.add("active");
+}
+
+init();
+</script>
+</body>
+</html>

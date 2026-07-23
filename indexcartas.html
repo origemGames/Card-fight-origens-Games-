@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Índice de Cartas – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+.idx-hero {
+  background:linear-gradient(135deg,#0a0a1e,#1a0a2e,#0a0a1e);
+  border:2px solid #ffc107; border-radius:16px;
+  padding:18px; margin-bottom:14px; text-align:center;
+}
+.idx-hero-icon { font-size:44px; margin-bottom:6px; animation:float 2.5s ease-in-out infinite; }
+.idx-hero-title { font-family:'Cinzel',serif; font-size:18px; font-weight:900; color:#ffc107; margin-bottom:2px; }
+.idx-hero-sub { font-size:12px; color:#9e9e9e; margin-bottom:12px; }
+.idx-count-row { display:flex; align-items:baseline; justify-content:center; gap:6px; margin-bottom:8px; }
+.idx-count-owned { font-family:'Cinzel',serif; font-size:34px; font-weight:900; color:#66bb6a; }
+.idx-count-slash { font-size:20px; color:#555; }
+.idx-count-total { font-family:'Cinzel',serif; font-size:22px; font-weight:900; color:#e0e0f0; }
+.idx-cap-bar { background:#1e1e30; border-radius:20px; height:9px; overflow:hidden; margin-bottom:4px; }
+.idx-cap-fill { height:100%; border-radius:20px; background:linear-gradient(90deg,#1b5e20,#66bb6a); transition:width 0.5s; }
+.idx-pct { font-size:11px; color:#9e9e9e; }
+
+.rarity-mini-strip { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:12px; }
+.rarity-mini-pill {
+  font-size:10px; font-weight:700; padding:3px 9px; border-radius:20px;
+  border:1px solid var(--pc); color:var(--pc); background:var(--pc)15;
+}
+
+.mode-toggle {
+  display:flex; gap:8px; margin-bottom:14px;
+}
+.mode-btn {
+  flex:1; padding:10px 8px; border-radius:12px; border:2px solid #2a2a4a;
+  background:#0e0e1c; color:#9e9e9e; font-size:11px; font-weight:700;
+  cursor:pointer; transition:all 0.2s; font-family:'Rajdhani',sans-serif;
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+}
+.mode-btn .mode-btn-icon { font-size:18px; }
+.mode-btn.active {
+  background:linear-gradient(135deg,#4a0072,#7b1fa2); border-color:#ce93d8; color:#fff;
+}
+
+.filter-bar { display:flex; gap:6px; margin-bottom:8px; flex-wrap:wrap; align-items:center; }
+.filter-chip {
+  padding:5px 12px; border-radius:20px; border:1px solid #2a2a4a;
+  background:transparent; color:#9e9e9e; font-size:11px; font-weight:700;
+  cursor:pointer; transition:all 0.2s; font-family:'Rajdhani',sans-serif;
+}
+.filter-chip.active { background:#c62828; border-color:#ff4444; color:#fff; }
+.only-owned-row {
+  display:flex; align-items:center; gap:6px; font-size:11px; color:#9e9e9e;
+  margin-bottom:14px; user-select:none;
+}
+.only-owned-row input { accent-color:#ffc107; width:14px; height:14px; }
+
+.index-section { margin-bottom:18px; }
+.index-section-title {
+  display:flex; align-items:center; justify-content:space-between;
+  font-family:'Cinzel',serif; font-size:13px; font-weight:700;
+  padding:8px 12px; border:1px solid #2a2a4a; border-radius:10px;
+  margin-bottom:8px; background:#0e0e1c;
+}
+.index-section-count { font-family:'Rajdhani',sans-serif; font-size:11px; color:#9e9e9e; }
+
+.index-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+.index-card {
+  background:#0e0e1c; border:2px solid #2a2a4a; border-radius:10px;
+  padding:10px 4px; text-align:center; position:relative; overflow:hidden;
+  min-height:88px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  transition:all 0.18s; cursor:pointer;
+}
+.index-card.owned:hover { transform:translateY(-3px) scale(1.03); }
+.index-card.owned:active { transform:scale(0.94); }
+.index-card.locked { opacity:0.4; filter:grayscale(1); border-style:dashed; cursor:default; }
+.index-card.locked:active { opacity:0.6; }
+.idx-em { font-size:24px; }
+.idx-nm { font-size:9px; font-weight:700; margin-top:4px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; width:100%; }
+.idx-at { font-size:10px; color:#ffc107; margin-top:2px; }
+.idx-lock { font-size:14px; margin-top:3px; }
+.index-event-badge {
+  position:absolute; top:3px; right:4px; font-size:10px;
+}
+.card-detail-hero { text-align:center; padding:20px 0 12px; }
+.card-detail-emoji { font-size:64px; animation:float 2s ease-in-out infinite;
+  filter:drop-shadow(0 0 16px rgba(255,193,7,0.3)); }
+.card-detail-stats { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:12px 0; }
+.card-stat-box { background:#0e0e1c; border-radius:10px; padding:10px; text-align:center; }
+.empty-vault { text-align:center; padding:40px 20px; color:#555; }
+
+.index-card.spoiler { opacity:1; filter:none; border-style:solid; cursor:pointer; }
+.index-card.spoiler.not-owned { border-style:dashed; }
+.idx-owned-check {
+  position:absolute; top:3px; left:4px; font-size:10px;
+}
+.detail-event-box {
+  border-radius:10px; padding:10px 12px; margin-bottom:12px;
+  font-size:12px; line-height:1.6; border:1px solid; text-align:left;
+}
+.detail-event-box .dev-title { font-weight:700; margin-bottom:2px; }
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title">📖 ÍNDICE</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content">
+
+  <!-- Hero de progresso -->
+  <div class="idx-hero">
+    <div class="idx-hero-icon">📖</div>
+    <div class="idx-hero-title">Índice de Cartas</div>
+    <div class="idx-hero-sub">Todos os personagens do jogo, incluindo cartas de evento - Novas Cartas Diariamente! - Recomendo fortemente para ter no mínimo 50% para ter chance no campeonato de conta mais rara! - Alguma Cartas repetem mas sao as mesmas! - em alguns dispositivos pode demorar mais para carregar pela alta quantidade de cartas!</div>
+
+    <div class="idx-count-row">
+      <span class="idx-count-owned" id="idx-owned">0</span>
+      <span class="idx-count-slash">/</span>
+      <span class="idx-count-total" id="idx-total">0</span>
+    </div>
+    <div class="idx-cap-bar"><div class="idx-cap-fill" id="idx-bar-fill" style="width:0%"></div></div>
+    <div class="idx-pct"><span id="idx-pct">0%</span> coletado</div>
+
+    <div class="rarity-mini-strip" id="rarity-mini-strip"></div>
+  </div>
+
+  <!-- Modo de visualização -->
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="mode-collection-btn" onclick="setMode('collection')">
+      <span class="mode-btn-icon">📦</span>
+      Minha Coleção
+    </button>
+    <button class="mode-btn" id="mode-all-btn" onclick="setMode('all')">
+      <span class="mode-btn-icon">📋</span>
+      Lista de cartas (todas, menos vips)
+    </button>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filter-bar" id="filter-bar">
+    <button class="filter-chip active" onclick="setFilter('ALL',this)">Todos</button>
+    <button class="filter-chip" onclick="setFilter('ORIGENS',this)" style="color:#ff4444;">🔥 Origens</button>
+    <button class="filter-chip" onclick="setFilter('ULTRA_RARE',this)">Ultra Raro</button>
+    <button class="filter-chip" onclick="setFilter('MYTHIC',this)">Mítico</button>
+    <button class="filter-chip" onclick="setFilter('LEGENDARY',this)">Lendário</button>
+    <button class="filter-chip" onclick="setFilter('EPIC',this)">Épico</button>
+    <button class="filter-chip" onclick="setFilter('RARE',this)">Raro</button>
+    <button class="filter-chip" onclick="setFilter('COMMON',this)">Comum</button>
+  </div>
+  <label class="only-owned-row" id="only-owned-row">
+    <input type="checkbox" id="only-owned-cb" onchange="toggleOnlyOwned(this)"/>
+    Mostrar apenas as cartas que eu já tenho
+  </label>
+
+  <!-- Seções por raridade -->
+  <div id="index-sections"></div>
+
+  <div style="height:80px;"></div>
+</main>
+
+<!-- Modal detalhe da carta -->
+<div class="modal-overlay hidden" id="card-modal">
+  <div class="modal-box">
+    <div class="card-detail-hero">
+      <div class="card-detail-emoji" id="detail-emoji">⚔️</div>
+      <div style="font-family:'Cinzel',serif;font-size:18px;font-weight:900;margin:8px 0 4px;" id="detail-name">–</div>
+      <div style="font-size:13px;font-weight:700;" id="detail-rarity">–</div>
+    </div>
+    <div class="card-detail-stats">
+      <div class="card-stat-box">
+        <div style="font-size:28px;font-weight:900;color:#ffc107;" id="detail-atk">0</div>
+        <div style="font-size:11px;color:#9e9e9e;">⚔️ Ataque</div>
+      </div>
+      <div class="card-stat-box">
+        <div style="font-size:28px;font-weight:900;color:#66bb6a;" id="detail-hp">0</div>
+        <div style="font-size:11px;color:#9e9e9e;">❤️ HP</div>
+      </div>
+    </div>
+    <div style="background:#0e0e1c;border-radius:10px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:12px;color:#c0c0d0;line-height:1.7;" id="detail-desc">–</div>
+    </div>
+    <div id="detail-event-box" class="detail-event-box hidden"></div>
+    <div style="font-size:12px;color:#9e9e9e;text-align:center;margin-bottom:12px;" id="detail-count"></div>
+    <button class="btn btn-outline btn-block" onclick="closeModal()">Fechar</button>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js"></script>
+<script src="gamedata2.js"></script>
+<script src="gamedata3.js"></script>
+<script src="gamedata-pesca.js"></script>
+<script src="gamedata-pesca-patch.js"></script>
+<script src="gamedata-aventuras-patch.js"></script>
+<script src="gamedata-evento-circo-patch.js"></script>
+<script src="NewPersonagem.js"></script>
+<!-- Precisa ser o ÚLTIMO gamedata* carregado: varre todos os arrays de
+     cartas do jogo (pesca, aventura, expansões...) e garante que todos
+     estejam em ALL_CARDS antes do Índice renderizar. Ver comentário no
+     topo do arquivo para instruções de como adicionar novas fontes. -->
+<script src="gamedata-index-patch.js"></script>
+<script>
+let save, currentFilter = "ALL", onlyOwned = false, viewMode = "collection";
+const RARITY_ORDER = ["ORIGENS","ULTRA_RARE","MYTHIC","LEGENDARY","EPIC","RARE","COMMON"];
+
+function init() {
+  save = getOrCreateSave();
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+  renderStats();
+  renderIndex();
+  startAutoSave(() => save);
+}
+
+// Descobre se uma carta é de evento e qual o status desse evento
+// (ainda vem, disponível agora, ou nunca mais vai voltar)
+function getEventStatus(card) {
+  if (!card.eventId) return null;
+  const ev = (typeof GAME_EVENTS !== "undefined") ? GAME_EVENTS.find(e => e.id === card.eventId) : null;
+  if (!ev) {
+    return { icon:"🎪", color:"#9e9e9e", label:"Carta de evento", detail:"Carta exclusiva de um evento especial." };
+  }
+  const active = (typeof isEventActive === "function") ? isEventActive(ev, save) : !!ev.isActive;
+  if (active) {
+    return {
+      icon:"🔥", color:"#66bb6a", label:"Evento ativo agora",
+      detail:`Faz parte do evento "${ev.name}", que está ativo! Ainda dá tempo de conseguir essa carta.`
+    };
+  }
+  if (ev.comingSoon) {
+    return {
+      icon:"🔜", color:"#2196F3", label:"Em breve",
+      detail:`Fará parte do evento "${ev.name}", que ainda não começou. Fique de olho!`
+    };
+  }
+  return {
+    icon:"⛔", color:"#ff4444", label:"Nunca mais estará disponível",
+    detail:`Era do evento "${ev.name}", que já encerrou. Essa carta nunca mais voltará ao jogo!`
+  };
+}
+
+function getAllIndexCards() {
+  const map = new Map();
+  [...ALL_CARDS, ...EVENT_CARDS].forEach(c => { if (!map.has(c.id)) map.set(c.id, c); });
+  return [...map.values()];
+}
+
+function renderStats() {
+  const allCards  = getAllIndexCards();
+  const ownedSet  = new Set(save.vault);
+  const ownedList = allCards.filter(c => ownedSet.has(c.id));
+  const total     = allCards.length;
+  const pct       = total ? Math.round((ownedList.length / total) * 100) : 0;
+
+  document.getElementById("idx-owned").textContent   = ownedList.length;
+  document.getElementById("idx-total").textContent   = total;
+  document.getElementById("idx-pct").textContent     = pct + "%";
+  document.getElementById("idx-bar-fill").style.width= pct + "%";
+
+  const strip = document.getElementById("rarity-mini-strip");
+  strip.innerHTML = RARITY_ORDER.map(rar => {
+    const info  = RARITY[rar] || RARITY.COMMON;
+    const total = allCards.filter(c => c.rarity === rar).length;
+    if (total === 0) return "";
+    const owned = ownedList.filter(c => c.rarity === rar).length;
+    return `<span class="rarity-mini-pill" style="--pc:${info.color};">${info.name} ${owned}/${total}</span>`;
+  }).join("");
+}
+
+function setMode(mode) {
+  viewMode = mode;
+  document.getElementById("mode-collection-btn").classList.toggle("active", mode === "collection");
+  document.getElementById("mode-all-btn").classList.toggle("active", mode === "all");
+
+  // O checkbox "só as que eu tenho" só faz sentido no modo Coleção
+  const onlyOwnedRow = document.getElementById("only-owned-row");
+  onlyOwnedRow.style.display = mode === "collection" ? "flex" : "none";
+  if (mode === "all") {
+    onlyOwned = false;
+    document.getElementById("only-owned-cb").checked = false;
+  }
+
+  renderIndex();
+}
+
+function setFilter(rar, btn) {
+  currentFilter = rar;
+  document.querySelectorAll(".filter-chip").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderIndex();
+}
+
+function toggleOnlyOwned(cb) {
+  onlyOwned = cb.checked;
+  renderIndex();
+}
+
+function renderIndex() {
+  const allCards = getAllIndexCards();
+  const ownedSet = new Set(save.vault);
+  const eventIds = new Set(EVENT_CARDS.map(c => c.id));
+  const container = document.getElementById("index-sections");
+  container.innerHTML = "";
+
+  RARITY_ORDER.forEach(rar => {
+    if (currentFilter !== "ALL" && currentFilter !== rar) return;
+
+    const totalOfRarity = allCards.filter(c => c.rarity === rar);
+    if (totalOfRarity.length === 0) return;
+
+    let cards = [...totalOfRarity].sort((a, b) => {
+      if (viewMode === "all") return a.name.localeCompare(b.name);
+      const aO = ownedSet.has(a.id) ? 0 : 1;
+      const bO = ownedSet.has(b.id) ? 0 : 1;
+      if (aO !== bO) return aO - bO;
+      return a.name.localeCompare(b.name);
+    });
+
+    if (viewMode === "collection" && onlyOwned) cards = cards.filter(c => ownedSet.has(c.id));
+    if (cards.length === 0) return;
+
+    const info  = RARITY[rar] || RARITY.COMMON;
+    const owned = totalOfRarity.filter(c => ownedSet.has(c.id)).length;
+
+    const section = document.createElement("div");
+    section.className = "index-section";
+    section.innerHTML = `
+      <div class="index-section-title" style="color:${info.color};border-color:${info.color}55;">
+        <span>${info.name}</span>
+        <span class="index-section-count">${owned}/${totalOfRarity.length}</span>
+      </div>
+      <div class="index-grid">
+        ${cards.map(c => renderCardCell(c, ownedSet.has(c.id), eventIds.has(c.id), info)).join("")}
+      </div>`;
+    container.appendChild(section);
+  });
+
+  if (!container.innerHTML.trim()) {
+    container.innerHTML = `<div class="empty-vault">
+      <div style="font-size:48px;margin-bottom:12px;">📭</div>
+      <div>Nenhuma carta encontrada com esse filtro.</div>
+    </div>`;
+  }
+}
+
+function renderCardCell(card, owned, isEvent, info) {
+  const evStatus = isEvent ? getEventStatus(card) : null;
+  const badge = evStatus ? `<div class="index-event-badge" title="${evStatus.label}">${evStatus.icon}</div>` : "";
+
+  // Modo Coleção: cartas não obtidas ficam escondidas ("???")
+  if (viewMode === "collection" && !owned) {
+    return `<div class="index-card locked" onclick="showLocked(${isEvent})">
+      ${badge}
+      <div class="idx-em">❓</div>
+      <div class="idx-nm">???</div>
+      <div class="idx-lock">🔒</div>
+    </div>`;
+  }
+
+  // Modo Lista de cartas (todas): sempre mostra tudo, mesmo sem possuir
+  if (viewMode === "all") {
+    return `<div class="index-card spoiler ${owned ? "owned" : "not-owned"}" style="border-color:${info.color};" onclick="showCardDetail('${card.id}')">
+      ${badge}
+      ${owned ? `<div class="idx-owned-check" title="Você já tem essa carta">✅</div>` : ""}
+      <div class="idx-em">${card.img}</div>
+      <div class="idx-nm">${card.name}</div>
+      <div class="idx-at">⚔️${card.atk}</div>
+    </div>`;
+  }
+
+  // Modo Coleção: carta já obtida
+  return `<div class="index-card owned" style="border-color:${info.color};" onclick="showCardDetail('${card.id}')">
+    ${badge}
+    <div class="idx-em">${card.img}</div>
+    <div class="idx-nm">${card.name}</div>
+    <div class="idx-at">⚔️${card.atk}</div>
+  </div>`;
+}
+
+function showLocked(isEvent) {
+  showToast(isEvent
+    ? "🔒 Carta de evento não obtida — pode não estar mais disponível!"
+    : "🔒 Você ainda não possui esta carta!", "info");
+}
+
+function showCardDetail(cardId) {
+  const card = getCardById(cardId);
+  if (!card) return;
+  const r = RARITY[card.rarity] || RARITY.COMMON;
+  const count = save.vault.filter(id => id === cardId).length;
+
+  document.getElementById("detail-emoji").textContent  = card.img;
+  document.getElementById("detail-name").textContent   = card.name;
+  document.getElementById("detail-rarity").textContent = r.name;
+  document.getElementById("detail-rarity").style.color = r.color;
+  document.getElementById("detail-atk").textContent    = card.atk;
+  document.getElementById("detail-hp").textContent     = card.hp;
+  document.getElementById("detail-desc").textContent   = card.desc;
+
+  // Box de status de evento (se a carta for de evento)
+  const evBox = document.getElementById("detail-event-box");
+  const evStatus = getEventStatus(card);
+  if (evStatus) {
+    evBox.classList.remove("hidden");
+    evBox.style.borderColor = evStatus.color;
+    evBox.style.background  = evStatus.color + "15";
+    evBox.style.color       = evStatus.color;
+    evBox.innerHTML = `
+      <div class="dev-title">${evStatus.icon} ${evStatus.label}</div>
+      <div style="color:#c0c0d0;">${evStatus.detail}</div>`;
+  } else {
+    evBox.classList.add("hidden");
+    evBox.innerHTML = "";
+  }
+
+  document.getElementById("detail-count").textContent = count > 0
+    ? `Você possui ${count} cópia(s) desta carta`
+    : "Você ainda não possui esta carta";
+
+  document.getElementById("card-modal").classList.remove("hidden");
+}
+
+function closeModal() {
+  document.getElementById("card-modal").classList.add("hidden");
+}
+
+init();
+</script>
+</body>
+</html>

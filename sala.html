@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Salas Personalizadas – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+.sala-hero {
+  background:linear-gradient(135deg,#0a1a0a,#1a2a00,#0a1a0a);
+  border:2px solid #66bb6a; border-radius:16px;
+  padding:20px 16px; margin-bottom:14px; text-align:center;
+  position:relative; overflow:hidden;
+}
+.sala-hero::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(102,187,106,0.08) 0%,transparent 60%);
+  pointer-events:none;
+}
+.sala-hero .icon { font-size:52px; display:block; margin-bottom:8px;
+  animation:float 2.5s ease-in-out infinite;
+  filter:drop-shadow(0 0 16px rgba(102,187,106,0.5)); }
+.sala-hero .title { font-family:'Cinzel',serif; font-size:20px; font-weight:900; color:#66bb6a; margin-bottom:4px; }
+.sala-hero .sub { font-size:12px; color:#9e9e9e; }
+
+.sala-card {
+  background:var(--bg-card); border:2px solid #2a2a4a; border-radius:14px;
+  padding:14px; margin-bottom:10px; transition:all 0.2s; position:relative; overflow:hidden;
+}
+.sala-card:hover { border-color:#66bb6a; transform:translateY(-2px); }
+.sala-card.active { border-color:#66bb6a; box-shadow:0 0 14px rgba(102,187,106,0.15); }
+.sala-card.locked { opacity:0.55; filter:grayscale(0.4); }
+
+.sala-tag {
+  display:inline-flex; align-items:center; gap:4px;
+  font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px;
+  border:1px solid; margin-right:4px;
+}
+.sala-tag.mode-pvp { background:rgba(244,67,54,0.12); color:#ef9a9a; border-color:#f44336; }
+.sala-tag.mode-4x4 { background:rgba(33,150,243,0.12); color:#90caf9; border-color:#2196F3; }
+.sala-tag.mode-bot  { background:rgba(156,39,176,0.12); color:#ce93d8; border-color:#9c27b0; }
+.sala-tag.mode-open { background:rgba(102,187,106,0.12); color:#a5d6a7; border-color:#66bb6a; }
+.sala-tag.mode-priv { background:rgba(255,193,7,0.12); color:#ffe082; border-color:#ffc107; }
+
+.limit-bar-wrap { background:#1e1e30; border-radius:20px; height:6px; overflow:hidden; margin:8px 0 4px; }
+.limit-bar-fill { height:100%; border-radius:20px; background:linear-gradient(90deg,#388e3c,#66bb6a); transition:width 0.4s; }
+.limit-bar-fill.warning { background:linear-gradient(90deg,#e65100,#ffc107); }
+.limit-bar-fill.full { background:linear-gradient(90deg,#b71c1c,#f44336); }
+
+.config-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.config-row label { font-size:12px; color:#9e9e9e; min-width:90px; flex-shrink:0; }
+.config-select {
+  flex:1; background:#0e0e1c; border:1px solid #2a2a4a; border-radius:8px;
+  color:#fff; padding:8px 10px; font-family:'Rajdhani',sans-serif;
+  font-size:13px; cursor:pointer;
+}
+.config-select:focus { outline:none; border-color:#66bb6a; }
+
+.player-slot {
+  background:#070712; border:1px dashed #2a2a4a; border-radius:8px;
+  padding:8px 10px; display:flex; align-items:center; gap:8px; margin-bottom:4px;
+}
+.player-slot.filled { border-style:solid; border-color:#2a4a2a; }
+.player-slot.bot-slot { border-color:#4a2a4a; }
+.bot-tag { font-size:10px; font-weight:700; background:rgba(156,39,176,0.2); color:#ce93d8;
+  border:1px solid #9c27b0; border-radius:6px; padding:1px 6px; margin-left:auto; }
+
+.room-code-box {
+  background:#070712; border:2px solid #66bb6a; border-radius:10px;
+  padding:12px; text-align:center; font-family:monospace; font-size:20px;
+  font-weight:900; letter-spacing:4px; color:#66bb6a; margin:10px 0;
+}
+
+.cards-info {
+  background:rgba(102,187,106,0.06); border:1px solid #2a4a2a; border-radius:10px;
+  padding:10px 12px; font-size:12px; color:#a5d6a7; line-height:1.7; margin-bottom:10px;
+}
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title" style="background:linear-gradient(135deg,#66bb6a,#4CAF50);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">🏟️ SALAS</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content">
+
+  <div class="sala-hero">
+    <span class="icon">🏟️</span>
+    <div class="title">Salas Personalizadas</div>
+    <div class="sub">Crie partidas com amigos, escolha o modo e monte seus times</div>
+  </div>
+
+  <!-- Limite diário -->
+  <div class="panel" style="margin-bottom:14px;" id="limit-panel">
+    <div class="panel-title">📊 Limite Diário de Salas</div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:#9e9e9e;margin-bottom:4px;">
+      <span id="limit-label">Salas criadas hoje</span>
+      <span id="limit-num" style="color:#66bb6a;font-weight:700;">0 / 5</span>
+    </div>
+    <div class="limit-bar-wrap">
+      <div class="limit-bar-fill" id="limit-bar" style="width:0%"></div>
+    </div>
+    <div style="font-size:11px;color:#9e9e9e;margin-top:4px;" id="limit-sub">
+      Membros comuns: 5 salas/dia · Criadores: 50 salas/dia
+    </div>
+  </div>
+
+  <!-- Aviso de Cartão de Sala -->
+  <div id="no-card-warn" class="cards-info" style="display:none;">
+    ⚠️ Você não tem <strong>Cartões de Sala</strong>. Compre na loja por <strong style="color:#ffc107;">🪙 50.000</strong> ouro.<br>
+    <a href="shop.html" style="color:#66bb6a;font-weight:700;">🛒 Ir para a Loja</a>
+    &nbsp;&nbsp;
+    <span style="color:#9e9e9e;font-size:11px;">(Criadores de Conteúdo recebem salas grátis)</span>
+  </div>
+
+  <!-- Criar nova sala -->
+  <div class="panel" style="margin-bottom:14px;">
+    <div class="panel-title">➕ Criar Nova Sala</div>
+
+    <div class="config-row">
+      <label>⚔️ Modo</label>
+      <select class="config-select" id="cfg-mode" onchange="updateModeInfo()">
+        <option value="pvp">1x1 — Duelo Clássico</option>
+        <option value="2v2">2x2 — Duplas</option>
+        <option value="4v4">4x4 — Times</option>
+        <option value="3v3">3x3 — Trios</option>
+      </select>
+    </div>
+
+    <div class="config-row">
+      <label>🔒 Privacidade</label>
+      <select class="config-select" id="cfg-privacy">
+        <option value="open">🌐 Aberta (qualquer um entra)</option>
+        <option value="private">🔒 Privada (código de convite)</option>
+        <option value="invite">📨 Apenas Convidados</option>
+      </select>
+    </div>
+
+    <div class="config-row">
+      <label>🤖 Bots</label>
+      <select class="config-select" id="cfg-bots">
+        <option value="0">Sem bots</option>
+        <option value="1">1 bot</option>
+        <option value="2">2 bots</option>
+        <option value="3">3 bots por time</option>
+        <option value="full">Time completo de bots</option>
+      </select>
+    </div>
+
+    <div class="config-row">
+      <label>🤖 Dificuldade Bot</label>
+      <select class="config-select" id="cfg-bot-diff">
+        <option value="easy">😊 Fácil</option>
+        <option value="normal">⚔️ Normal</option>
+        <option value="hard">💀 Difícil</option>
+        <option value="nightmare">🔥 Pesadelo</option>
+      </select>
+    </div>
+
+    <div class="config-row">
+      <label>⏱️ Timer de Turno</label>
+      <select class="config-select" id="cfg-timer">
+        <option value="12">12s (Padrão)</option>
+        <option value="20">20s (Relaxado)</option>
+        <option value="8">8s (Rápido)</option>
+        <option value="5">5s (Ultra Rápido)</option>
+        <option value="0">Sem limite</option>
+      </select>
+    </div>
+
+    <div class="config-row">
+      <label>📛 Nome da Sala</label>
+      <input type="text" class="input config-select" id="cfg-name"
+             placeholder="Ex: Sala do Rafael" maxlength="24" style="flex:1;"/>
+    </div>
+
+    <div id="mode-info" style="font-size:11px;color:#9e9e9e;margin:6px 0 10px;padding:8px;background:#070712;border-radius:8px;line-height:1.7;"></div>
+
+    <button class="btn btn-gold btn-block btn-lg" id="btn-criar" onclick="criarSala()">
+      🏟️ Criar Sala
+    </button>
+  </div>
+
+  <!-- Salas criadas -->
+  <div style="font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:#66bb6a;margin-bottom:10px;">
+    🏟️ Suas Salas Ativas
+  </div>
+  <div id="salas-list"></div>
+
+  <!-- Salas públicas disponíveis -->
+  <div style="font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:#ffc107;margin:16px 0 10px;">
+    🌐 Salas Públicas
+  </div>
+  <div id="public-salas-list"></div>
+
+  <div style="height:70px;"></div>
+</main>
+
+<!-- Modal sala criada -->
+<div class="modal-overlay hidden" id="sala-created-modal">
+  <div class="modal-box">
+    <div class="modal-title">🏟️ Sala Criada!</div>
+    <p style="text-align:center;font-size:12px;color:#9e9e9e;margin-bottom:10px;">
+      Compartilhe o código com seus amigos:
+    </p>
+    <div class="room-code-box" id="modal-code">------</div>
+    <div style="font-size:12px;color:#9e9e9e;text-align:center;margin-bottom:12px;" id="modal-sala-info"></div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn btn-gold btn-block" onclick="copyRoomCode()">📋 Copiar Código</button>
+      <button class="btn btn-outline btn-block" onclick="document.getElementById('sala-created-modal').classList.add('hidden');renderSalas()">✅ Fechar</button>
+    </div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js"></script>
+<script src="gamedata2.js"></script>
+<script>
+let save;
+const MODO_INFO = {
+  pvp:  "⚔️ Duelo clássico 1v1 — você e um oponente, melhor de 1.",
+  "2v2":"👥 Duplas: 2 jogadores/bots por time. Os dois jogam cartas coordenadas.",
+  "4v4":"💥 Times de 4: o modo mais épico. Estratégia total, caos máximo.",
+  "3v3":"🛡️ Trios: perfeito para grupos de amigos. Equilibrado e intenso.",
+};
+
+function init() {
+  save = getOrCreateSave();
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+  updateModeInfo();
+  renderLimitPanel();
+  renderSalas();
+  renderPublicSalas();
+  startAutoSave(() => save);
+}
+
+function updateModeInfo() {
+  const mode = document.getElementById("cfg-mode").value;
+  document.getElementById("mode-info").textContent = MODO_INFO[mode] || "";
+}
+
+function renderLimitPanel() {
+  const isCreator = save.isVerifiedCreator;
+  const limit = isCreator ? 50 : 5;
+  if (!save.salasDiarias) save.salasDiarias = {};
+  const today = new Date().toDateString();
+  if (save.salasDiarias.date !== today) save.salasDiarias = { date: today, count: 0 };
+  const used = save.salasDiarias.count || 0;
+  const pct  = Math.min(100, Math.round((used / limit) * 100));
+
+  document.getElementById("limit-num").textContent = `${used} / ${limit}`;
+  const bar = document.getElementById("limit-bar");
+  bar.style.width = pct + "%";
+  if (pct >= 100) bar.className = "limit-bar-fill full";
+  else if (pct >= 80) bar.className = "limit-bar-fill warning";
+  else bar.className = "limit-bar-fill";
+
+  if (isCreator) {
+    document.getElementById("limit-label").innerHTML = '🎬 Criador Verificado — 50 salas/dia';
+    document.getElementById("limit-num").style.color = "#29b6f6";
+  }
+
+  const hasCards = save.isVerifiedCreator || (save.roomCards || 0) > 0;
+  document.getElementById("no-card-warn").style.display = hasCards ? "none" : "block";
+  document.getElementById("btn-criar").disabled = used >= limit;
+  if (used >= limit) {
+    document.getElementById("btn-criar").style.opacity = "0.5";
+    document.getElementById("btn-criar").textContent = "❌ Limite diário atingido";
+  }
+}
+
+function criarSala() {
+  if (!save.isVerifiedCreator && (save.roomCards || 0) <= 0) {
+    showToast("🃏 Você precisa de Cartões de Sala! Compre na loja por 50k ouro.", "error"); return;
+  }
+  const today = new Date().toDateString();
+  if (!save.salasDiarias) save.salasDiarias = { date: today, count: 0 };
+  if (save.salasDiarias.date !== today) save.salasDiarias = { date: today, count: 0 };
+  const limit = save.isVerifiedCreator ? 50 : 5;
+  if (save.salasDiarias.count >= limit) {
+    showToast("❌ Limite diário de salas atingido!", "error"); return;
+  }
+
+  const mode    = document.getElementById("cfg-mode").value;
+  const privacy = document.getElementById("cfg-privacy").value;
+  const bots    = document.getElementById("cfg-bots").value;
+  const botDiff = document.getElementById("cfg-bot-diff").value;
+  const timer   = document.getElementById("cfg-timer").value;
+  let   name    = document.getElementById("cfg-name").value.trim() || "Sala de " + save.playerName.slice(0,10);
+
+  const code = Math.random().toString(36).substr(2,6).toUpperCase();
+  if (!save.criadaSalas) save.criadaSalas = [];
+  const sala = {
+    id: "sala_" + Date.now(),
+    code, name, mode, privacy, bots, botDiff, timer,
+    owner: save.playerName,
+    createdAt: new Date().toDateString(),
+    players: [save.playerName],
+    status: "aguardando",
+  };
+  save.criadaSalas.unshift(sala);
+  if (save.criadaSalas.length > 10) save.criadaSalas = save.criadaSalas.slice(0,10);
+  save.salasDiarias.count = (save.salasDiarias.count || 0) + 1;
+
+  // Gastar cartão de sala (se não for criador)
+  if (!save.isVerifiedCreator) save.roomCards = Math.max(0, (save.roomCards||0) - 1);
+
+  writeSave(save);
+  renderLimitPanel();
+
+  // Mostrar modal
+  document.getElementById("modal-code").textContent = code;
+  const modeLabel = { pvp:"1v1", "2v2":"2x2", "4v4":"4x4", "3v3":"3x3" }[mode] || mode;
+  const privLabel = { open:"Aberta", private:"Privada", invite:"Apenas Convidados" }[privacy] || privacy;
+  document.getElementById("modal-sala-info").innerHTML =
+    `<strong>${name}</strong> · ${modeLabel} · ${privLabel}<br>` +
+    (bots !== "0" ? `🤖 Bots: ${bots === "full" ? "Time completo" : bots} (${botDiff})<br>` : "") +
+    `⏱️ Timer: ${timer === "0" ? "Sem limite" : timer + "s"}`;
+  document.getElementById("sala-created-modal").classList.remove("hidden");
+  showToast(`🏟️ Sala "${name}" criada! Código: ${code}`, "gold", 4000);
+}
+
+let _lastCode = "";
+function copyRoomCode() {
+  const code = document.getElementById("modal-code").textContent;
+  _lastCode = code;
+  try { navigator.clipboard.writeText(code); showToast("📋 Código copiado!", "gold"); }
+  catch(e) { showToast("Código: " + code, "info"); }
+}
+
+function renderSalas() {
+  const list = document.getElementById("salas-list");
+  const salas = (save.criadaSalas || []).filter(s => s.createdAt === new Date().toDateString());
+  if (salas.length === 0) {
+    list.innerHTML = `<div style="text-align:center;padding:20px;color:#555;font-size:12px;">Nenhuma sala criada hoje.</div>`;
+    return;
+  }
+  list.innerHTML = salas.map(s => {
+    const modeLabel = { pvp:"1v1", "2v2":"2x2", "4v4":"4x4", "3v3":"3x3" }[s.mode] || s.mode;
+    const privLabel = { open:"Aberta", private:"Privada", invite:"Convidados" }[s.privacy] || s.privacy;
+    return `<div class="sala-card active">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div>
+          <div style="font-weight:700;font-size:14px;color:#a5d6a7;">${s.name}</div>
+          <div style="font-size:11px;color:#9e9e9e;margin-top:2px;">Criada hoje · ${s.players.length} jogador(es)</div>
+        </div>
+        <div class="room-code-box" style="font-size:14px;padding:4px 10px;margin:0;">${s.code}</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">
+        <span class="sala-tag mode-${s.mode==='pvp'?'pvp':s.mode.includes('4')?'4x4':'pvp'}">${modeLabel}</span>
+        <span class="sala-tag mode-${s.privacy==='open'?'open':'priv'}">${privLabel}</span>
+        ${s.bots !== "0" ? `<span class="sala-tag mode-bot">🤖 Bots</span>` : ""}
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-outline btn-sm" style="flex:1;" onclick="copySalaCode('${s.code}')">📋 Código</button>
+        <button class="btn btn-sm" style="flex:1;background:#b71c1c;color:#fff;border:none;" onclick="encerrarSala('${s.id}')">🗑️ Encerrar</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function copySalaCode(code) {
+  try { navigator.clipboard.writeText(code); }
+  catch(e) {}
+  showToast("📋 Código " + code + " copiado!", "gold");
+}
+
+function encerrarSala(id) {
+  if (!confirm("Encerrar esta sala?")) return;
+  save.criadaSalas = (save.criadaSalas||[]).filter(s => s.id !== id);
+  writeSave(save);
+  renderSalas();
+  showToast("🗑️ Sala encerrada.", "info");
+}
+
+function renderPublicSalas() {
+  // Salas públicas simuladas (já que é browser-only)
+  const FAKE_ROOMS = [
+    { name:"Sala dos Mestres",     code:"MSTR01", mode:"4v4", owner:"KairoMaster",   players:3, max:8, req:"Ouro de Honra I" },
+    { name:"Treino PvP Livre",     code:"PVP999", mode:"pvp", owner:"VoidHunterX",   players:1, max:2, req:null },
+    { name:"Batalha de Bots",      code:"BOT777", mode:"4v4", owner:"ShadowOrigens", players:2, max:8, req:null },
+    { name:"Arena dos Desafiantes",code:"DESK42", mode:"3v3", owner:"BladeEternal",  players:4, max:6, req:"Diamante I" },
+    { name:"Sala Casual",          code:"CAS001", mode:"2v2", owner:"FrostReaper",   players:1, max:4, req:null },
+  ];
+  const list = document.getElementById("public-salas-list");
+  list.innerHTML = FAKE_ROOMS.map(r => {
+    const modeLabel = { pvp:"1v1", "2v2":"2x2", "4v4":"4x4", "3v3":"3x3" }[r.mode] || r.mode;
+    const full = r.players >= r.max;
+    return `<div class="sala-card ${full?"locked":""}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div>
+          <div style="font-weight:700;font-size:13px;">${r.name}</div>
+          <div style="font-size:11px;color:#9e9e9e;">${r.owner} · ${r.players}/${r.max} jogadores</div>
+        </div>
+        <span class="sala-tag mode-open" style="margin:0;">${modeLabel}</span>
+      </div>
+      ${r.req ? `<div style="font-size:11px;color:#ffc107;margin-bottom:6px;">🔒 Requer: ${r.req}</div>` : ""}
+      <button class="btn btn-gold btn-block btn-sm" ${full?"disabled style='opacity:0.4;'":""} onclick="joinRoom('${r.code}')">
+        ${full ? "❌ Sala Cheia" : "🎮 Entrar na Sala"}
+      </button>
+    </div>`;
+  }).join("");
+}
+
+function joinRoom(code) {
+  showToast(`🎮 Conectando à sala ${code}... (Função em breve no app!)`, "info", 3000);
+}
+
+init();
+</script>
+</body>
+</html>

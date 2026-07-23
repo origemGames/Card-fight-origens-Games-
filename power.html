@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Power-ups – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+.pu-hero {
+  background:linear-gradient(135deg,#0a0020,#1a0040,#0a0020);
+  border:2px solid #7c4dff; border-radius:16px;
+  padding:20px 16px; margin-bottom:14px; text-align:center;
+  position:relative; overflow:hidden;
+}
+.pu-hero::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(124,77,255,0.15) 0%,transparent 60%);
+  pointer-events:none;
+}
+.pu-hero .icon { font-size:48px; display:block; margin-bottom:8px; animation:float 2.5s ease-in-out infinite; }
+.pu-hero .title {
+  font-family:'Cinzel',serif; font-size:20px; font-weight:900;
+  background:linear-gradient(135deg,#e040fb,#7c4dff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:4px;
+}
+.pu-hero .sub { font-size:12px; color:#9e9e9e; }
+
+.pu-card {
+  background:var(--bg-card); border:2px solid #2a2a4a; border-radius:14px;
+  padding:14px; margin-bottom:10px; transition:all 0.2s; position:relative;
+}
+.pu-card:hover { border-color:#7c4dff33; }
+.pu-card .pu-header { display:flex; align-items:center; gap:12px; }
+.pu-emoji { font-size:36px; flex-shrink:0; }
+.pu-info { flex:1; }
+.pu-name { font-family:'Cinzel',serif; font-size:13px; font-weight:700; color:#fff; margin-bottom:2px; }
+.pu-desc { font-size:11px; color:#c0c0d0; line-height:1.6; }
+.pu-flavor { font-size:10px; color:#555; font-style:italic; margin-top:4px; line-height:1.5; }
+.pu-rarity {
+  font-size:9px; font-weight:700; padding:2px 8px; border-radius:10px;
+  display:inline-block; margin-top:4px;
+}
+.pu-rarity.COMMON  { background:rgba(158,158,158,0.15); color:#9e9e9e; border:1px solid #9e9e9e55; }
+.pu-rarity.RARE    { background:rgba(33,150,243,0.15);  color:#90caf9; border:1px solid #2196F355; }
+.pu-rarity.EPIC    { background:rgba(156,39,176,0.15);  color:#ce93d8; border:1px solid #9c27b055; }
+
+.pu-count-box { text-align:center; min-width:50px; }
+.pu-count { font-family:'Cinzel',serif; font-size:24px; font-weight:900; color:#e040fb; }
+.pu-count-lbl { font-size:9px; color:#9e9e9e; }
+
+.pu-actions { display:flex; gap:6px; margin-top:10px; }
+
+.inv-empty {
+  text-align:center; padding:32px 16px; color:#555; font-size:13px;
+  background:#0e0e1c; border-radius:14px; border:1px dashed #2a2a4a;
+}
+.inv-empty .ie-icon { font-size:48px; display:block; margin-bottom:10px; }
+
+.catalog-section { margin-bottom:14px; }
+.catalog-title { font-family:'Cinzel',serif; font-size:12px; font-weight:700; color:#9e9e9e; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+.catalog-title::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,#2a2a4a,transparent); }
+
+.shop-link-banner {
+  background:linear-gradient(135deg,#0a0020,#15003a);
+  border:1px solid #7c4dff44; border-radius:12px; padding:14px;
+  display:flex; align-items:center; gap:12px; text-decoration:none;
+  margin-bottom:10px; transition:border-color 0.2s;
+}
+.shop-link-banner:hover { border-color:#7c4dff; }
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title" style="background:linear-gradient(135deg,#e040fb,#7c4dff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">⚡ POWER-UPS</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content">
+
+  <div class="pu-hero">
+    <span class="icon">⚡</span>
+    <div class="title">PODER NA PALMA DA MÃO</div>
+    <div class="sub">Use power-ups durante a Batalha Clássica para virar o jogo!</div>
+  </div>
+
+  <!-- Como usar -->
+  <div class="panel" style="margin-bottom:14px;">
+    <div class="panel-title" style="color:#e040fb;">💡 Como usar</div>
+    <div style="font-size:12px;color:#c0c0d0;line-height:1.9;">
+      1. Vá para a <a href="battle.html" style="color:#7c4dff;">⚔️ Batalha Clássica</a>.<br>
+      2. No seu turno, <strong style="color:#ffc107;">selecione um power-up</strong> antes de jogar a carta.<br>
+      3. Jogue a carta normalmente — o efeito é aplicado automaticamente.<br>
+      4. Cada power-up é consumido após 1 uso. O bot também usa power-ups!
+    </div>
+    <div style="background:#070712;border-radius:8px;padding:8px 10px;font-size:11px;color:#9e9e9e;margin-top:8px;">
+      ⚠️ Power-ups <strong>não funcionam</strong> na Arena do Caos nem na Expedição.
+    </div>
+  </div>
+
+  <!-- Links de compra -->
+  <a href="shop.html" class="shop-link-banner" onclick="location.href='shop.html#powerups';return false;">
+    <span style="font-size:28px;">🛒</span>
+    <div>
+      <div style="font-weight:700;font-size:13px;color:#ffc107;">Comprar com Ouro</div>
+      <div style="font-size:11px;color:#9e9e9e;">Loja → aba ⚡ Power-ups</div>
+    </div>
+    <span style="margin-left:auto;color:#7c4dff;">→</span>
+  </a>
+  <a href="comprar.html" class="shop-link-banner">
+    <span style="font-size:28px;">💎</span>
+    <div>
+      <div style="font-weight:700;font-size:13px;color:#e040fb;">Pacotes VIP</div>
+      <div style="font-size:11px;color:#9e9e9e;">Loja de Diamantes → ⚡ Power-ups VIP</div>
+    </div>
+    <span style="margin-left:auto;color:#7c4dff;">→</span>
+  </a>
+
+  <!-- Inventário -->
+  <div class="panel-title" style="color:#e040fb;margin-bottom:10px;">🎒 Meu Inventário</div>
+  <div id="inventory-section">
+    <div class="inv-empty">
+      <span class="ie-icon">⚡</span>
+      Nenhum power-up no inventário.<br>
+      <a href="shop.html" style="color:#7c4dff;font-size:12px;margin-top:8px;display:inline-block;">Comprar na Loja →</a>
+    </div>
+  </div>
+
+  <!-- Catálogo completo -->
+  <div class="about-section" style="font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:#ffc107;margin:16px 0 10px;display:flex;align-items:center;gap:8px;">
+    📖 Catálogo Completo
+    <span style="flex:1;height:1px;background:linear-gradient(90deg,#ffc10744,transparent);display:block;"></span>
+  </div>
+  <div id="catalog-section"></div>
+
+  <div style="height:80px;"></div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js?v=13.0"></script>
+<script src="gamedata2.js?v=13.0"></script>
+<script src="gamedata3.js?v=13.0"></script>
+<script src="gamedata-v7-patch.js?v=13.0"></script>
+<script src="gamedata-powerups.js?v=13.0"></script>
+<script>
+"use strict";
+let save;
+
+function init() {
+  save = getOrCreateSave();
+  cleanExpiredBoosts && cleanExpiredBoosts(save);
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+  renderInventory();
+  renderCatalog();
+  startAutoSave && startAutoSave(() => save);
+}
+
+function renderInventory() {
+  const sec = document.getElementById("inventory-section");
+  if (!sec || typeof POWERUPS === "undefined") return;
+
+  const inv = save.powerups || {};
+  const owned = POWERUPS.filter(p => inv[p.id] && inv[p.id] > 0);
+
+  if (owned.length === 0) {
+    sec.innerHTML = `<div class="inv-empty">
+      <span class="ie-icon">⚡</span>
+      Nenhum power-up no inventário.<br>
+      <a href="shop.html" style="color:#7c4dff;font-size:12px;margin-top:8px;display:inline-block;">Comprar na Loja →</a>
+    </div>`;
+    return;
+  }
+
+  sec.innerHTML = owned.map(pu => `
+    <div class="pu-card" style="border-color:#7c4dff44;">
+      <div class="pu-header">
+        <span class="pu-emoji">${pu.emoji}</span>
+        <div class="pu-info">
+          <div class="pu-name">${pu.name}</div>
+          <div class="pu-desc">${pu.desc}</div>
+          <span class="pu-rarity ${pu.rarity}">${pu.rarity === "COMMON" ? "Comum" : pu.rarity === "RARE" ? "Raro" : "Épico"}</span>
+        </div>
+        <div class="pu-count-box">
+          <div class="pu-count">${inv[pu.id] || 0}</div>
+          <div class="pu-count-lbl">disponíveis</div>
+        </div>
+      </div>
+      <div class="pu-flavor">"${pu.flavor}"</div>
+    </div>
+  `).join("");
+}
+
+function renderCatalog() {
+  const sec = document.getElementById("catalog-section");
+  if (!sec || typeof POWERUPS === "undefined") return;
+
+  const groups = { COMMON: [], RARE: [], EPIC: [] };
+  POWERUPS.forEach(p => (groups[p.rarity] || groups.COMMON).push(p));
+  const labels = { COMMON:"Comuns", RARE:"Raros", EPIC:"Épicos" };
+
+  let html = "";
+  ["COMMON","RARE","EPIC"].forEach(rar => {
+    if (!groups[rar].length) return;
+    html += `<div class="catalog-section">
+      <div class="catalog-title">${labels[rar]}</div>
+      ${groups[rar].map(pu => {
+        const owned = (save.powerups && save.powerups[pu.id]) || 0;
+        const canAfford = save.gold >= pu.shopCost;
+        return `<div class="pu-card">
+          <div class="pu-header">
+            <span class="pu-emoji">${pu.emoji}</span>
+            <div class="pu-info">
+              <div class="pu-name">${pu.name} <span class="pu-rarity ${pu.rarity}">${labels[rar]}</span></div>
+              <div class="pu-desc">${pu.desc}</div>
+              <div style="font-size:11px;color:#ffc107;margin-top:4px;font-weight:700;">🪙 ${fmtNum(pu.shopCost)} · Estoque: <span style="color:#e040fb;">${owned}</span></div>
+            </div>
+            <div>
+              <button class="btn btn-gold btn-sm" ${!canAfford ? "disabled style='opacity:0.4;'" : ""}
+                onclick="quickBuy('${pu.id}')">+1</button>
+            </div>
+          </div>
+          <div class="pu-flavor">"${pu.flavor}"</div>
+        </div>`;
+      }).join("")}
+    </div>`;
+  });
+  sec.innerHTML = html;
+}
+
+function quickBuy(puId) {
+  if (typeof POWERUPS === "undefined") return;
+  const pu = POWERUPS.find(p => p.id === puId);
+  if (!pu) return;
+  if (save.gold < pu.shopCost) { showToast("❌ Ouro insuficiente!", "error"); return; }
+  save.gold -= pu.shopCost;
+  if (!save.powerups) save.powerups = {};
+  save.powerups[puId] = (save.powerups[puId] || 0) + 1;
+  writeSave(save);
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+  renderInventory();
+  renderCatalog();
+  showToast(`⚡ ${pu.emoji} ${pu.name} adicionado!`, "gold", 2500);
+}
+
+init();
+</script>
+</body>
+</html>

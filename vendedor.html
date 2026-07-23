@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Vendedor Errante – Card Fight</title>
+<script>
+  var CF_BUILD = Date.now();
+  document.write('<link rel="stylesheet" href="game.css?v=' + CF_BUILD + '"/>');
+</script>
+<style>
+.vend-hero {
+  background:linear-gradient(135deg,#1a1206,#2e1f0a 60%,#160e04);
+  border:2px solid #c9932e; border-radius:20px;
+  padding:20px 16px; margin-bottom:14px; text-align:center;
+  position:relative; overflow:hidden;
+}
+.vend-hero::before {
+  content:'🧳'; position:absolute; top:-18px; right:-14px; font-size:110px; opacity:0.07;
+}
+.vend-hero-icon { font-size:54px; display:block; margin-bottom:4px; animation:float 2.5s ease-in-out infinite; }
+.vend-hero-title {
+  font-family:'Cinzel',serif; font-size:24px; font-weight:900;
+  background:linear-gradient(135deg,#c9932e,#ffe082); background-size:200%;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:6px; letter-spacing:1.5px; animation:title-shimmer 4s linear infinite;
+}
+.vend-hero-dialogue {
+  font-size:12.5px; color:#e8d5a8; line-height:1.8; text-align:left;
+  background:rgba(0,0,0,0.28); border:1px solid rgba(201,147,46,0.35);
+  border-radius:12px; padding:12px 14px; position:relative; z-index:1;
+}
+.vend-hero-dialogue::before { content:'"'; color:#c9932e; font-size:22px; margin-right:2px; }
+
+.vend-status-row {
+  display:flex; align-items:center; justify-content:space-between;
+  background:var(--bg-card); border:1px solid var(--border); border-radius:12px;
+  padding:10px 14px; margin-bottom:14px; gap:10px;
+}
+.vend-status-item { text-align:center; flex:1; }
+.vend-status-label { font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; }
+.vend-status-value { font-size:15px; font-weight:900; font-family:'Cinzel',serif; }
+
+.vend-tabs { display:flex; gap:8px; margin-bottom:12px; }
+.vend-tab-btn {
+  flex:1; text-align:center; padding:9px 8px; border-radius:10px;
+  background:var(--bg-card); border:1px solid var(--border);
+  color:var(--text-muted); font-weight:700; font-size:12.5px; cursor:pointer;
+  transition:all var(--transition); user-select:none;
+}
+.vend-tab-btn.active { background:linear-gradient(135deg,#8a5a15,#c9932e); color:#1a1206; border-color:#c9932e; }
+
+.vend-filter-row { display:flex; gap:6px; overflow-x:auto; margin-bottom:12px; padding-bottom:2px; }
+.vend-filter-chip {
+  flex-shrink:0; padding:5px 12px; border-radius:20px; font-size:11px; font-weight:700;
+  background:var(--bg-card); border:1px solid var(--border); color:var(--text-muted);
+  cursor:pointer; transition:all var(--transition); user-select:none; white-space:nowrap;
+}
+.vend-filter-chip.active { border-color:var(--rc,#c9932e); color:var(--rc,#c9932e); background:color-mix(in srgb, var(--rc,#c9932e) 15%, transparent); }
+
+.vend-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.vend-card {
+  background:var(--bg-card); border:2px solid var(--border); border-radius:14px;
+  padding:12px 10px; text-align:center; position:relative; transition:all var(--transition);
+}
+.vend-card.locked { opacity:0.55; }
+.vend-card-badge {
+  display:inline-block; font-size:9.5px; font-weight:700; padding:2px 8px;
+  border-radius:8px; border:1px solid; margin-bottom:6px;
+}
+.vend-card-emoji { font-size:34px; margin-bottom:4px; filter:drop-shadow(0 0 6px rgba(0,0,0,0.4)); }
+.vend-card-name { font-family:'Cinzel',serif; font-size:12px; font-weight:700; min-height:30px; display:flex; align-items:center; justify-content:center; }
+.vend-card-stats { font-size:11px; color:var(--text-muted); margin:4px 0 6px; }
+.vend-card-status { font-size:10px; font-weight:700; margin-bottom:8px; min-height:14px; }
+.vend-card-status.ok { color:var(--green); }
+.vend-card-status.no { color:#777; }
+
+.vend-appar-intro {
+  font-size:12px; color:#e8d5a8; line-height:1.7; background:rgba(0,0,0,0.28);
+  border:1px solid rgba(201,147,46,0.35); border-radius:12px; padding:12px 14px; margin-bottom:12px;
+}
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Início</a>
+  <span class="logo-title">🧳 VENDEDOR</span>
+  <span style="width:80px;"></span>
+</header>
+
+<main class="content">
+
+  <div class="vend-hero">
+    <span class="vend-hero-icon">🧳</span>
+    <div class="vend-hero-title">VENDEDOR ERRANTE</div>
+    <div class="vend-hero-dialogue" id="vend-dialogue"></div>
+  </div>
+
+  <div class="vend-status-row">
+    <div class="vend-status-item">
+      <div class="vend-status-label">Seu ouro</div>
+      <div class="vend-status-value text-gold" id="vend-gold">0</div>
+    </div>
+    <div class="vend-status-item">
+      <div class="vend-status-label">Próxima rotação</div>
+      <div class="vend-status-value" id="vend-countdown" style="color:#c9932e;">--</div>
+    </div>
+  </div>
+
+  <div class="vend-tabs">
+    <div class="vend-tab-btn active" id="tab-loja-btn">🛒 Loja</div>
+    <div class="vend-tab-btn" id="tab-apparitions-btn">📊 Aparições</div>
+  </div>
+
+  <div id="panel-loja">
+    <div class="vend-filter-row" id="vend-filters"></div>
+    <div class="vend-grid" id="vend-grid"></div>
+  </div>
+
+  <div id="panel-apparitions" style="display:none;">
+    <div class="vend-appar-intro" id="vend-appar-dialogue"></div>
+    <div class="panel">
+      <div class="panel-title">📊 Aparições por raridade</div>
+      <div id="vend-apparitions"></div>
+    </div>
+  </div>
+
+  <div style="height:80px;"></div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script>
+  [
+    "gamedata.js",
+    "gamedata2.js",
+    "gamedata3.js",
+    "gamedata-v7-patch.js",
+    "gamedata-pesca.js",
+    "gamedata-pesca-patch.js",
+    "gamedata-maestria-patch.js",
+    "gamedata-prime-patch.js",
+    "gamedata-sabio-patch.js",
+    "gamedata-aventuras-patch.js",
+    "gamedata-vendedor-patch.js"
+  ].forEach(function (src) {
+    document.write('<scr' + 'ipt src="' + src + '?v=' + CF_BUILD + '"></scr' + 'ipt>');
+  });
+</script>
+<script>
+(function initVendedor() {
+  if (typeof getOrCreateSave !== "function") return;
+  const save = getOrCreateSave();
+  ensureVendedorState(save);
+  writeSave(save);
+
+  document.getElementById("vend-dialogue").textContent = VENDEDOR_DIALOGUE_INTRO;
+  document.getElementById("vend-appar-dialogue").textContent = VENDEDOR_DIALOGUE_APPARITIONS;
+
+  function renderGold() {
+    document.getElementById("vend-gold").textContent = fmtNum(save.gold || 0);
+  }
+
+  function renderCountdown() {
+    document.getElementById("vend-countdown").textContent = fmtTime(getVendedorMsUntilNextRotation());
+  }
+
+  // Filtros de raridade
+  let currentFilter = "ALL";
+  const filtersWrap = document.getElementById("vend-filters");
+  const allChip = document.createElement("div");
+  allChip.className = "vend-filter-chip active";
+  allChip.textContent = "Todas";
+  allChip.dataset.rarity = "ALL";
+  filtersWrap.appendChild(allChip);
+  Object.keys(RARITY).forEach(function (rk) {
+    const r = RARITY[rk];
+    const chip = document.createElement("div");
+    chip.className = "vend-filter-chip";
+    chip.style.setProperty("--rc", r.color);
+    chip.textContent = r.name;
+    chip.dataset.rarity = rk;
+    filtersWrap.appendChild(chip);
+  });
+  filtersWrap.querySelectorAll(".vend-filter-chip").forEach(function (chip) {
+    chip.addEventListener("click", function () {
+      filtersWrap.querySelectorAll(".vend-filter-chip").forEach(function (c) { c.classList.remove("active"); });
+      chip.classList.add("active");
+      currentFilter = chip.dataset.rarity;
+      renderShop();
+    });
+  });
+
+  function renderShop() {
+    const stock = getVendedorFullStock(save);
+    const wrap = document.getElementById("vend-grid");
+    wrap.innerHTML = "";
+    stock
+      .filter(function (s) { return currentFilter === "ALL" || s.card.rarity === currentFilter; })
+      .forEach(function (s) {
+        const r = RARITY[s.card.rarity];
+        // BUGFIX (auditoria): agora que buyVendedorCard() checa o limite
+        // do cofre (save.vaultLimit), o botão também precisa refletir
+        // isso — senão fica clicável mas sempre falha silenciosamente
+        // com o toast de "Cofre cheio".
+        const vaultFull = (save.vault || []).length >= (save.vaultLimit || 50);
+        const canBuy = s.available && s.remaining > 0 && (save.gold || 0) >= s.card.price && !vaultFull;
+        const el = document.createElement("div");
+        el.className = "vend-card" + (s.available ? "" : " locked");
+        el.innerHTML =
+          '<div class="vend-card-badge" style="background:' + r.color + '22;color:' + r.color + ';border-color:' + r.color + '66;">' + r.name + '</div>' +
+          '<div class="vend-card-emoji">' + s.card.img + '</div>' +
+          '<div class="vend-card-name">' + s.card.name + '</div>' +
+          '<div class="vend-card-stats">⚔️ ' + s.card.atk + ' &nbsp; ❤️ ' + s.card.hp + '</div>' +
+          '<div class="vend-card-status ' + (s.available ? "ok" : "no") + '">' +
+            (s.available ? ('✅ Disponível · ' + s.remaining + ' rest.') : '🔒 Indisponível') +
+          '</div>' +
+          '<button class="btn ' + (canBuy ? "btn-gold" : "btn-outline") + ' btn-sm btn-block" ' + (canBuy ? "" : "disabled") + ' data-id="' + s.card.id + '">' +
+            (s.available ? ('🪙 ' + fmtNum(s.card.price)) : 'Indisponível') +
+          '</button>';
+        wrap.appendChild(el);
+      });
+
+    wrap.querySelectorAll("button[data-id]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        const id = btn.getAttribute("data-id");
+        const res = buyVendedorCard(save, id);
+        if (res.ok) {
+          showToast("Carta comprada! Ela já está no seu Cofre. 🎉", "gold");
+          renderGold();
+          renderShop();
+        } else if (res.reason === "no_gold") {
+          showToast("Ouro insuficiente para essa carta!", "error");
+        } else if (res.reason === "sold_out") {
+          showToast("Essa carta esgotou nesta rotação!", "error");
+        } else if (res.reason === "vault_full") {
+          showToast("Seu Cofre está cheio! Abra espaço antes de comprar.", "error");
+        } else {
+          showToast("Essa carta não está disponível agora.", "error");
+        }
+      });
+    });
+  }
+
+  function renderApparitions() {
+    const wrap = document.getElementById("vend-apparitions");
+    wrap.innerHTML = "";
+    const state = ensureVendedorState(save);
+    Object.keys(RARITY).forEach(function (rk) {
+      const r = RARITY[rk];
+      const count = state.apparitions[rk] || 0;
+      const row = document.createElement("div");
+      row.className = "stat-row";
+      row.innerHTML =
+        '<span class="stat-label" style="color:' + r.color + ';font-weight:700;">' + r.name + '</span>' +
+        '<span class="stat-value">' + fmtNum(count) + ' vezes</span>';
+      wrap.appendChild(row);
+    });
+  }
+
+  // Tabs
+  const tabLojaBtn = document.getElementById("tab-loja-btn");
+  const tabApparBtn = document.getElementById("tab-apparitions-btn");
+  const panelLoja = document.getElementById("panel-loja");
+  const panelAppar = document.getElementById("panel-apparitions");
+  function switchTab(tab) {
+    tabLojaBtn.classList.toggle("active", tab === "loja");
+    tabApparBtn.classList.toggle("active", tab === "apparitions");
+    panelLoja.style.display = tab === "loja" ? "block" : "none";
+    panelAppar.style.display = tab === "apparitions" ? "block" : "none";
+  }
+  tabLojaBtn.addEventListener("click", function () { switchTab("loja"); });
+  tabApparBtn.addEventListener("click", function () { switchTab("apparitions"); });
+
+  renderGold();
+  renderCountdown();
+  renderShop();
+  renderApparitions();
+
+  // Verifica a cada segundo se a rotação virou (loja muda a cada 1h)
+  let lastBucket = getVendedorHourBucket();
+  setInterval(function () {
+    renderCountdown();
+    const nowBucket = getVendedorHourBucket();
+    if (nowBucket !== lastBucket) {
+      lastBucket = nowBucket;
+      ensureVendedorState(save);
+      writeSave(save);
+      renderShop();
+      renderApparitions();
+      showToast("🔄 O estoque do Vendedor Errante foi renovado!", "info");
+    }
+  }, 1000);
+})();
+</script>
+</body>
+</html>

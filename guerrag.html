@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Guerra de Guildas – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+.guerra-hero {
+  background:linear-gradient(135deg,#1a0000,#3a0000,#1a0000);
+  border:2px solid #ff4444; border-radius:16px;
+  padding:20px 16px; margin-bottom:14px; text-align:center;
+  position:relative; overflow:hidden;
+}
+.guerra-hero::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(255,68,68,0.18) 0%,transparent 65%);
+  pointer-events:none;
+}
+.guerra-hero .icon { font-size:56px; display:block; margin-bottom:6px;
+  filter:drop-shadow(0 0 20px rgba(255,68,68,0.7)); }
+.guerra-hero .title { font-family:'Cinzel',serif; font-size:22px; font-weight:900;
+  background:linear-gradient(135deg,#ff4444,#ff6d00,#ffc107);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  margin-bottom:4px; }
+.guerra-hero .sub { font-size:12px; color:#9e9e9e; }
+
+/* Status ativo/inativo */
+.war-status-active {
+  background:linear-gradient(135deg,#0a1a00,#1a3000);
+  border:2px solid #4CAF50; border-radius:14px; padding:14px;
+  margin-bottom:14px; text-align:center; position:relative;
+  animation:glow-border 2s infinite;
+}
+@keyframes glow-border {
+  0%,100% { box-shadow:0 0 8px rgba(76,175,80,0.3); }
+  50% { box-shadow:0 0 20px rgba(76,175,80,0.6); }
+}
+.war-status-inactive {
+  background:linear-gradient(135deg,#1a1a1a,#0a0a0a);
+  border:2px solid #2a2a2a; border-radius:14px; padding:14px;
+  margin-bottom:14px; text-align:center;
+}
+
+.war-timer-big {
+  font-family:'Cinzel',serif; font-size:36px; font-weight:900;
+  background:linear-gradient(135deg,#ff4444,#ffc107);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  letter-spacing:2px;
+}
+
+/* Ranking das guildas */
+.guild-rank-row {
+  display:flex; align-items:center; gap:10px; padding:12px 14px;
+  border-radius:12px; margin-bottom:8px; border:2px solid #1e1e30;
+  background:var(--bg-card); transition:all 0.3s; cursor:default;
+  position:relative; overflow:hidden;
+}
+.guild-rank-row.top1 { border-color:#ffc107; background:linear-gradient(135deg,#1a1000,#2d1e00); }
+.guild-rank-row.top2 { border-color:#9e9e9e; background:linear-gradient(135deg,#141414,#1e1e1e); }
+.guild-rank-row.top3 { border-color:#cd7f32; background:linear-gradient(135deg,#100a00,#1c1400); }
+.guild-rank-row.my-guild { box-shadow:0 0 14px rgba(124,77,255,0.3); }
+
+.guild-pts-bar {
+  background:#1e1e30; border-radius:20px; height:6px; overflow:hidden; margin-top:4px;
+}
+.guild-pts-fill {
+  height:100%; border-radius:20px;
+  background:linear-gradient(90deg,#ff4444,#ffc107);
+  transition:width 1s ease;
+}
+
+.points-badge {
+  font-family:'Cinzel',serif; font-weight:900; font-size:18px;
+  color:#ffc107; min-width:60px; text-align:right; flex-shrink:0;
+}
+
+.round-badge {
+  background:linear-gradient(135deg,#4a0072,#7c4dff);
+  border-radius:10px; padding:4px 12px;
+  font-family:'Cinzel',serif; font-size:11px; font-weight:700; color:#fff;
+  display:inline-block;
+}
+
+.contribute-panel {
+  background:linear-gradient(135deg,#0a0020,#1a0040);
+  border:2px solid #7c4dff; border-radius:14px; padding:14px; margin-bottom:14px;
+}
+
+.result-row { display:flex; gap:8px; margin-bottom:10px; }
+.result-btn {
+  flex:1; padding:12px 8px; border-radius:10px; font-family:'Rajdhani',sans-serif;
+  font-size:13px; font-weight:700; cursor:pointer; border:none; transition:all 0.2s;
+  text-align:center;
+}
+.result-btn.win  { background:linear-gradient(135deg,#1b5e20,#388e3c); color:#fff; }
+.result-btn.draw { background:linear-gradient(135deg,#e65100,#ff6d00); color:#fff; }
+.result-btn.lose { background:linear-gradient(135deg,#b71c1c,#e53935); color:#fff; }
+.result-btn:hover { filter:brightness(1.15); transform:translateY(-1px); }
+.result-btn:active { transform:scale(0.96); }
+
+.champion-banner {
+  background:linear-gradient(135deg,#1a1400,#2d2200,#1a1400);
+  border:3px solid #ffc107; border-radius:16px; padding:20px; margin-bottom:14px;
+  text-align:center; position:relative; overflow:hidden;
+  animation:glow-pulse 2s infinite;
+}
+.champion-banner::before {
+  content:'🏆'; position:absolute; font-size:120px; opacity:0.04;
+  top:-20px; left:-10px; pointer-events:none;
+}
+.champion-banner::after {
+  content:'🏆'; position:absolute; font-size:120px; opacity:0.04;
+  bottom:-20px; right:-10px; pointer-events:none;
+}
+
+.war-tab { flex:1; padding:9px 4px; border:none; border-radius:9px; background:transparent; color:#9e9e9e;
+  font-family:'Rajdhani',sans-serif; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.2s; }
+.war-tab.active { background:linear-gradient(135deg,#b71c1c,#e53935); color:#fff; }
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title" style="background:linear-gradient(135deg,#ff4444,#ffc107);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">⚔️ GUERRA DE GUILDAS</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content">
+  <div class="guerra-hero">
+    <span class="icon" id="hero-icon">⚔️</span>
+    <div class="title">GUERRA DE GUILDAS</div>
+    <div class="sub" id="hero-sub">Toda sexta e sábado, 16:00 – 23:00</div>
+  </div>
+
+  <!-- Status da guerra -->
+  <div id="war-status-box"></div>
+
+  <!-- Rodada atual -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+    <div class="round-badge" id="round-badge">Rodada 1/11</div>
+    <div id="season-reset-info" style="font-size:10px;color:#555;"></div>
+  </div>
+
+  <!-- Tabs -->
+  <div style="display:flex;background:#0e0e1c;border-radius:12px;padding:3px;gap:3px;margin-bottom:14px;">
+    <button class="war-tab active" onclick="switchTab('ranking',this)">🏆 Ranking</button>
+    <button class="war-tab" onclick="switchTab('contribute',this)">⚔️ Contribuir</button>
+    <button class="war-tab" onclick="switchTab('rules',this)">📋 Regras</button>
+  </div>
+
+  <!-- ═══ RANKING ═══ -->
+  <div id="tab-ranking">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div style="font-size:12px;color:#9e9e9e;">
+        Pontos atualizam a cada minuto • <span style="color:#ff4444;font-weight:700;">AO VIVO</span>
+      </div>
+      <div style="font-size:10px;color:#555;font-family:'Cinzel',serif;" id="next-update-label">Próx. +pontos</div>
+    </div>
+    <div id="guild-ranking-list"></div>
+  </div>
+
+  <!-- ═══ CONTRIBUIR ═══ -->
+  <div id="tab-contribute" style="display:none;">
+    <div id="contribute-content"></div>
+  </div>
+
+  <!-- ═══ REGRAS ═══ -->
+  <div id="tab-rules" style="display:none;">
+    <div class="panel" style="margin-bottom:10px;">
+      <div class="panel-title">📋 Como Funciona a Guerra de Guildas</div>
+      <ul style="font-size:12px;color:#c0c0d0;padding-left:14px;line-height:2.2;margin:0;">
+        <li>⚔️ A guerra acontece toda <strong>sexta e sábado</strong>, das <strong>16:00 às 23:00</strong></li>
+        <li>🎲 Cada rodada tem uma <strong>guilda-estrela sorteada aleatoriamente</strong> — o líder muda a cada semana!</li>
+        <li>📈 Os pontos <strong>só sobem</strong> durante a guerra — nunca descem</li>
+        <li>👤 Cada jogador pode <strong>contribuir jogando partidas</strong> durante a guerra</li>
+        <li>✅ Vitória: <strong>+10 pontos</strong> para sua guilda</li>
+        <li>🤝 Empate: <strong>+5 pontos</strong> para sua guilda</li>
+        <li>❌ Derrota: <strong>+0 pontos</strong> — pontos só sobem, nunca perdem!</li>
+        <li>📅 Cada semana (sexta + sábado) conta como <strong>1 rodada</strong></li>
+        <li>🏆 A guerra dura <strong>11 rodadas</strong> (11 semanas)</li>
+        <li>🔄 Após a rodada 11, a guilda campeã é destaque no ranking por <strong>1 dia</strong></li>
+        <li>🔁 Depois os pontos voltam a <strong>0</strong> e um novo ciclo começa</li>
+        <li>⏰ Fora do horário, um <strong>cronômetro</strong> mostra quanto falta para a próxima rodada</li>
+      </ul>
+    </div>
+    <div class="panel" style="margin-bottom:10px;background:linear-gradient(135deg,#1a1400,#2d2200);border-color:#ffc107;">
+      <div class="panel-title" style="color:#ffc107;">🏅 Recompensas (Guilda Campeã — Top 3)</div>
+      <div style="font-size:12px;color:#c0c0d0;line-height:2.0;">
+        <div style="padding:8px;background:rgba(255,193,7,0.08);border-radius:8px;margin-bottom:6px;border-left:3px solid #ffc107;">
+          🥇 <strong style="color:#ffc107;">1º Lugar</strong> — Cada membro: 1.000.000 ouro + 50.000 XPP + Título exclusivo "Campeão de Guerra" + Moldura dourada de guilda + Carta Ultra Rara Exclusiva de Guerra
+        </div>
+        <div style="padding:8px;background:rgba(158,158,158,0.08);border-radius:8px;margin-bottom:6px;border-left:3px solid #9e9e9e;">
+          🥈 <strong style="color:#9e9e9e;">2º Lugar</strong> — Cada membro: 500.000 ouro + 25.000 XPP + Título "Vice-Campeão de Guerra" + Carta Mítica de Guerra
+        </div>
+        <div style="padding:8px;background:rgba(205,127,50,0.08);border-radius:8px;border-left:3px solid #cd7f32;">
+          🥉 <strong style="color:#cd7f32;">3º Lugar</strong> — Cada membro: 250.000 ouro + 10.000 XPP + Título "3° de Guerra" + Carta Lendária de Guerra
+        </div>
+      </div>
+      <div style="margin-top:10px;background:rgba(41,182,246,0.08);border:1px solid #0d47a1;border-radius:8px;padding:10px;font-size:12px;color:#90caf9;line-height:1.7;">
+        💬 <strong>Para receber os prêmios:</strong> vá ao Discord oficial da <strong>Origens Games</strong> após o fim das 11 rodadas. 
+        Os membros da guilda vencedora devem apresentar seus nomes de usuário para receber as recompensas manualmente.
+      </div>
+    </div>
+    <div class="panel" style="margin-bottom:10px;background:rgba(244,67,54,0.05);border-color:#f44336;">
+      <div class="panel-title" style="color:#f44336;">⚠️ Regras Importantes</div>
+      <ul style="font-size:12px;color:#ef9a9a;padding-left:14px;line-height:2.0;margin:0;">
+        <li>Os pontos aleatórios são gerados automaticamente — ninguém pode manipulá-los</li>
+        <li>Contribuições individuais ajudam mas não garantem vitória — é trabalho em equipe!</li>
+        <li>Trapaças resultam em <strong>banimento imediato</strong> e exclusão da guilda</li>
+        <li>O resultado final é baseado nos pontos acumulados nas 11 rodadas</li>
+        <li>Sem guilda? Você não pode participar — entre em uma guilda primeiro!</li>
+      </ul>
+    </div>
+  </div>
+
+  <div style="height:70px;"></div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js"></script>
+<script src="gamedata2.js"></script>
+<script src="gamedata3.js"></script>
+<script>
+"use strict";
+let save, currentTab = "ranking";
+
+// ══════════════════════════════════════════════════════════════
+// ── 58 GUILDAS PARA A GUERRA DE GUILDAS ─────────────────────
+// ══════════════════════════════════════════════════════════════
+const WAR_GUILDS = [
+  { id:"gu_origens",  name:"Lança das Origens",  emoji:"🔱", color:"#ff4444" },
+  { id:"gu_shadow",   name:"Sombras do Abismo",  emoji:"🌑", color:"#9c27b0" },
+  { id:"gu_storm",    name:"Tempestade Eterna",  emoji:"⚡", color:"#2196F3" },
+  { id:"gu_phoenix",  name:"Ordem da Fênix",     emoji:"🔥", color:"#ff6d00" },
+  { id:"gu_crystal",  name:"Cristal Eterno",     emoji:"💠", color:"#00e5ff" },
+  { id:"gu_nova",     name:"Nova Ascensão",      emoji:"🌠", color:"#4CAF50" },
+  { id:"gu_dragon",   name:"Dragões da Noite",   emoji:"🐉", color:"#ffc107" },
+  { id:"gu_sky",      name:"Sentinelas do Céu",  emoji:"🦅", color:"#90caf9" },
+
+  // ── GUILDAS ÉPICAS (10) ─────────────────────────────────────
+  { id:"gu_void",     name:"Vazio Infinito",      emoji:"🌀", color:"#7c4dff" },
+  { id:"gu_iron",     name:"Muralha de Ferro",    emoji:"🛡️", color:"#78909c" },
+  { id:"gu_flame",    name:"Chamas Eternas",      emoji:"🔥", color:"#ff5722" },
+  { id:"gu_frost",    name:"Geada Perpétua",      emoji:"❄️", color:"#00bcd4" },
+  { id:"gu_thunder",  name:"Trovão Celestial",    emoji:"⚡", color:"#ffd600" },
+  { id:"gu_venom",    name:"Veneno Mortal",       emoji:"☠️", color:"#66bb6a" },
+  { id:"gu_solar",    name:"Império Solar",       emoji:"☀️", color:"#ffc107" },
+  { id:"gu_lunar",    name:"Reino Lunar",         emoji:"🌙", color:"#e0e0e0" },
+  { id:"gu_abyss",    name:"Abismo Profundo",     emoji:"🕳️", color:"#1a0033" },
+  { id:"gu_war",      name:"Guerra Eterna",       emoji:"⚔️", color:"#d32f2f" },
+
+  // ── GUILDAS LENDÁRIAS (10) ──────────────────────────────────
+  { id:"gu_titan",    name:"Titãs da Guerra",     emoji:"⛰️", color:"#795548" },
+  { id:"gu_serpent",  name:"Serpentes Ancestrais",emoji:"🐍", color:"#2e7d32" },
+  { id:"gu_eagle",    name:"Águias Douradas",     emoji:"🦅", color:"#ff6d00" },
+  { id:"gu_wolf",     name:"Lobos da Noite",      emoji:"🐺", color:"#90caf9" },
+  { id:"gu_lion",     name:"Leões de Aço",        emoji:"🦁", color:"#ffc107" },
+  { id:"gu_shark",    name:"Tubarões do Abismo",  emoji:"🦈", color:"#0d47a1" },
+  { id:"gu_eclipse",  name:"Eclipse Sombrio",     emoji:"🌑", color:"#4a148c" },
+  { id:"gu_aurora",   name:"Aurora Boreal",       emoji:"🌈", color:"#e040fb" },
+  { id:"gu_nexus",    name:"Nexus Cósmico",       emoji:"🌌", color:"#7c4dff" },
+  { id:"gu_eternal",  name:"Eternidade",          emoji:"♾️", color:"#00e5ff" },
+
+  // ── GUILDAS DE ELEMENTOS (10) ───────────────────────────────
+  { id:"gu_fire",     name:"Império do Fogo",     emoji:"🔥", color:"#e53935" },
+  { id:"gu_water",    name:"Domínio das Águas",   emoji:"🌊", color:"#0288d1" },
+  { id:"gu_earth",    name:"Reino da Terra",      emoji:"🌍", color:"#2e7d32" },
+  { id:"gu_wind",     name:"Ventos do Destino",   emoji:"🍃", color:"#43a047" },
+  { id:"gu_ice",      name:"Geada Eterna",        emoji:"🧊", color:"#00bcd4" },
+  { id:"gu_magma",    name:"Lava Indomável",      emoji:"🌋", color:"#e65100" },
+  { id:"gu_lightning",name:"Relâmpagos",          emoji:"⚡", color:"#ffd600" },
+  { id:"gu_nature",   name:"Natureza Selvagem",   emoji:"🌿", color:"#388e3c" },
+  { id:"gu_darkness", name:"Trevas Absolutas",    emoji:"🌑", color:"#212121" },
+  { id:"gu_light",    name:"Luz Eterna",          emoji:"💡", color:"#ffeb3b" },
+
+  // ── GUILDAS DE RARIDADES (8) ────────────────────────────────
+  { id:"gu_common",   name:"Comuns Unidas",       emoji:"🟡", color:"#9e9e9e" },
+  { id:"gu_rare",     name:"Raros de Elite",      emoji:"🔵", color:"#2196F3" },
+  { id:"gu_epic",     name:"Épicos Guerreiros",   emoji:"🟣", color:"#9c27b0" },
+  { id:"gu_legend",   name:"Lendários da Guerra", emoji:"🟠", color:"#ffc107" },
+  { id:"gu_mythic",   name:"Míticos Supremos",    emoji:"🔴", color:"#f44336" },
+  { id:"gu_ultra",    name:"Ultra Raros",         emoji:"💠", color:"#00e5ff" },
+  { id:"gu_origens2", name:"Filhos de Origens",   emoji:"🔥", color:"#ff4444" },
+  { id:"gu_god",      name:"Deuses do Jogo",      emoji:"👑", color:"#ff6d00" },
+
+  // ── GUILDAS DE ESTILOS DE LUTA (6) ──────────────────────────
+  { id:"gu_berserk",  name:"Berserkers",          emoji:"🪓", color:"#d32f2f" },
+  { id:"gu_samurai",  name:"Samurais Honoráveis", emoji:"⚔️", color:"#b71c1c" },
+  { id:"gu_ninja",    name:"Ninjas das Sombras",  emoji:"🥷", color:"#212121" },
+  { id:"gu_knight",   name:"Cavaleiros Reais",    emoji:"🛡️", color:"#1976d2" },
+  { id:"gu_mage",     name:"Magos Arcanos",       emoji:"🔮", color:"#7c4dff" },
+  { id:"gu_hunter",   name:"Caçadores",           emoji:"🏹", color:"#2e7d32" },
+
+  // ── GUILDAS DE CRIATURAS LENDÁRIAS (6) ──────────────────────
+  { id:"gu_griffin",  name:"Grifos Alados",       emoji:"🦁", color:"#ffc107" },
+  { id:"gu_pegasus",  name:"Pégasos Celestiais",  emoji:"🐴", color:"#90caf9" },
+  { id:"gu_unicorn",  name:"Unicórnios Sagrados", emoji:"🦄", color:"#e0e0e0" },
+  { id:"gu_chimera",  name:"Quimeras",            emoji:"🐲", color:"#9c27b0" },
+  { id:"gu_hydra",    name:"Hidras Imortais",     emoji:"🐍", color:"#1b5e20" },
+  { id:"gu_basilisk", name:"Basilisco",           emoji:"🐉", color:"#4a148c" },
+
+  // ── GUILDAS DE CONCEITOS (8) ────────────────────────────────
+  { id:"gu_justice",  name:"Justiça Divina",      emoji:"⚖️", color:"#ffc107" },
+  { id:"gu_fate",     name:"Destino",             emoji:"🔮", color:"#7c4dff" },
+  { id:"gu_chaos",    name:"Caos Primordial",     emoji:"🌀", color:"#e040fb" },
+  { id:"gu_order",    name:"Ordem Universal",     emoji:"⚖️", color:"#2196F3" },
+  { id:"gu_balance",  name:"Equilíbrio",          emoji:"☯️", color:"#4CAF50" },
+  { id:"gu_infinity", name:"Infinito",            emoji:"♾️", color:"#00e5ff" },
+  { id:"gu_void2",    name:"O Vazio",             emoji:"🕳️", color:"#1a0033" },
+  { id:"gu_omega",    name:"Omega Final",         emoji:"🔚", color:"#d32f2f" },
+];
+
+// ── ENGINE DA GUERRA ─────────────────────────────────────────────
+// Usa o número da semana ISO e o dia da semana para calcular a rodada
+function getWeekNumber(d) {
+  const date = new Date(d);
+  date.setHours(0,0,0,0);
+  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+  const week1 = new Date(date.getFullYear(), 0, 4);
+  return 1 + Math.round(((date - week1) / 86400000 - 3 + (week1.getDay()+6) % 7) / 7);
+}
+
+function getCurrentRound() {
+  const now = new Date();
+  const weekNum = getWeekNumber(now);
+  // A rodada é baseada no número da semana modulo 11 (1-11)
+  return ((weekNum - 1) % 11) + 1;
+}
+
+// Verifica se a guerra está ativa (Sex ou Sáb, 16:00-23:00)
+function isWarActive() {
+  const now = new Date();
+  const day = now.getDay(); // 0=dom, 5=sex, 6=sáb
+  const hour = now.getHours();
+  return (day === 5 || day === 6) && hour >= 16 && hour < 23;
+}
+
+// Retorna tempo em ms até a próxima guerra
+function msUntilNextWar() {
+  const now = new Date();
+  const day  = now.getDay();
+  const hour = now.getHours();
+  const min  = now.getMinutes();
+  const sec  = now.getSeconds();
+
+  // Se sex ou sáb e antes das 16h → falta para hoje 16h
+  if ((day === 5 || day === 6) && hour < 16) {
+    return ((16 - hour - 1) * 3600 + (59 - min) * 60 + (60 - sec)) * 1000;
+  }
+  // Se sáb após 23h ou dom até qui → calcular dias até sexta
+  let daysUntilFri = (5 - day + 7) % 7;
+  if (daysUntilFri === 0 && hour >= 23) daysUntilFri = 7;
+  if (day === 6 && hour >= 23) daysUntilFri = 6; // domingo
+  const msUntilFriday16 = daysUntilFri * 86400000
+    - ((hour - 16) * 3600 + min * 60 + sec) * 1000
+    + 16 * 3600000;
+  return ((5 - day + 7) % 7 || 7) * 86400000 - now.getTime() % 86400000 + 16 * 3600000 - (hour * 3600 + min * 60 + sec) * 1000;
+}
+
+
+// ── ENGINE JUSTA v2 — pontos só sobem, líder rotaciona por rodada ──
+function seededRand(seed){ let x = Math.sin(seed*127.1+311.7)*43758.5453; return x-Math.floor(x); }
+function hashGuildId(id){ let h=5381; for(let i=0;i<id.length;i++){ h=Math.imul(h,33)^id.charCodeAt(i); h=h&0x7fffffff; } return h; }
+
+// Retorna season "epoch" — muda a cada 11 rodadas (temporada nova zera)
+function getSeasonEpoch(){
+  const wk = getWeekNumber(new Date());
+  return Math.floor((wk-1)/11);
+}
+// Retorna guilda "campeã destinada" da rodada (rotação real por rodada)
+function getRoundStarIndex(round, seasonEpoch, total){
+  const seed = seasonEpoch*7919 + round*104729;
+  return Math.floor(seededRand(seed) * total);
+}
+// Pontos de UMA rodada completa (finalizada) — determinístico, rotaciona líder
+function getRoundFinalPoints(guildIdx, round, seasonEpoch){
+  const gHash = hashGuildId(WAR_GUILDS[guildIdx].id);
+  const star  = getRoundStarIndex(round, seasonEpoch, WAR_GUILDS.length);
+  // Base ~20000, variação forte ±40% + bônus até +60% se for a "estrela" da rodada
+  const seed  = seasonEpoch*1000003 + round*10007 + (gHash%99991);
+  const varPct= (seededRand(seed) - 0.5) * 0.8;         // ±40%
+  const starBonus = (guildIdx === star) ? (0.35 + seededRand(seed+1)*0.30) : 0; // +35–65%
+  return Math.max(0, Math.floor(20000 * (1 + varPct + starBonus)));
+}
+// Pontos parciais da rodada em andamento — cresce linear com o tempo (SÓ SOBE)
+function getRoundLivePoints(guildIdx, round, seasonEpoch){
+  if (!isWarActive()) return 0;
+  const now = new Date();
+  const start = new Date(now); start.setHours(16,0,0,0);
+  const minutes = Math.max(0, Math.min(Math.floor((now-start)/60000), 420));
+  const target  = getRoundFinalPoints(guildIdx, round, seasonEpoch);
+  // Crescimento linear até o alvo ao longo dos 420 min da sessão de sáb;
+  // sexta chega em ~50% do target, sábado completa até 100%.
+  const day = now.getDay();
+  const dayFrac = day === 5 ? 0.5 : 1.0;
+  const dayBase = day === 5 ? 0 : Math.floor(target*0.5);
+  return dayBase + Math.floor(target * dayFrac * (minutes/420));
+}
+// TOTAL acumulado — só sobe, nunca desce
+function getGuildAccumulatedPoints(guildIdx, round){
+  const seasonEpoch = getSeasonEpoch();
+  let pts = 0;
+  for (let r=1; r<round; r++) pts += getRoundFinalPoints(guildIdx, r, seasonEpoch);
+  pts += getRoundLivePoints(guildIdx, round, seasonEpoch);
+  // Contribs do jogador — sempre positivo (nunca subtrai)
+  const contribs = save.guildWarContribs || {};
+  pts += Math.max(0, contribs[guildIdx] || 0);
+  return pts;
+}
+// Se rodada 11 encerrou (sáb 23h passou), a guerra está FINALIZADA e congelada
+function isSeasonEnded(){
+  return getCurrentRound() === 11 && !isWarActive() && (new Date()).getDay() === 0;
+}
+
+function getGuildPoints() {
+  const round = getCurrentRound();
+  return WAR_GUILDS.map((g, idx) => ({
+    ...g,
+    points: getGuildAccumulatedPoints(idx, round),
+    idx,
+  })).sort((a, b) => b.points - a.points);
+  return WAR_GUILDS.map((g, idx) => ({
+    ...g,
+    points: getGuildAccumulatedPoints(idx, round),
+    idx,
+  })).sort((a, b) => b.points - a.points);
+}
+
+// ── RENDER ───────────────────────────────────────────────────────
+function renderWarStatus() {
+  const box = document.getElementById("war-status-box");
+  const active = isWarActive();
+  const now = new Date();
+  const round = getCurrentRound();
+  document.getElementById("round-badge").textContent = `Rodada ${round}/11`;
+
+  if (active) {
+    const endTime = new Date(now);
+    endTime.setHours(23, 0, 0, 0);
+    const rem = endTime - now;
+    const h   = Math.floor(rem / 3600000);
+    const m   = Math.floor((rem % 3600000) / 60000);
+    const s   = Math.floor((rem % 60000) / 1000);
+    box.innerHTML = `<div class="war-status-active">
+      <div style="font-size:10px;color:#66bb6a;font-weight:700;margin-bottom:4px;">
+        🟢 GUERRA ATIVA AGORA!
+      </div>
+      <div style="font-family:'Cinzel',serif;font-size:13px;font-weight:700;color:#fff;margin-bottom:6px;">
+        ⚔️ Batalha em curso — Guildas acumulando pontos!
+      </div>
+      <div style="font-size:10px;color:#9e9e9e;margin-bottom:8px;">Encerra em:</div>
+      <div class="war-timer-big" id="war-countdown">${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}</div>
+    </div>`;
+  } else {
+    // Calcular quando é a próxima
+    const nextDay = now.getDay() <= 5 ? 5 : 12; // sexta
+    const nextWarMsg = getNextWarMessage();
+    box.innerHTML = `<div class="war-status-inactive">
+      <div style="font-size:13px;color:#555;font-weight:700;margin-bottom:8px;">⏸️ GUERRA INATIVA</div>
+      <div style="font-size:11px;color:#9e9e9e;margin-bottom:10px;">${nextWarMsg}</div>
+      <div style="font-size:10px;color:#555;margin-bottom:8px;">Próxima guerra em:</div>
+      <div class="war-timer-big" style="font-size:28px;" id="war-countdown">--:--:--</div>
+    </div>`;
+  }
+}
+
+function getNextWarMessage() {
+  const now = new Date();
+  const day = now.getDay();
+  const hour = now.getHours();
+
+  if (day === 5 && hour < 16) return "A guerra começa hoje às 16:00!";
+  if (day === 5 && hour >= 23) return "A guerra retorna amanhã (sábado) às 16:00!";
+  if (day === 6 && hour < 16) return "A guerra retorna hoje às 16:00!";
+  if (day === 6 && hour >= 23) return "Próxima guerra: sexta-feira às 16:00";
+  const days = ["domingo","segunda","terça","quarta","quinta","sexta","sábado"];
+  return `Próxima guerra: sexta-feira às 16:00`;
+}
+
+function renderGuildRanking() {
+  const guilds = getGuildPoints();
+  const maxPts  = guilds[0]?.points || 1;
+  const myGuildId = save.guildaId || null;
+
+  const isLast = getCurrentRound() === 11 && !isWarActive();
+
+  const list = document.getElementById("guild-ranking-list");
+  list.innerHTML = "";
+
+  // Banner do campeão se for rodada 11 finalizada
+  if (isLast) {
+    const champ = guilds[0];
+    list.innerHTML = `<div class="champion-banner">
+      <div style="font-size:48px;margin-bottom:8px;">🏆</div>
+      <div style="font-family:'Cinzel',serif;font-size:18px;font-weight:900;color:#ffc107;">CAMPEÃ DA TEMPORADA!</div>
+      <div style="font-size:32px;margin:10px 0;">${champ.emoji}</div>
+      <div style="font-family:'Cinzel',serif;font-size:16px;font-weight:700;color:${champ.color};">${champ.name}</div>
+      <div style="font-size:13px;color:#9e9e9e;margin:8px 0;">${fmtNum(champ.points)} pontos totais</div>
+      <div style="background:rgba(41,182,246,0.1);border:1px solid #0d47a1;border-radius:10px;padding:10px;margin-top:12px;font-size:12px;color:#90caf9;line-height:1.7;">
+        💬 Membros da guilda campeã: vá ao <strong>Discord da Origens Games</strong> para resgatar os prêmios!
+      </div>
+    </div>`;
+  }
+
+  guilds.forEach((g, i) => {
+    const pos    = i + 1;
+    const pct    = Math.min(100, Math.round((g.points / maxPts) * 100));
+    const isMe   = g.id === myGuildId;
+
+    let rowClass = "guild-rank-row";
+    if (pos === 1) rowClass += " top1";
+    else if (pos === 2) rowClass += " top2";
+    else if (pos === 3) rowClass += " top3";
+    if (isMe) rowClass += " my-guild";
+
+    let medal = pos <= 3 ? ["🥇","🥈","🥉"][pos-1] : `#${pos}`;
+
+    const row = document.createElement("div");
+    row.className = rowClass;
+    row.innerHTML = `
+      <div style="font-family:'Cinzel',serif;font-size:20px;min-width:30px;text-align:center;">${medal}</div>
+      <div style="font-size:30px;">${g.emoji}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-family:'Cinzel',serif;font-weight:700;font-size:13px;color:${g.color};">
+          ${g.name}${isMe?' <span style="color:#7c4dff;font-size:10px;">[SUA]</span>':""}
+        </div>
+        <div class="guild-pts-bar">
+          <div class="guild-pts-fill" style="width:${pct}%;background:linear-gradient(90deg,${g.color}88,${g.color});"></div>
+        </div>
+      </div>
+      <div class="points-badge">${fmtNum(g.points)}<div style="font-size:9px;color:#9e9e9e;font-family:'Rajdhani',sans-serif;font-weight:normal;">pts</div></div>`;
+    list.appendChild(row);
+  });
+
+  // Atualizar label
+  const now = new Date();
+  const secs = 60 - now.getSeconds();
+  document.getElementById("next-update-label").textContent = `+pts em ${secs}s`;
+}
+
+function renderContribute() {
+  const container = document.getElementById("contribute-content");
+  const active    = isWarActive();
+  const myGuildId = save.guildaId;
+
+  if (!myGuildId) {
+    container.innerHTML = `<div style="text-align:center;padding:30px;background:#0e0e1c;border-radius:12px;border:1px dashed #2a2a4a;">
+      <div style="font-size:32px;margin-bottom:10px;">⚜️</div>
+      <div style="font-size:14px;color:#555;">Você não está em nenhuma guilda!</div>
+      <div style="font-size:12px;color:#555;margin:8px 0 14px;">Entre em uma guilda para participar da guerra.</div>
+      <a href="guilda.html" class="btn btn-gold btn-sm">⚜️ Ver Guildas</a>
+    </div>`;
+    return;
+  }
+
+  const myGuild = WAR_GUILDS.find(g => g.id === myGuildId);
+  const guildName = save.guildaName || (myGuild?.name) || "Sua Guilda";
+  const contribs  = save.guildWarContribs || {};
+  const guildIdx  = WAR_GUILDS.findIndex(g => g.id === myGuildId);
+  const myPts     = contribs[guildIdx] || 0;
+
+  container.innerHTML = `
+    <div class="contribute-panel">
+      <div class="panel-title" style="color:#ce93d8;">⚜️ Contribuir para ${guildName}</div>
+      <p style="font-size:12px;color:#c0c0d0;line-height:1.7;margin-bottom:14px;">
+        ${active
+          ? "⚔️ A guerra está ativa! Relate o resultado de suas batalhas para contribuir com pontos extras para sua guilda!"
+          : "⏸️ A guerra não está ativa no momento. Contribuições só contam durante os horários de guerra (Sex/Sáb 16:00–23:00)."}
+      </p>
+
+      <div style="background:#0a0a1e;border-radius:10px;padding:10px;margin-bottom:14px;text-align:center;">
+        <div style="font-size:11px;color:#9e9e9e;">Sua contribuição esta temporada</div>
+        <div style="font-family:'Cinzel',serif;font-size:28px;font-weight:900;color:#7c4dff;">${fmtNum(myPts)} <span style="font-size:14px;color:#9e9e9e;">pts</span></div>
+      </div>
+
+      ${active ? `
+      <div style="font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:#9e9e9e;margin-bottom:8px;">Resultado da última batalha:</div>
+      <div class="result-row">
+        <button class="result-btn win"  onclick="contributeResult('win')">✅ Vitória<br><span style="font-size:10px;opacity:0.8;">+10 pts</span></button>
+        <button class="result-btn draw" onclick="contributeResult('draw')">🤝 Empate<br><span style="font-size:10px;opacity:0.8;">+5 pts</span></button>
+        <button class="result-btn lose" onclick="contributeResult('lose')">❌ Derrota<br><span style="font-size:10px;opacity:0.8;">+0 pts</span></button>
+      </div>
+      <div style="font-size:11px;color:#555;text-align:center;margin-top:8px;line-height:1.6;">
+        Relate somente batalhas reais! Abuso = banimento.
+      </div>` : `
+      <div style="text-align:center;padding:16px;background:#0a0a0a;border-radius:10px;border:1px solid #1e1e30;">
+        <div style="font-size:13px;color:#555;">Guerra inativa agora</div>
+        <div style="font-size:11px;color:#333;margin-top:4px;">Volte na sexta ou sábado, das 16:00 às 23:00</div>
+      </div>`}
+    </div>
+
+    <div class="panel" style="margin-bottom:10px;">
+      <div class="panel-title">💡 Como Contribuir</div>
+      <div style="font-size:12px;color:#c0c0d0;line-height:1.8;">
+        Após cada batalha durante a guerra, clique no resultado acima.<br>
+        Os pontos de contribuição se somam aos pontos automáticos da sua guilda.<br><br>
+        <strong style="color:#7c4dff;">Lembre:</strong> a maioria dos pontos são aleatórios (1-100/min) —
+        sua contribuição <em>ajuda</em> mas não garante vitória!
+      </div>
+    </div>`;
+}
+
+function contributeResult(result) {
+  if (typeof isSeasonEnded==="function" && isSeasonEnded()) { showToast("🏆 Temporada encerrada — aguarde a próxima!", "error"); return; }
+  if (!isWarActive()) { showToast("⏸️ A guerra não está ativa agora!", "error"); return; }
+  if (!save.guildaId) { showToast("❌ Você precisa estar em uma guilda!", "error"); return; }
+
+  const guildIdx = WAR_GUILDS.findIndex(g => g.id === save.guildaId);
+  if (!save.guildWarContribs) save.guildWarContribs = {};
+  const pts = result === "win" ? 10 : result === "draw" ? 5 : 0; // v7.1: derrota não subtrai
+  save.guildWarContribs[guildIdx] = (save.guildWarContribs[guildIdx] || 0) + pts;
+  if (save.guildWarContribs[guildIdx] < 0) save.guildWarContribs[guildIdx] = 0;
+  // Missão do Battle Pass: "Contribua 3× para a guilda" — cada relato conta
+  if (typeof updatePassMissionProgress === "function") {
+    updatePassMissionProgress(save, "pmGuild", 1);
+  }
+  writeSave(save);
+
+  const msg = result === "win"
+    ? "✅ Vitória reportada! +10 pontos para sua guilda!"
+    : result === "draw"
+    ? "🤝 Empate reportado! +5 pontos para sua guilda!"
+    : "❌ Derrota reportada. Nenhum ponto perdido — só vitórias somam!";
+  showToast(msg, result === "lose" ? "error" : "gold");
+  renderContribute();
+  renderGuildRanking();
+}
+
+function switchTab(tab, btn) {
+  currentTab = tab;
+  ["ranking","contribute","rules"].forEach(t => {
+    document.getElementById("tab-"+t).style.display = t === tab ? "block" : "none";
+  });
+  document.querySelectorAll(".war-tab").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+
+  if (tab === "ranking")   renderGuildRanking();
+  if (tab === "contribute") renderContribute();
+}
+
+// ── COUNTDOWN ───────────────────────────────────────────────────
+function startCountdown() {
+  setInterval(() => {
+    const active = isWarActive();
+    const now    = new Date();
+    const el     = document.getElementById("war-countdown");
+    if (!el) return;
+
+    if (active) {
+      const endTime = new Date(now); endTime.setHours(23,0,0,0);
+      const rem = Math.max(0, endTime - now);
+      const h = Math.floor(rem / 3600000);
+      const m = Math.floor((rem % 3600000) / 60000);
+      const s = Math.floor((rem % 60000) / 1000);
+      el.textContent = `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+    } else {
+      // Calcular ms até sexta 16:00
+      const day  = now.getDay();
+      const hour = now.getHours();
+      const min  = now.getMinutes();
+      const sec  = now.getSeconds();
+
+      let daysToFri = (5 - day + 7) % 7;
+      if (daysToFri === 0 && (hour > 23 || (hour === 23))) daysToFri = 7;
+      if ((day === 5 && hour >= 23) || day === 6 && hour >= 23) daysToFri = (5 - day + 7 + 7) % 7 || 7;
+
+      const targetMs = now.getTime()
+        + daysToFri * 86400000
+        - (hour * 3600 + min * 60 + sec) * 1000
+        + 16 * 3600000;
+      const rem = Math.max(0, targetMs - now.getTime());
+      const totalH = Math.floor(rem / 3600000);
+      const remM   = Math.floor((rem % 3600000) / 60000);
+      const remS   = Math.floor((rem % 60000) / 1000);
+      el.textContent = `${String(totalH).padStart(2,"0")}h ${String(remM).padStart(2,"0")}m ${String(remS).padStart(2,"0")}s`;
+    }
+
+    // Atualiza label
+    const lbl = document.getElementById("next-update-label");
+    if (lbl) lbl.textContent = `+pts em ${60 - now.getSeconds()}s`;
+  }, 1000);
+}
+
+function init() {
+  save = getOrCreateSave();
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+
+  if (isWarActive()) {
+    document.getElementById("hero-icon").textContent = "🔥";
+    document.getElementById("hero-sub").textContent = "⚔️ GUERRA ATIVA! Guildas em batalha!";
+  }
+
+  renderWarStatus();
+  renderGuildRanking();
+  startCountdown();
+
+  // Atualizar ranking a cada minuto (só quando guerra ativa)
+  setInterval(() => {
+    if (typeof isSeasonEnded==="function" && isSeasonEnded()) return;
+    renderWarStatus();
+    renderGuildRanking();
+    if (currentTab === "contribute") renderContribute();
+  }, 60000);
+
+  startAutoSave(() => save);
+}
+
+init();
+</script>
+</body>
+</html>

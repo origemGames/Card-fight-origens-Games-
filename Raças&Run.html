@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Faça Seu Caminho – Card Fight</title>
+<script>
+  var CF_BUILD = Date.now();
+  document.write('<link rel="stylesheet" href="game.css?v=' + CF_BUILD + '"/>');
+</script>
+<style>
+/* ═════════════ HERO ═════════════ */
+.racas-hero{
+  background:linear-gradient(180deg,#050510 0%,#150025 45%,#050510 100%);
+  border:2px solid #ff00aa;border-radius:20px;
+  padding:22px 16px 18px;margin-bottom:14px;text-align:center;
+  position:relative;overflow:hidden;
+  box-shadow:0 6px 30px rgba(255,0,170,0.18);
+}
+.racas-hero::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(255,0,170,0.18) 0%,transparent 60%);
+  pointer-events:none;
+}
+.racas-hero::after{
+  content:'✨';position:absolute;top:8px;right:12px;font-size:32px;opacity:0.6;
+  animation:sparkle 3s ease-in-out infinite;
+}
+@keyframes sparkle{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.3) rotate(15deg)}}
+.racas-title{
+  font-family:'Cinzel',serif;font-size:26px;font-weight:900;
+  background:linear-gradient(135deg,#ff00aa 0%,#ffc107 40%,#00e5ff 70%,#ff00aa 100%);
+  background-size:200%;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  letter-spacing:2px;
+  animation:title-shimmer 4s linear infinite;
+}
+.racas-sub{font-size:11px;color:#c9b48a;margin-top:4px;}
+
+/* ═════════════ TABS ═════════════ */
+.tabs{
+  display:flex;gap:4px;background:#0e0e1e;border:1px solid #1e1e30;
+  border-radius:12px;padding:4px;margin-bottom:12px;overflow-x:auto;
+}
+.tab{
+  flex:1;min-width:80px;text-align:center;padding:9px 6px;font-size:11px;
+  font-weight:700;border-radius:8px;cursor:pointer;color:#8a8a9e;
+  transition:all 0.2s;white-space:nowrap;
+}
+.tab.active{background:linear-gradient(135deg,#ff00aa,#7c4dff);color:#fff;box-shadow:0 4px 12px rgba(255,0,170,0.3);}
+
+/* ═════════════ RAÇAS GRID ═════════════ */
+.race-card{
+  background:linear-gradient(135deg,#0a0a18,#12122a);
+  border:2px solid var(--r-color,#333);border-radius:16px;
+  padding:14px;margin-bottom:12px;position:relative;overflow:hidden;
+  transition:transform 0.2s,box-shadow 0.2s;
+}
+.race-card:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,0.5);}
+.race-card::before{
+  content:attr(data-emoji);position:absolute;font-size:120px;
+  top:-30px;right:-20px;opacity:0.06;
+}
+.race-card.v4{
+  border-color:#ffc107;
+  box-shadow:0 0 20px rgba(255,193,7,0.4),inset 0 0 20px rgba(255,193,7,0.05);
+  animation:v4-glow 2s ease-in-out infinite;
+}
+@keyframes v4-glow{0%,100%{box-shadow:0 0 20px rgba(255,193,7,0.4)}50%{box-shadow:0 0 34px rgba(255,193,7,0.7)}}
+.race-card.origens-race{
+  background:linear-gradient(135deg,#0a0018,#180025,#0a0018);
+  border-color:#ff00aa;
+  box-shadow:0 0 22px rgba(255,0,170,0.35);
+  animation:origens-pulse 3s ease-in-out infinite;
+}
+@keyframes origens-pulse{0%,100%{border-color:#ff00aa}50%{border-color:#00e5ff}}
+.race-head{display:flex;align-items:center;gap:12px;margin-bottom:10px;position:relative;z-index:1;}
+.race-emoji-big{font-size:44px;filter:drop-shadow(0 0 10px var(--r-color,#666));}
+.race-info{flex:1;}
+.race-name{font-family:'Cinzel',serif;font-weight:900;font-size:18px;color:var(--r-color,#fff);}
+.race-title-sub{font-size:10px;color:#9e9e9e;margin-top:1px;}
+.race-ver-badge{
+  font-size:10px;font-weight:900;padding:3px 10px;border-radius:10px;
+  background:var(--r-color,#333);color:#000;
+}
+.race-ver-badge.v4{
+  background:linear-gradient(135deg,#ffc107,#ff6d00,#ffc107);color:#000;
+  animation:v4-shine 1.5s linear infinite;
+}
+@keyframes v4-shine{0%{filter:brightness(1)}50%{filter:brightness(1.5)}100%{filter:brightness(1)}}
+.race-lore{font-size:11px;color:#c9b48a;line-height:1.6;margin-bottom:10px;font-style:italic;position:relative;z-index:1;}
+.race-progress-bar{background:#1e1e30;border-radius:20px;height:8px;overflow:hidden;margin-bottom:8px;}
+.race-progress-fill{height:100%;background:linear-gradient(90deg,var(--r-color,#666),#ffc107);transition:width 0.5s ease;}
+.race-meta{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#9e9e9e;margin-bottom:10px;}
+.race-actions{display:flex;gap:6px;flex-wrap:wrap;position:relative;z-index:1;}
+.race-btn{
+  flex:1;min-width:110px;padding:9px 10px;border-radius:9px;text-align:center;
+  font-size:12px;font-weight:700;cursor:pointer;border:1px solid #333;
+  background:#12122a;color:#e0e0f0;transition:all 0.18s;
+}
+.race-btn.primary{background:linear-gradient(135deg,var(--r-color,#666),#000);border-color:var(--r-color,#666);}
+.race-btn:disabled,.race-btn.locked{opacity:0.45;cursor:not-allowed;}
+.race-btn:not(:disabled):hover{transform:translateY(-2px);}
+
+/* ═════════════ ARTEFATOS ═════════════ */
+.artifact-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.artifact-card{
+  background:linear-gradient(135deg,#0e0e1e,#1a1a2e);
+  border:2px dashed #333;border-radius:14px;padding:12px 10px;text-align:center;
+  transition:all 0.25s;position:relative;overflow:hidden;
+}
+.artifact-card.owned{
+  border-style:solid;border-color:#ffc107;
+  background:linear-gradient(135deg,#1a1400,#2d2000);
+  box-shadow:0 4px 20px rgba(255,193,7,0.3);
+}
+.artifact-card.owned::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(120deg,transparent 30%,rgba(255,193,7,0.15) 50%,transparent 70%);
+  background-size:200%;
+  animation:btn-shimmer 3s ease infinite;
+  pointer-events:none;
+}
+/* BUGFIX (auditoria): @keyframes btn-shimmer era usado acima mas nunca
+   definido em lugar nenhum do arquivo (nem em outra página do jogo) —
+   o brilho passando sobre os artefatos conquistados nunca animava. */
+@keyframes btn-shimmer{
+  0%{background-position:200% 0;}
+  100%{background-position:-200% 0;}
+}
+.artifact-emoji{font-size:42px;display:block;margin-bottom:4px;filter:drop-shadow(0 0 8px rgba(255,193,7,0.5));}
+.artifact-name{font-family:'Cinzel',serif;font-size:12px;color:#ffc107;font-weight:700;margin-bottom:2px;}
+.artifact-desc{font-size:10px;color:#9e9e9e;line-height:1.5;}
+
+/* ═════════════ FUSÃO DOMINADOR ═════════════ */
+.dominator-box{
+  background:linear-gradient(135deg,#1a0025,#3a0055,#1a0025);
+  border:3px solid #ff00aa;border-radius:18px;padding:16px;margin-bottom:14px;
+  text-align:center;position:relative;overflow:hidden;
+  box-shadow:0 6px 30px rgba(255,0,170,0.35);
+}
+.dominator-box::before{
+  content:'👑';position:absolute;font-size:180px;opacity:0.05;top:-30px;right:-30px;
+}
+.dominator-title{
+  font-family:'Cinzel',serif;font-size:20px;font-weight:900;
+  background:linear-gradient(135deg,#ff00aa,#ffc107,#00e5ff,#ff00aa);
+  background-size:200%;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:title-shimmer 3s linear infinite;
+  margin-bottom:6px;
+}
+.dominator-stats{
+  display:flex;justify-content:center;gap:14px;font-size:14px;font-weight:800;
+  margin:8px 0;color:#ffc107;
+}
+
+/* ═════════════ CAMINHO (JORNADA) ═════════════ */
+.node-list{margin-top:10px;}
+.node-item{
+  display:flex;align-items:center;gap:10px;padding:10px;
+  background:#0e0e1e;border:1px solid #1e1e30;border-radius:10px;margin-bottom:6px;
+  font-size:12px;
+}
+.node-item.current{border-color:#ffc107;background:linear-gradient(135deg,#1a1000,#2a1a08);box-shadow:0 0 12px rgba(255,193,7,0.3);}
+.node-item.done{opacity:0.5;}
+.node-num{font-family:'Cinzel',serif;font-weight:900;font-size:14px;color:#ffc107;min-width:26px;text-align:center;}
+.node-body{flex:1;line-height:1.5;}
+.node-kind-chip{
+  font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;margin-left:4px;
+  background:#333;color:#c0c0d0;
+}
+.node-kind-chip.choice{background:#7c4dff;color:#fff;}
+.node-kind-chip.boss{background:#ff4444;color:#fff;animation:danger-pulse 1s infinite;}
+@keyframes danger-pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+
+/* ═════════════ CONQUISTAS ═════════════ */
+.ach-item{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:#0e0e1e;border:1px solid #1e1e30;border-radius:10px;margin-bottom:6px;
+  transition:border-color 0.2s;
+}
+.ach-item.unlocked{border-color:#66bb6a;background:linear-gradient(135deg,#0a1a0a,#0e1e0e);}
+.ach-item.claimed{border-color:#546e7a;opacity:0.6;}
+.ach-icon{font-size:26px;filter:drop-shadow(0 0 6px rgba(255,193,7,0.4));}
+.ach-body{flex:1;}
+.ach-name{font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:#ffc107;}
+.ach-desc{font-size:10px;color:#9e9e9e;margin-top:2px;}
+.ach-reward{font-size:10px;color:#66bb6a;margin-top:3px;}
+.ach-claim{
+  background:#66bb6a;color:#000;border:none;border-radius:8px;padding:6px 12px;
+  font-size:11px;font-weight:800;cursor:pointer;
+}
+.ach-claim:disabled{background:#333;color:#666;cursor:not-allowed;}
+
+/* ═════════════ INFO PANEL ═════════════ */
+.info-box{
+  background:linear-gradient(135deg,#0a0e18,#12162a);
+  border:1px solid #2a3a5a;border-radius:12px;padding:14px;margin-bottom:12px;
+  font-size:12px;line-height:1.8;color:#c0c0d0;
+}
+.info-box h3{
+  font-family:'Cinzel',serif;font-size:14px;color:#00e5ff;margin-bottom:6px;
+  border-bottom:1px solid #2a3a5a;padding-bottom:4px;
+}
+.info-box b{color:#ffc107;}
+.info-box .tag{background:#7c4dff;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;margin-right:4px;}
+
+/* ═════════════ MODAIS ═════════════ */
+.rmodal-backdrop{
+  position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;
+  display:flex;align-items:center;justify-content:center;padding:16px;
+  animation:fade-in 0.2s;
+}
+@keyframes fade-in{from{opacity:0}to{opacity:1}}
+.rmodal{
+  background:linear-gradient(180deg,#0a0a18,#12122a);
+  border:2px solid var(--r-color,#7c4dff);border-radius:16px;
+  padding:18px;max-width:420px;width:100%;max-height:88vh;overflow-y:auto;
+  animation:scale-in 0.25s ease;
+}
+@keyframes scale-in{from{transform:scale(0.9);opacity:0}to{transform:scale(1);opacity:1}}
+.rmodal h2{font-family:'Cinzel',serif;font-size:18px;color:var(--r-color,#ffc107);margin-bottom:8px;}
+.rmodal .close{float:right;background:none;border:none;color:#9e9e9e;font-size:22px;cursor:pointer;}
+
+/* ═════════════ ANIMAÇÃO DOMINADOR ═════════════ */
+.fusion-overlay{position:fixed;inset:0;background:#000;z-index:9999;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.fusion-stage{position:relative;width:320px;height:320px;}
+.fusion-artifact{
+  position:absolute;font-size:56px;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  animation:fuse 3.5s ease-out forwards;
+  filter:drop-shadow(0 0 20px currentColor);
+}
+.fusion-artifact.a1{color:#66bb6a;--fx:-120px;--fy:-100px;}
+.fusion-artifact.a2{color:#29b6f6;--fx:120px;--fy:-100px;}
+.fusion-artifact.a3{color:#ce93d8;--fx:-140px;--fy:60px;}
+.fusion-artifact.a4{color:#00e5ff;--fx:140px;--fy:60px;}
+.fusion-artifact.a5{color:#ffc107;--fx:0;--fy:120px;}
+@keyframes fuse{
+  0%{transform:translate(calc(-50% + var(--fx)*3),calc(-50% + var(--fy)*3)) scale(0.5) rotate(0);opacity:0;}
+  25%{transform:translate(calc(-50% + var(--fx)),calc(-50% + var(--fy))) scale(1.2) rotate(360deg);opacity:1;}
+  70%{transform:translate(calc(-50% + var(--fx)*0.4),calc(-50% + var(--fy)*0.4)) scale(1.4) rotate(720deg);opacity:1;}
+  100%{transform:translate(-50%,-50%) scale(0.3) rotate(1080deg);opacity:0;}
+}
+.fusion-final{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);
+  font-size:120px;color:#ff00aa;
+  filter:drop-shadow(0 0 40px #ff00aa) drop-shadow(0 0 80px #ffc107);
+  animation:reveal 2s ease-out 3.2s forwards;
+}
+@keyframes reveal{
+  0%{transform:translate(-50%,-50%) scale(0) rotate(0);opacity:0;}
+  60%{transform:translate(-50%,-50%) scale(1.4) rotate(720deg);opacity:1;}
+  100%{transform:translate(-50%,-50%) scale(1) rotate(720deg);opacity:1;}
+}
+.fusion-caption{
+  position:absolute;bottom:60px;left:0;right:0;text-align:center;
+  font-family:'Cinzel',serif;font-size:22px;font-weight:900;
+  background:linear-gradient(135deg,#ff00aa,#ffc107,#00e5ff);
+  background-size:200%;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:title-shimmer 2s linear infinite;
+  opacity:0;
+  animation-delay:4.5s;
+  animation-fill-mode:forwards;
+}
+.fusion-close{
+  position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
+  background:linear-gradient(135deg,#ff00aa,#7c4dff);color:#fff;border:none;
+  padding:10px 24px;border-radius:20px;font-weight:800;font-size:13px;cursor:pointer;
+  opacity:0;animation:fade-in 0.5s 5.5s forwards;
+}
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Início</a>
+  <span class="logo-title">✨ FAÇA SEU CAMINHO</span>
+  <span style="width:66px;"></span>
+</header>
+
+<main class="content">
+
+  <div class="racas-hero">
+    <div style="font-size:56px;filter:drop-shadow(0 0 20px #ff00aa);">🌌</div>
+    <div class="racas-title">FAÇA SEU CAMINHO</div>
+    <div class="racas-sub">v19.0 · 5 Raças + Origens · 5 Artefatos · Dominador</div>
+    <div style="display:flex;justify-content:center;gap:12px;margin-top:10px;font-size:12px;font-weight:700;">
+      <span style="background:rgba(255,193,7,0.15);color:#ffc107;padding:5px 12px;border-radius:14px;">🪙 <span id="hud-gold">0</span></span>
+      <span style="background:rgba(0,229,255,0.15);color:#00e5ff;padding:5px 12px;border-radius:14px;">⚡ <span id="hud-energy">0</span> Energia</span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="racas">🐺 Raças</div>
+    <div class="tab" data-tab="jornada">🗺️ Jornada</div>
+    <div class="tab" data-tab="artefatos">🏆 Artefatos</div>
+    <div class="tab" data-tab="conquistas">🎖️ Conquistas</div>
+    <div class="tab" data-tab="painel">📖 Painel</div>
+  </div>
+
+  <!-- ═══════════ TAB RAÇAS ═══════════ -->
+  <div id="tab-racas" class="tab-panel">
+    <div class="info-box" style="border-color:#ff00aa;">
+      <h3 style="color:#ff00aa;">✨ Escolha seu Caminho</h3>
+      Cada raça é uma jornada única de <b>30 batalhas</b>. A cada vitória, suas cartas
+      descansam <b style="color:#66bb6a;">24 horas</b>. Se perder, ficam feridas por
+      <b style="color:#ff4444;">3 dias</b>. Ao completar a raça você ganha um <b>Artefato</b>
+      permanente e sobe da <b>V1 → V4</b>.
+    </div>
+    <div id="races-list"></div>
+
+    <!-- Origens - altar de fusão -->
+    <div class="info-box" style="margin-top:14px;border-color:#ff00aa;background:linear-gradient(135deg,#180025,#0a0018);">
+      <h3 style="color:#ff00aa;">🌌 Altar de Origens</h3>
+      Após todas as 5 raças em <b>V4</b> e reunindo <b>5 cartas Origens</b> no cofre,
+      você pode fundi-las aqui para desbloquear a <b style="color:#ff00aa;">Raça Origens</b> — a mais rara do jogo.
+      <div style="text-align:center;margin-top:10px;">
+        <button id="btn-fuse-origens" class="race-btn primary" style="--r-color:#ff00aa;background:linear-gradient(135deg,#ff00aa,#7c4dff);color:#fff;max-width:280px;margin:0 auto;">
+          ✨ Fundir 5 Origens
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ TAB JORNADA ═══════════ -->
+  <div id="tab-jornada" class="tab-panel" style="display:none;">
+    <div id="journey-empty" class="info-box" style="display:none;">
+      Nenhuma raça ativa. Escolha uma na aba <b>Raças</b>.
+    </div>
+    <div id="journey-content"></div>
+  </div>
+
+  <!-- ═══════════ TAB ARTEFATOS ═══════════ -->
+  <div id="tab-artefatos" class="tab-panel" style="display:none;">
+    <div class="info-box"><h3>🏆 Seus Artefatos</h3>Artefatos são conquistados ao completar cada raça. Eles concedem <b>bônus permanentes</b> em toda a conta.</div>
+    <div class="artifact-grid" id="artifact-grid"></div>
+
+    <div class="dominator-box" id="dominator-box">
+      <div style="font-size:60px;">👑</div>
+      <div class="dominator-title">DOMINADOR DE ARTEFATOS</div>
+      <div style="font-size:11px;color:#c9b48a;line-height:1.7;margin:6px 0;">
+        Funda os 5 Artefatos + 1.000.000 🪙 + 500 ⚡ em uma única carta lendária.
+      </div>
+      <div class="dominator-stats">
+        <span>⚔️ ATK 1050</span>
+        <span>❤️ HP 3000</span>
+        <span style="color:#ff00aa;">🌌 ORIGENS</span>
+      </div>
+      <button id="btn-fuse-dominator" class="race-btn primary" style="--r-color:#ff00aa;background:linear-gradient(135deg,#ff00aa,#ffc107);color:#000;font-weight:900;">
+        FUNDIR DOMINADOR
+      </button>
+    </div>
+
+    <div class="info-box" id="sigil-box" style="border-color:#00e5ff;background:linear-gradient(135deg,#001a2a,#002d4e);">
+      <h3 style="color:#00e5ff;">✨ Sigilo das Origens</h3>
+      Após <b>V4 em todas as 6 raças</b>, o Sigilo ✨ pode ser equipado em uma carta do cofre,
+      dando <b>+50% ATK e +50% HP</b> em batalhas clássicas.
+      <div id="sigil-current" style="margin-top:8px;font-size:11px;color:#9e9e9e;"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ TAB CONQUISTAS ═══════════ -->
+  <div id="tab-conquistas" class="tab-panel" style="display:none;">
+    <div class="info-box"><h3>🎖️ 20 Conquistas</h3>Ganhe <b>ouro</b>, <b>XP</b> e <b>XPP</b> completando desafios do sistema.</div>
+    <div id="ach-list"></div>
+  </div>
+
+  <!-- ═══════════ TAB PAINEL EXPLICATIVO ═══════════ -->
+  <div id="tab-painel" class="tab-panel" style="display:none;">
+    <div class="info-box"><h3>📖 O que é "Faça Seu Caminho"?</h3>
+      Um <b>modo de jornada solo</b> onde você escolhe uma raça e enfrenta 30 batalhas em sequência,
+      com <b>lore contínua</b>, escolhas de rota e recompensas permanentes.
+    </div>
+
+    <div class="info-box"><h3>🐺 As 5 Raças (+ Origens)</h3>
+      <span class="tag" style="background:#66bb6a;color:#000;">HUMAN</span> Reino de Aldoran — Ouro<br>
+      <span class="tag" style="background:#29b6f6;">SHARK</span> Mar de Sombra — XP<br>
+      <span class="tag" style="background:#ce93d8;color:#000;">MINK</span> Floresta de Zou — XPP<br>
+      <span class="tag" style="background:#00e5ff;color:#000;">CYBORG</span> Neo-Baltigo — ATK<br>
+      <span class="tag" style="background:#ffc107;color:#000;">ANGEL</span> Skypiea — HP<br>
+      <span class="tag" style="background:#ff00aa;">ORIGENS</span> Antes das Eras — Sigilo ✨
+    </div>
+
+    <div class="info-box"><h3>⏳ Cooldowns</h3>
+      <b style="color:#66bb6a;">Vitória:</b> "Suas cartas estão muito cansadas... espere 24h."<br>
+      <b style="color:#ff4444;">Derrota:</b> "Suas cartas estão muito feridas... espere 3 dias."<br>
+      <br>Você pode <b>pular o cooldown</b> gastando <b>50 ⚡ Energia</b>.
+    </div>
+
+    <div class="info-box"><h3>🎴 Requisito de Deck (10 cartas)</h3>
+      Cada batalha exige uma composição específica.<br>
+      Exemplos:
+      <ul style="margin:6px 0 0 20px;color:#c0c0d0;">
+        <li>Node 1: <b>6 Comuns · 3 Raras · 1 Épica</b></li>
+        <li>Node 15: <b>9 Épicas · 1 Lendária</b></li>
+        <li>Node 30 (BOSS): <b>5 Legendárias · 5 Míticas</b></li>
+      </ul>
+    </div>
+
+    <div class="info-box"><h3>🛤️ Rotas Duplas</h3>
+      Nos nodes <b>8, 16 e 24</b> você escolhe entre duas rotas.<br>
+      A lore muda drasticamente, mas o <b>Artefato final é o mesmo</b> — quem quiser ver as duas histórias
+      só ganha replay-value e a conquista <b>"Ambos os Caminhos"</b>.
+    </div>
+
+    <div class="info-box"><h3>⭐ Versões V1 → V4</h3>
+      Cada vez que você <b>zera</b> a raça, ela sobe de versão.
+      Ao chegar em <b>V4</b>, o símbolo da raça fica cheio de efeitos brilhantes,
+      e cada V4 aumenta a chance de vitória em batalhas de raça em <b>+2% por versão</b>.
+      <b>V4 também dá um pequeno bônus</b> em batalhas clássicas.
+    </div>
+
+    <div class="info-box"><h3>🏆 Dominador de Artefatos</h3>
+      Reúna os 5 Artefatos, pague <b>1.000.000 🪙 + 500 ⚡</b>, e assista à animação
+      de fusão para receber a carta <b>ORIGENS</b> mais forte do jogo:
+      <b style="color:#ff00aa;">Dominador de Artefatos (ATK 1050 / HP 3000)</b>.
+    </div>
+
+    <div class="info-box"><h3>🌌 Raça Origens</h3>
+      Só se abre depois de <b>V4 em todas as 5 raças</b> + <b>fundir 5 cartas Origens</b>.
+      Ao chegar em V4 na Origens: <b>1M 🪙, 5M XPP, 10M XP</b>, título <b>"Portador das Origens"</b>
+      e animação exclusiva.
+    </div>
+
+    <div class="info-box" style="border-color:#00e5ff;"><h3 style="color:#00e5ff;">✨ Sigilo Origens</h3>
+      Com V4 em todas as 6 raças, equipe o Sigilo <b>✨</b> em qualquer carta do cofre:
+      ela ganha <b>+50% ATK</b> e <b>+50% HP</b> em batalhas clássicas — <b>bônus absurdo</b>.
+    </div>
+
+    <div class="info-box"><h3>⚡ Energia (nova moeda)</h3>
+      Ganha em batalhas de raça (1/vitória, 5 em nodes múltiplos de 5).<br>
+      Usada para: <b>desbloquear raças</b>, <b>pular cooldowns</b> (50⚡), <b>fundir Dominador</b> (500⚡).
+    </div>
+  </div>
+
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="Ra%C3%A7as%26Run.html" class="nav-btn active"><span class="icon">✨</span>Caminho</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+
+<div id="toast-container"></div>
+</div>
+
+<script>
+  [ "gamedata.js","gamedata2.js","gamedata3.js","gamedata-racas-patch.js" ]
+    .forEach(function(src){ document.write('<scr'+'ipt src="'+src+'?v='+CF_BUILD+'"></scr'+'ipt>'); });
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   UI CONTROLLER
+   ═══════════════════════════════════════════════════════════ */
+(function(){
+  if (!window.RacasAPI) {
+    document.body.innerHTML = '<div style="padding:40px;text-align:center;color:#ff4444;">Erro: gamedata-racas-patch.js não carregado. Recarregue a página.</div>';
+    return;
+  }
+  const API = window.RacasAPI;
+  const $  = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+
+  function toast(msg, color){
+    color = color || "#7c4dff";
+    var t = document.createElement("div");
+    t.style.cssText = "position:fixed;top:70px;left:50%;transform:translateX(-50%);background:"+color+";color:#fff;padding:10px 18px;border-radius:12px;font-weight:800;font-size:12px;z-index:2000;box-shadow:0 6px 20px rgba(0,0,0,0.5);animation:fade-in 0.2s;";
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function(){ t.remove(); }, 2600);
+  }
+  window.toast = toast;
+
+  function getSave(){
+    if (typeof getOrCreateSave === "function") return getOrCreateSave();
+    try { return JSON.parse(localStorage.getItem("cardfight_save_v3")||"{}"); } catch(e){ return {}; }
+  }
+
+  function updateHUD(){
+    const s = getSave(); const r = API.ensure();
+    $("#hud-gold").textContent   = (s.gold||0).toLocaleString("pt-BR");
+    $("#hud-energy").textContent = r.energy||0;
+  }
+
+  // ─── TABS ────────────────────────────────────────────────
+  $$(".tab").forEach(function(t){
+    t.addEventListener("click", function(){
+      $$(".tab").forEach(x=>x.classList.remove("active"));
+      t.classList.add("active");
+      $$(".tab-panel").forEach(p=>p.style.display="none");
+      $("#tab-"+t.dataset.tab).style.display="block";
+      renderAll();
+    });
+  });
+
+  // ─── RAÇAS ───────────────────────────────────────────────
+  function renderRaces(){
+    const s = getSave(); const r = API.ensure();
+    const list = $("#races-list"); list.innerHTML = "";
+    API.listRaces().forEach(function(race){
+      const rst = r.races[race.id] || { unlocked:false, ver:1, nodeIdx:0 };
+      const path = API.getPath(race.id);
+      const prog = Math.round((rst.nodeIdx / path.length) * 100);
+      const cd = API.cooldownRemaining(race.id);
+      const isV4 = rst.ver >= 4;
+      const isOrigens = race.id === "origens";
+
+      let btnHtml = "";
+      if (!rst.unlocked){
+        const cost = race.unlockCost || {gold:0,energy:0};
+        if (isOrigens && !r.origensUnlocked){
+          btnHtml = `<button class="race-btn locked" disabled>🔒 Funda 5 Origens no Altar</button>`;
+        } else {
+          btnHtml = `<button class="race-btn primary" data-unlock="${race.id}">
+            🔓 Desbloquear${cost.gold?` · ${cost.gold.toLocaleString("pt-BR")} 🪙`:""}${cost.energy?` · ${cost.energy} ⚡`:""}
+          </button>`;
+        }
+      } else if (cd > 0){
+        const kind = rst.cooldownKind==="hurt" ? "🩹 Feridas" : "😴 Cansadas";
+        btnHtml = `<button class="race-btn" disabled>${kind} · ${API.cooldownLabel(cd)}</button>
+          <button class="race-btn" data-skip="${race.id}">⚡ Pular (50)</button>`;
+      } else {
+        btnHtml = `<button class="race-btn primary" data-fight="${race.id}">⚔️ Batalhar (Node ${rst.nodeIdx+1}/${path.length})</button>
+          <button class="race-btn" data-view="${race.id}">🗺️ Ver Jornada</button>`;
+      }
+
+      const card = document.createElement("div");
+      card.className = "race-card"+(isV4?" v4":"")+(isOrigens?" origens-race":"");
+      card.style.setProperty("--r-color", race.color);
+      card.dataset.emoji = race.emoji;
+      card.innerHTML = `
+        <div class="race-head">
+          <span class="race-emoji-big">${race.emoji}${isV4?"✨":""}</span>
+          <div class="race-info">
+            <div class="race-name">${race.name}</div>
+            <div class="race-title-sub">${race.title}</div>
+          </div>
+          <span class="race-ver-badge${isV4?" v4":""}">V${rst.ver}${isV4?" ✨":""}</span>
+        </div>
+        <div class="race-lore">"${race.lore}"</div>
+        <div class="race-progress-bar"><div class="race-progress-fill" style="width:${rst.unlocked?prog:0}%;"></div></div>
+        <div class="race-meta">
+          <span>🏆 ${race.artifact.emoji} ${race.artifact.name}</span>
+          <span>Completada ${rst.completions||0}x</span>
+        </div>
+        <div class="race-actions">${btnHtml}</div>
+      `;
+      list.appendChild(card);
+    });
+
+    // Handlers
+    list.querySelectorAll("[data-unlock]").forEach(b=>{
+      b.onclick = ()=>{ const res = API.unlockRace(b.dataset.unlock); toast(res.ok?"🔓 Raça desbloqueada!":res.msg, res.ok?"#66bb6a":"#ff4444"); if (res.ok){ updateHUD(); renderRaces(); } };
+    });
+    list.querySelectorAll("[data-skip]").forEach(b=>{
+      b.onclick = ()=>{ const res = API.skipCooldown(b.dataset.skip); toast(res.ok?"⚡ Cooldown pulado!":res.msg, res.ok?"#66bb6a":"#ff4444"); if (res.ok){ updateHUD(); renderRaces(); } };
+    });
+    list.querySelectorAll("[data-fight]").forEach(b=>{
+      b.onclick = ()=> openBattleModal(b.dataset.fight);
+    });
+    list.querySelectorAll("[data-view]").forEach(b=>{
+      b.onclick = ()=>{ // vai pra aba jornada
+        $$(".tab").forEach(x=>x.classList.remove("active"));
+        $$(".tab").find(t=>t.dataset.tab==="jornada").classList.add("active");
+        $$(".tab-panel").forEach(p=>p.style.display="none");
+        $("#tab-jornada").style.display="block";
+        // BUGFIX (auditoria): o código antigo pegava um objeto NOVO via
+        // getSave() e alterava .racas.activeRace nele, sem nunca chamar
+        // writeSave/_persist — a alteração nunca era salva de verdade.
+        // API.setActiveRace() (exposto pelo patch) persiste corretamente.
+        API.setActiveRace(b.dataset.view);
+        renderJourney(b.dataset.view);
+      };
+    });
+  }
+
+  // ─── BATALHA (modal) ─────────────────────────────────────
+  function openBattleModal(raceId){
+    const s = getSave(); const r = API.ensure();
+    const race = API.getRace(raceId);
+    const node = API.getCurrentNode(raceId);
+    if (!node){ toast("Caminho concluído!"); return; }
+
+    const isChoice = node.kind === "choice";
+    const isBoss   = node.kind === "boss";
+    const rst = r.races[raceId];
+    const lore = (rst.path === "B") ? node.loreB : node.loreA;
+
+    const bd = document.createElement("div");
+    bd.className = "rmodal-backdrop";
+    bd.innerHTML = `
+      <div class="rmodal" style="--r-color:${race.color};">
+        <button class="close">×</button>
+        <h2>${race.emoji} ${race.name} — Node ${node.n}${isBoss?" (BOSS)":""}</h2>
+        <div style="font-size:11px;color:#c9b48a;margin-bottom:10px;font-style:italic;">${lore}</div>
+        <div style="background:#0a0a18;border:1px solid #2a2a4a;border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;">
+          🎯 Inimigo: <b>${node.enemyName}</b><br>
+          🎴 Requisito: <b style="color:${race.color};">${API.reqLabel(node.req)}</b><br>
+          💰 Recompensa: <b>${node.rewardGold.toLocaleString("pt-BR")} 🪙 · ${node.rewardXp} XP · ${node.rewardEnergy} ⚡</b>
+        </div>
+        ${isChoice ? `
+          <div style="background:#1a0040;border:1px solid #7c4dff;border-radius:10px;padding:10px;margin-bottom:10px;font-size:11px;">
+            🛤️ <b>Escolha sua rota:</b>
+            <div style="display:flex;gap:6px;margin-top:6px;">
+              <button data-path="A" class="race-btn ${rst.path==='A'?'primary':''}" style="--r-color:${race.color};">Rota A</button>
+              <button data-path="B" class="race-btn ${rst.path==='B'?'primary':''}" style="--r-color:${race.color};">Rota B</button>
+            </div>
+          </div>
+        ` : ""}
+        <div style="display:flex;gap:6px;">
+          <button id="do-battle" class="race-btn primary" style="--r-color:${race.color};background:linear-gradient(135deg,${race.color},#000);color:#fff;font-weight:900;">⚔️ Iniciar Batalha</button>
+          <button id="do-cancel" class="race-btn">Cancelar</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(bd);
+
+    bd.querySelector(".close").onclick = ()=> bd.remove();
+    bd.querySelector("#do-cancel").onclick = ()=> bd.remove();
+    bd.querySelectorAll("[data-path]").forEach(b=>{
+      b.onclick = ()=>{ API.setPath(raceId, b.dataset.path); bd.remove(); openBattleModal(raceId); };
+    });
+    bd.querySelector("#do-battle").onclick = ()=>{
+      // Verifica requisito no cofre (usa as 10 primeiras cartas do vault que satisfaçam)
+      const s2 = getSave();
+      const vault = s2.vault || [];
+      // "Auto-selection": pega uma composição válida se possível
+      const req = node.req;
+      // BUGFIX v19.1: req.ep ("épicos extra") nunca era somado ao total de
+      // Épicas aqui — como c+r+e+ep+l+m sempre soma 10 nos dados do node,
+      // ignorar "ep" fazia o deck montado ter MENOS de 10 cartas na
+      // maioria dos nodes, e checkDeckRequirement sempre rejeitava com
+      // "deve ter exatamente 10 cartas", tornando a batalha impossível
+      // de iniciar mesmo com cartas suficientes no cofre.
+      const epicNeed = (req.e||0) + (req.ep||0);
+      // BUGFIX (auditoria): vault é um array de IDs de carta (string),
+      // igual em todo o resto do jogo (getHandFromVault() em gamedata.js
+      // sempre resolve por getCardById(id)) — o código antigo tratava
+      // cada item como se já fosse o objeto da carta (c.rarity), então
+      // TODOS os grupos ficavam sempre vazios e nenhuma batalha podia
+      // começar, mesmo com o cofre cheio das cartas certas.
+      const groups = {c:[],r:[],e:[],l:[],m:[]};
+      vault.forEach(cid=>{
+        const c = (typeof getCardById === "function") ? getCardById(cid) : null;
+        if (!c) return;
+        const rr = (c.rarity||"").toUpperCase();
+        if (rr==="COMMON") groups.c.push(cid);
+        else if (rr==="RARE") groups.r.push(cid);
+        else if (rr==="EPIC" || rr==="ULTRA_RARE") groups.e.push(cid);
+        else if (rr==="LEGENDARY") groups.l.push(cid);
+        else if (rr==="MYTHIC" || rr==="ORIGENS") groups.m.push(cid);
+      });
+      const deck = [].concat(groups.c.slice(0,req.c), groups.r.slice(0,req.r),
+                             groups.e.slice(0,epicNeed), groups.l.slice(0,req.l),
+                             groups.m.slice(0,req.m));
+      const check = API.checkDeckRequirement(deck, req);
+      if (!check.ok){
+        toast(check.msg, "#ff4444");
+        return;
+      }
+      bd.remove();
+      const res = API.battle(raceId);
+      showBattleResult(raceId, res);
+    };
+  }
+
+  function showBattleResult(raceId, res){
+    if (!res.ok){ toast(res.msg, "#ff4444"); return; }
+    const race = API.getRace(raceId);
+    const bd = document.createElement("div");
+    bd.className = "rmodal-backdrop";
+    bd.innerHTML = `
+      <div class="rmodal" style="--r-color:${res.won?'#66bb6a':'#ff4444'};text-align:center;">
+        <div style="font-size:56px;margin-bottom:6px;">${res.won?"🏆":"💔"}</div>
+        <h2 style="color:${res.won?'#66bb6a':'#ff4444'};">${res.won?"VITÓRIA!":"DERROTA"}</h2>
+        <div style="font-size:12px;color:#c9b48a;margin-bottom:10px;">Chance de vitória: ${res.chance}%</div>
+        ${res.won ? `
+          <div style="background:#0a1a0a;border:1px solid #66bb6a;border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;">
+            +${res.reward.gold.toLocaleString("pt-BR")} 🪙<br>
+            +${res.reward.xp} XP<br>
+            +${res.reward.energy} ⚡ Energia
+          </div>
+          ${res.raceCompleted ? `
+            <div style="background:linear-gradient(135deg,#1a1400,#2d2000);border:2px solid #ffc107;border-radius:12px;padding:12px;margin-bottom:10px;">
+              <div style="font-size:36px;">${race.artifact.emoji}</div>
+              <div style="font-family:'Cinzel',serif;font-size:14px;color:#ffc107;font-weight:900;">${race.artifact.name}</div>
+              <div style="font-size:10px;color:#c9b48a;margin-top:2px;">${race.artifact.desc}</div>
+              ${res.newVer? `<div style="margin-top:6px;font-size:11px;color:#00e5ff;">Raça agora está em <b>V${res.newVer}</b>!</div>` : ""}
+              ${res.v4Reached && res.v4Reward ? `<div style="margin-top:6px;font-size:11px;color:#ffc107;">🌟 Bônus de V4: +${res.v4Reward.gold.toLocaleString("pt-BR")}🪙 · +${res.v4Reward.xpp.toLocaleString("pt-BR")} XPP!</div>` : ""}
+              ${res.origensV4 ? `<div style="margin-top:6px;font-size:11px;color:#ff00aa;font-weight:900;">👑 TÍTULO: "Portador das Origens" + 1M🪙 + 5M XPP + 10M XP!</div>` : ""}
+            </div>
+          ` : `
+            <div style="background:#1a1000;border:1px solid #ffc107;border-radius:10px;padding:10px;font-size:11px;color:#ffc107;">
+              💤 Suas cartas estão muito cansadas para continuar...<br>
+              Espere <b>24 horas</b> ou gaste <b>50 ⚡</b> para continuar.
+            </div>
+          `}
+        ` : `
+          <div style="background:#1a0000;border:1px solid #ff4444;border-radius:10px;padding:10px;font-size:11px;color:#ff8888;">
+            🩹 Suas cartas estão muito feridas...<br>
+            Espere <b>3 dias</b> ou gaste <b>50 ⚡</b> para continuar.
+          </div>
+        `}
+        <button id="close-res" class="race-btn primary" style="--r-color:${race.color};margin-top:12px;">Continuar</button>
+      </div>
+    `;
+    document.body.appendChild(bd);
+    // BUGFIX (auditoria): o Painel promete "animação exclusiva" ao chegar em
+    // V4 na Origens, mas o resultado só mostrava uma linha de texto dentro
+    // do modal padrão — nenhuma animação de fato rodava. Reaproveitando o
+    // mesmo overlay de fusão já usado pelo Dominador (mesmas classes CSS),
+    // disparado ao fechar o resultado da batalha quando res.origensV4.
+    bd.querySelector("#close-res").onclick = ()=>{
+      bd.remove(); updateHUD();
+      if (res.origensV4) playOrigensV4Animation(); else renderAll();
+    };
+  }
+
+  function playOrigensV4Animation(){
+    const ov = document.createElement("div");
+    ov.className = "fusion-overlay";
+    ov.innerHTML = `
+      <div class="fusion-stage">
+        <span class="fusion-artifact a1">🥇</span>
+        <span class="fusion-artifact a2">🦷</span>
+        <span class="fusion-artifact a3">🌙</span>
+        <span class="fusion-artifact a4">⚙️</span>
+        <span class="fusion-artifact a5">🕊️</span>
+        <span class="fusion-final">🌌</span>
+      </div>
+      <div class="fusion-caption">PORTADOR DAS ORIGENS</div>
+      <button class="fusion-close">Continuar</button>
+    `;
+    document.body.appendChild(ov);
+    ov.querySelector(".fusion-close").onclick = ()=>{ ov.remove(); renderAll(); };
+  }
+
+  // ─── JORNADA (visualização de nodes) ─────────────────────
+  function renderJourney(raceIdOverride){
+    const s = getSave(); const r = API.ensure();
+    const raceId = raceIdOverride || r.activeRace || Object.keys(r.races).find(k=>r.races[k].unlocked) || "human";
+    const race = API.getRace(raceId);
+    const rst  = r.races[raceId];
+    const cont = $("#journey-content");
+    if (!rst || !rst.unlocked){ $("#journey-empty").style.display="block"; cont.innerHTML=""; return; }
+    $("#journey-empty").style.display="none";
+    const path = API.getPath(raceId);
+    let html = `
+      <div class="race-card" style="--r-color:${race.color};" data-emoji="${race.emoji}">
+        <div class="race-head">
+          <span class="race-emoji-big">${race.emoji}</span>
+          <div class="race-info">
+            <div class="race-name">${race.name} — Jornada</div>
+            <div class="race-title-sub">Rota atual: ${rst.path||'A'}</div>
+          </div>
+          <span class="race-ver-badge${rst.ver>=4?' v4':''}">V${rst.ver}</span>
+        </div>
+      </div>
+      <div class="node-list">`;
+    path.forEach(function(node,i){
+      const isCur  = i === rst.nodeIdx;
+      const isDone = i < rst.nodeIdx;
+      const lore   = (rst.path==="B" ? node.loreB : node.loreA);
+      const chip   = node.kind==="boss" ? '<span class="node-kind-chip boss">BOSS</span>' :
+                    (node.kind==="choice" ? '<span class="node-kind-chip choice">ESCOLHA</span>' : '');
+      html += `<div class="node-item ${isCur?'current':''} ${isDone?'done':''}">
+        <div class="node-num">${node.n}</div>
+        <div class="node-body">
+          <b>${node.enemyName}</b>${chip}<br>
+          <span style="color:#8a8a9e;font-size:10px;">Req: ${API.reqLabel(node.req)} · +${node.rewardGold.toLocaleString("pt-BR")}🪙</span>
+          ${isCur?`<br><span style="color:#c9b48a;font-style:italic;font-size:10px;">"${lore}"</span>`:""}
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+    cont.innerHTML = html;
+  }
+
+  // ─── ARTEFATOS ───────────────────────────────────────────
+  function renderArtifacts(){
+    const s = getSave(); const r = API.ensure();
+    const grid = $("#artifact-grid"); grid.innerHTML = "";
+    ["human","shark","mink","cyborg","angel"].forEach(function(id){
+      const race = API.getRace(id);
+      const owned = !!r.artifacts[race.artifact.id];
+      const el = document.createElement("div");
+      el.className = "artifact-card"+(owned?" owned":"");
+      el.innerHTML = `
+        <span class="artifact-emoji">${race.artifact.emoji}</span>
+        <div class="artifact-name">${race.artifact.name}</div>
+        <div class="artifact-desc">${race.artifact.desc}</div>
+        <div style="margin-top:6px;font-size:9px;color:${owned?'#66bb6a':'#666'};">
+          ${owned?"✅ Conquistado":"🔒 Raça: "+race.name}
+        </div>`;
+      grid.appendChild(el);
+    });
+
+    // Dominador btn
+    const btn = $("#btn-fuse-dominator");
+    if (r.artifacts.dominator){
+      btn.textContent = "✅ DOMINADOR JÁ CRIADO";
+      btn.disabled = true;
+    }
+    btn.onclick = function(){
+      const res = API.fuseDominator();
+      if (!res.ok){ toast(res.msg,"#ff4444"); return; }
+      playFusionAnimation(res.card);
+    };
+
+    // Sigilo
+    // BUGFIX (auditoria): vault é um array de IDs de carta (string), não
+    // objetos — (s.vault||[]).find(c=>c.id===...) nunca encontrava nada,
+    // então o nome da carta equipada nunca aparecia (sempre "?").
+    // Também não existia NENHUM controle na UI pra chamar API.equipSigil()
+    // — a feature "Sigilo das Origens" (prometida no Painel e no próprio
+    // texto desta caixa) era inalcançável, mesmo com as 6 raças em V4.
+    const sc = $("#sigil-current");
+    const allV4 = ["human","shark","mink","cyborg","angel","origens"]
+      .every(id => ((r.races[id]||{}).ver||0) >= 4);
+    if (r.sigilCardId){
+      const inVault = (s.vault||[]).indexOf(r.sigilCardId) !== -1;
+      const cardData = (typeof getCardById === "function") ? getCardById(r.sigilCardId) : null;
+      sc.innerHTML = "✨ Equipado em: <b style='color:#00e5ff'>"+((inVault && cardData) ? cardData.name : "?")+"</b>";
+      if (allV4){
+        sc.innerHTML += `<div style="margin-top:8px;"><select id="sigil-select" style="width:100%;padding:6px;border-radius:8px;background:#0a0a18;color:#e0e0f0;border:1px solid #2a3a5a;"></select>
+          <button id="sigil-equip-btn" class="race-btn primary" style="--r-color:#00e5ff;margin-top:6px;">✨ Trocar carta do Sigilo</button></div>`;
+      }
+    } else if (allV4){
+      sc.innerHTML = `Nenhuma carta com Sigilo equipada ainda.
+        <div style="margin-top:8px;"><select id="sigil-select" style="width:100%;padding:6px;border-radius:8px;background:#0a0a18;color:#e0e0f0;border:1px solid #2a3a5a;"></select>
+        <button id="sigil-equip-btn" class="race-btn primary" style="--r-color:#00e5ff;margin-top:6px;">✨ Equipar Sigilo</button></div>`;
+    } else {
+      sc.innerHTML = "Nenhuma carta com Sigilo. Alcance V4 em todas as raças para equipar.";
+    }
+    const sel = $("#sigil-select");
+    if (sel){
+      const vaultIds = s.vault || [];
+      if (!vaultIds.length){
+        sel.innerHTML = `<option value="">Cofre vazio</option>`;
+      } else {
+        sel.innerHTML = vaultIds.map(cid=>{
+          const c = (typeof getCardById === "function") ? getCardById(cid) : null;
+          const label = c ? (c.name+" ("+c.rarity+")") : cid;
+          return `<option value="${cid}" ${cid===r.sigilCardId?"selected":""}>${label}</option>`;
+        }).join("");
+      }
+      $("#sigil-equip-btn").onclick = ()=>{
+        if (!sel.value){ toast("Seu cofre está vazio.", "#ff4444"); return; }
+        const res = API.equipSigil(sel.value);
+        toast(res.ok?"✨ Sigilo equipado!":res.msg, res.ok?"#00e5ff":"#ff4444");
+        if (res.ok) renderArtifacts();
+      };
+    }
+  }
+
+  function playFusionAnimation(card){
+    const ov = document.createElement("div");
+    ov.className = "fusion-overlay";
+    ov.innerHTML = `
+      <div class="fusion-stage">
+        <span class="fusion-artifact a1">🥇</span>
+        <span class="fusion-artifact a2">🦷</span>
+        <span class="fusion-artifact a3">🌙</span>
+        <span class="fusion-artifact a4">⚙️</span>
+        <span class="fusion-artifact a5">🕊️</span>
+        <span class="fusion-final">👑</span>
+      </div>
+      <div class="fusion-caption">DOMINADOR DE ARTEFATOS</div>
+      <button class="fusion-close">Continuar</button>
+    `;
+    document.body.appendChild(ov);
+    ov.querySelector(".fusion-close").onclick = ()=>{ ov.remove(); toast("👑 Dominador adicionado ao cofre!", "#ff00aa"); updateHUD(); renderAll(); };
+  }
+
+  // ─── CONQUISTAS ──────────────────────────────────────────
+  function renderAchievements(){
+    const list = $("#ach-list"); list.innerHTML = "";
+    API.listAchievements().forEach(function(a){
+      const el = document.createElement("div");
+      el.className = "ach-item"+(a.unlocked?" unlocked":"")+(a.claimed?" claimed":"");
+      el.innerHTML = `
+        <div class="ach-icon">${a.claimed?"✅":(a.unlocked?"🎖️":"🔒")}</div>
+        <div class="ach-body">
+          <div class="ach-name">${a.name}</div>
+          <div class="ach-desc">${a.desc}</div>
+          <div class="ach-reward">+${(a.reward.gold||0).toLocaleString("pt-BR")}🪙 · +${a.reward.xp||0} XP · +${a.reward.xpp||0} XPP</div>
+        </div>
+        <button class="ach-claim" ${(!a.unlocked||a.claimed)?"disabled":""} data-claim="${a.id}">${a.claimed?"OK":"Resgatar"}</button>
+      `;
+      list.appendChild(el);
+    });
+    list.querySelectorAll("[data-claim]").forEach(b=>{
+      b.onclick = ()=>{ const res = API.claimAchievement(b.dataset.claim); toast(res.ok?"🎁 Recompensa!":res.msg, res.ok?"#66bb6a":"#ff4444"); if (res.ok){ updateHUD(); renderAchievements(); } };
+    });
+  }
+
+  // ─── ORIGENS FUSE BUTTON ─────────────────────────────────
+  $("#btn-fuse-origens").onclick = function(){
+    const res = API.fuseOrigensRace();
+    if (res.ok){
+      toast("🌌 Raça ORIGENS desbloqueada!","#ff00aa");
+      renderAll();
+    } else {
+      toast(res.msg, "#ff4444");
+    }
+  };
+
+  // ─── RENDER ALL ──────────────────────────────────────────
+  function renderAll(){
+    updateHUD();
+    renderRaces();
+    renderJourney();
+    renderArtifacts();
+    renderAchievements();
+  }
+
+  // Cooldown tick
+  setInterval(function(){
+    // Só renderiza cards com cooldown pra evitar flicker
+    const r = API.ensure();
+    const anyCd = Object.keys(r.races||{}).some(k=>API.cooldownRemaining(k)>0);
+    if (anyCd && $("#tab-racas").style.display !== "none") renderRaces();
+  }, 1000);
+
+  renderAll();
+})();
+</script>
+</body>
+</html>

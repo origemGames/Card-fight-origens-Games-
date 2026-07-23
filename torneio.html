@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Torneio Eliminatório – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+/* ═══════════════════════════════════════════════
+   HERO DO TORNEIO
+═══════════════════════════════════════════════ */
+.torneio-hero {
+  background:linear-gradient(135deg,#080018,#150030,#080018);
+  border:2px solid #7c4dff; border-radius:20px;
+  padding:22px 16px 18px; margin-bottom:16px; text-align:center;
+  position:relative; overflow:hidden;
+}
+.torneio-hero::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% -10%,rgba(124,77,255,0.2) 0%,transparent 60%);
+  pointer-events:none;
+}
+.torneio-hero .big-icon {
+  font-size:68px; display:block; margin-bottom:8px;
+  filter:drop-shadow(0 0 28px rgba(124,77,255,0.7));
+  animation:float 2.5s ease-in-out infinite;
+}
+.torneio-hero .title {
+  font-family:'Cinzel',serif; font-size:22px; font-weight:900;
+  background:linear-gradient(135deg,#ce93d8,#7c4dff,#29b6f6);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:4px; letter-spacing:1px;
+}
+.torneio-hero .sub { font-size:12px; color:#9e9e9e; }
+
+/* ═══════════════════════════════════════════════
+   BRACKET
+═══════════════════════════════════════════════ */
+.bracket-container {
+  display:flex; flex-direction:column; gap:8px; margin-bottom:16px;
+}
+.bracket-round {
+  background:#0e0e1c; border:1px solid #1e1e30; border-radius:14px;
+  padding:14px; position:relative; overflow:hidden; transition:all 0.3s;
+}
+.bracket-round.active {
+  border-color:#7c4dff;
+  box-shadow:0 4px 20px rgba(124,77,255,0.2);
+  background:linear-gradient(135deg,#0a0020,#120030);
+}
+.bracket-round.won   { border-color:#66bb6a; background:linear-gradient(135deg,#0a1a0a,#0d200d); }
+.bracket-round.lost  { border-color:#f44336; background:linear-gradient(135deg,#1a0000,#200505); opacity:0.7; }
+.bracket-round.locked { border-color:#1e1e30; opacity:0.45; }
+
+.round-header {
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;
+}
+.round-number {
+  font-family:'Cinzel',serif; font-size:11px; font-weight:700;
+  color:var(--round-color,#9e9e9e); letter-spacing:1px; text-transform:uppercase;
+}
+.round-badge {
+  font-size:9px; font-weight:700; padding:2px 8px; border-radius:8px; color:#fff;
+}
+.round-badge.active  { background:#7c4dff; animation:glow-pulse 1.5s infinite; }
+.round-badge.won     { background:#388e3c; }
+.round-badge.lost    { background:#c62828; }
+.round-badge.locked  { background:#2a2a4a; }
+.round-badge.current { background:linear-gradient(135deg,#7c4dff,#9c27b0); }
+
+.matchup-row {
+  display:flex; align-items:center; gap:8px;
+}
+.fighter-box {
+  flex:1; background:rgba(0,0,0,0.3); border-radius:10px;
+  padding:10px 8px; text-align:center; border:1px solid #2a2a4a; transition:border-color 0.3s;
+}
+.fighter-box.you   { border-color:#7c4dff; background:rgba(124,77,255,0.1); }
+.fighter-box.enemy { border-color:#1a2a4a; }
+.fighter-box.winner{ border-color:#66bb6a; background:rgba(76,175,80,0.1); }
+.fighter-box.loser { border-color:#f44336; background:rgba(244,67,54,0.07); opacity:0.6; }
+
+.fighter-emoji { font-size:26px; display:block; margin-bottom:3px; }
+.fighter-name  { font-size:10px; font-weight:700; color:#fff; }
+.fighter-rank  { font-size:9px; color:#9e9e9e; margin-top:1px; }
+.fighter-card  {
+  display:inline-flex; align-items:center; gap:3px;
+  font-size:9px; padding:2px 6px; border-radius:6px; margin-top:4px;
+  background:rgba(255,255,255,0.05); color:#9e9e9e;
+}
+
+.vs-box { font-family:'Cinzel',serif; font-size:16px; font-weight:900; color:#7c4dff; flex-shrink:0; }
+
+.round-rewards {
+  display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;
+}
+.reward-chip {
+  font-size:10px; padding:3px 8px; border-radius:8px;
+  background:rgba(255,193,7,0.08); border:1px solid rgba(255,193,7,0.2); color:#ffe082;
+}
+
+/* ═══════════════════════════════════════════════
+   BATTLE OVERLAY (em batalha)
+═══════════════════════════════════════════════ */
+.battle-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.92);
+  z-index:100; display:none; flex-direction:column;
+  align-items:center; justify-content:flex-start;
+  padding:16px;
+}
+.battle-overlay.show { display:flex; }
+
+.battle-arena {
+  width:100%; max-width:400px; margin:0 auto;
+}
+.battle-title {
+  font-family:'Cinzel',serif; font-size:16px; font-weight:900;
+  color:#ce93d8; text-align:center; margin-bottom:12px;
+  text-shadow:0 0 20px rgba(124,77,255,0.6);
+}
+.hp-bar-wrap { margin-bottom:10px; }
+.hp-label { display:flex; justify-content:space-between; font-size:11px; color:#9e9e9e; margin-bottom:4px; }
+.hp-track { height:12px; background:#1a1a30; border-radius:8px; overflow:hidden; border:1px solid #2a2a4a; }
+.hp-fill  { height:100%; border-radius:8px; transition:width 0.5s; }
+.hp-fill.player { background:linear-gradient(90deg,#4CAF50,#66bb6a); }
+.hp-fill.enemy  { background:linear-gradient(90deg,#f44336,#ff6d00); }
+
+.card-battle-area {
+  display:flex; align-items:center; gap:10px; margin:16px 0;
+}
+.battle-card {
+  flex:1; background:#0e0e1c; border:2px solid #2a2a4a;
+  border-radius:14px; padding:14px; text-align:center; transition:all 0.3s;
+}
+.battle-card.attack-anim { transform:scale(1.08); border-color:#ffc107; box-shadow:0 0 20px rgba(255,193,7,0.5); }
+.battle-card.hit-anim    { transform:scale(0.94); border-color:#f44336; box-shadow:0 0 20px rgba(244,67,54,0.4); }
+
+.battle-card .bc-emoji { font-size:42px; display:block; margin-bottom:6px; }
+.battle-card .bc-name  { font-family:'Cinzel',serif; font-size:12px; font-weight:700; }
+.battle-card .bc-stat  { font-size:10px; color:#9e9e9e; margin-top:4px; }
+.battle-card .bc-rarity{ font-size:9px; margin-top:3px; }
+
+.battle-log {
+  background:#070712; border-radius:10px; padding:10px 12px;
+  font-size:12px; color:#c0c0d0; line-height:1.8; min-height:80px;
+  max-height:130px; overflow-y:auto; margin-bottom:12px;
+  border:1px solid #1a1a30;
+}
+
+.turn-num {
+  text-align:center; font-size:10px; color:#555; margin-bottom:8px; letter-spacing:1px;
+}
+
+/* Botão de ação de batalha */
+.battle-btn {
+  width:100%; padding:14px; border:none; border-radius:12px; font-size:15px;
+  font-family:'Cinzel',serif; font-weight:700; cursor:pointer; transition:all 0.2s;
+  background:linear-gradient(135deg,#7c4dff,#9c27b0);
+  color:#fff; box-shadow:0 4px 16px rgba(124,77,255,0.4);
+}
+.battle-btn:hover { box-shadow:0 6px 24px rgba(124,77,255,0.6); transform:translateY(-2px); }
+.battle-btn:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+
+/* ═══════════════════════════════════════════════
+   RESULT SCREEN
+═══════════════════════════════════════════════ */
+.result-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.95);
+  z-index:200; display:none; flex-direction:column;
+  align-items:center; justify-content:center; padding:20px;
+}
+.result-overlay.show { display:flex; }
+.result-card {
+  width:100%; max-width:340px; border-radius:20px;
+  padding:24px; text-align:center; position:relative; overflow:hidden;
+}
+.result-card.victory { background:linear-gradient(135deg,#0a2010,#0d3015); border:2px solid #66bb6a; }
+.result-card.defeat  { background:linear-gradient(135deg,#200000,#300a00); border:2px solid #f44336; }
+.result-card.champion{ background:linear-gradient(135deg,#0a0020,#1a003a); border:2px solid #7c4dff;
+  box-shadow:0 0 40px rgba(124,77,255,0.4); }
+
+.result-icon  { font-size:64px; display:block; margin-bottom:12px; animation:float 2s ease-in-out infinite; }
+.result-title { font-family:'Cinzel',serif; font-size:22px; font-weight:900; margin-bottom:6px; }
+.result-desc  { font-size:12px; color:#9e9e9e; line-height:1.8; margin-bottom:16px; }
+
+.reward-list  { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+.reward-row   {
+  display:flex; align-items:center; gap:8px; padding:8px 12px;
+  background:rgba(0,0,0,0.3); border-radius:8px; border:1px solid #2a2a4a;
+  font-size:12px; color:#c0c0d0;
+}
+.reward-row .rr-val { margin-left:auto; font-weight:700; color:#ffc107; }
+
+/* ═══════════════════════════════════════════════
+   ENTRAR NO TORNEIO
+═══════════════════════════════════════════════ */
+.entry-panel {
+  background:linear-gradient(135deg,#0a0020,#150035);
+  border:2px solid #7c4dff; border-radius:16px;
+  padding:18px; margin-bottom:16px; position:relative; overflow:hidden;
+}
+.entry-panel::before {
+  content:'🏆'; position:absolute; font-size:80px; opacity:0.05; top:0; right:5px;
+}
+.cost-chip {
+  display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:700;
+  padding:4px 12px; border-radius:10px;
+  background:rgba(255,193,7,0.1); border:1px solid #ffc107; color:#ffe082;
+  margin-bottom:12px;
+}
+.rule-item {
+  display:flex; align-items:flex-start; gap:8px; padding:8px 10px;
+  background:rgba(0,0,0,0.3); border-radius:8px; border-left:3px solid #7c4dff;
+  margin-bottom:6px; font-size:12px; color:#c0c0d0; line-height:1.6;
+}
+
+/* ═══════════════════════════════════════════════
+   HISTÓRICO DE TORNEIOS
+═══════════════════════════════════════════════ */
+.torneio-hist-item {
+  background:#0e0e1c; border-radius:12px; padding:12px; margin-bottom:8px;
+  border-left:3px solid var(--hist-color,#555);
+}
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title" style="background:linear-gradient(135deg,#ce93d8,#7c4dff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">🏆 TORNEIO</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content">
+
+  <!-- Hero -->
+  <div class="torneio-hero">
+    <span class="big-icon">🏆</span>
+    <div class="title">Torneio Eliminatório</div>
+    <div class="sub">4 rodadas · Adversários crescentes · Uma derrota e você está fora!</div>
+    <div style="margin-top:10px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1;">
+      <span style="font-size:10px;background:rgba(124,77,255,0.15);border:1px solid #7c4dff;color:#ce93d8;border-radius:8px;padding:2px 8px;">🆕 NOVO EM v8.0</span>
+      <span style="font-size:10px;background:rgba(255,193,7,0.1);border:1px solid #ffc107;color:#ffe082;border-radius:8px;padding:2px 8px;">🏆 Recompensas Épicas</span>
+    </div>
+  </div>
+
+  <!-- Painel de entrada (visível quando sem torneio ativo) -->
+  <div id="entry-panel" class="entry-panel">
+    <div style="font-family:'Cinzel',serif;font-size:15px;font-weight:700;color:#ce93d8;margin-bottom:6px;">
+      ⚔️ Inscrição no Torneio
+    </div>
+    <div class="cost-chip">🪙 Custo: <span id="entry-cost">50.000</span> ouro para entrar</div>
+    <div style="font-size:12px;color:#9e9e9e;line-height:1.8;margin-bottom:12px;" id="entry-desc">
+      Reúna seu melhor deck e enfrente 4 rodadas de batalha eliminatória.
+      Chegue ao fim e ganhe as maiores recompensas do jogo!
+    </div>
+
+    <!-- Regras -->
+    <div class="rule-item">⚔️ <span><strong style="color:#ce93d8;">4 rodadas</strong> — Quartas, Semifinal, Final e Grande Final</span></div>
+    <div class="rule-item">📈 <span>Cada rodada os oponentes ficam <strong style="color:#ffc107;">mais fortes e mais raros</strong></span></div>
+    <div class="rule-item">💀 <span><strong style="color:#ef9a9a;">Uma única derrota</strong> elimina você — começa do zero</span></div>
+    <div class="rule-item">🏆 <span>Campeão recebe <strong style="color:#ffc107;">título exclusivo + carta Ultra Rara</strong></span></div>
+    <div class="rule-item">🃏 <span>Suas cartas do cofre atual são usadas na batalha</span></div>
+
+    <!-- Preview de recompensas por rodada -->
+    <div style="margin:12px 0 8px;font-size:11px;font-weight:700;color:#9e9e9e;letter-spacing:0.5px;">PRÊMIOS POR RODADA</div>
+    <div id="rewards-preview"></div>
+
+    <button class="btn btn-primary btn-block btn-lg" id="btn-enter" onclick="enterTournament()" style="margin-top:14px;background:linear-gradient(135deg,#7c4dff,#9c27b0);border-color:#ce93d8;">
+      🏆 Entrar no Torneio
+    </button>
+    <div id="entry-error" style="display:none;margin-top:8px;text-align:center;font-size:12px;color:#ef9a9a;"></div>
+  </div>
+
+  <!-- Bracket (visível durante e após o torneio) -->
+  <div id="bracket-section" style="display:none;">
+    <div style="font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:#ce93d8;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+      📊 Torneio em andamento
+      <span id="bracket-status-chip" style="font-size:9px;font-weight:700;padding:2px 8px;background:#7c4dff;color:#fff;border-radius:8px;"></span>
+    </div>
+    <div class="bracket-container" id="bracket-container"></div>
+    <button class="btn btn-primary btn-block" id="btn-fight" onclick="startFight()" style="margin-bottom:16px;background:linear-gradient(135deg,#7c4dff,#9c27b0);border-color:#ce93d8;">
+      ⚔️ Lutar agora!
+    </button>
+    <button class="btn btn-outline btn-block btn-sm" onclick="abandonTournament()" style="margin-bottom:16px;">
+      🏳️ Abandonar torneio
+    </button>
+  </div>
+
+  <!-- Histórico de torneios -->
+  <div id="history-section">
+    <div class="about-section" style="font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:#ffc107;margin:16px 0 10px;display:flex;align-items:center;gap:8px;">
+      📋 Histórico <span style="flex:1;height:1px;background:linear-gradient(90deg,#ffc10744,transparent);"></span>
+    </div>
+    <div id="history-list"></div>
+  </div>
+
+  <div style="height:80px;"></div>
+</main>
+
+<!-- ═══ OVERLAY DE BATALHA ═══ -->
+<div class="battle-overlay" id="battle-overlay">
+  <div class="battle-arena" style="width:100%;max-width:420px;margin:0 auto;">
+    <div class="battle-title" id="battle-round-title">⚔️ Quartas de Final</div>
+
+    <!-- HP Barras -->
+    <div class="hp-bar-wrap">
+      <div class="hp-label">
+        <span id="player-hp-label">Você · 1000 HP</span>
+        <span style="font-size:10px;color:#7c4dff;" id="turn-label">Turno 1</span>
+      </div>
+      <div class="hp-track"><div class="hp-fill player" id="player-hp-bar" style="width:100%;"></div></div>
+    </div>
+    <div class="hp-bar-wrap">
+      <div class="hp-label">
+        <span id="enemy-hp-label">Oponente · 1000 HP</span>
+        <span id="enemy-name-label" style="font-size:10px;color:#ef9a9a;"></span>
+      </div>
+      <div class="hp-track"><div class="hp-fill enemy" id="enemy-hp-bar" style="width:100%;"></div></div>
+    </div>
+
+    <!-- Cards em campo -->
+    <div class="card-battle-area">
+      <div class="battle-card" id="player-card-box">
+        <span class="bc-emoji" id="p-card-emoji">🃏</span>
+        <div class="bc-name"  id="p-card-name">—</div>
+        <div class="bc-stat"  id="p-card-stat">ATK: — · HP: —</div>
+        <div class="bc-rarity" id="p-card-rarity"></div>
+      </div>
+      <div class="vs-box">VS</div>
+      <div class="battle-card" id="enemy-card-box">
+        <span class="bc-emoji" id="e-card-emoji">🃏</span>
+        <div class="bc-name"  id="e-card-name">—</div>
+        <div class="bc-stat"  id="e-card-stat">ATK: — · HP: —</div>
+        <div class="bc-rarity" id="e-card-rarity"></div>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="battle-log" id="battle-log"></div>
+
+    <!-- Botão de turno -->
+    <button class="battle-btn" id="btn-turn" onclick="doTurn()">⚔️ Jogar Turno</button>
+  </div>
+</div>
+
+<!-- ═══ OVERLAY DE RESULTADO ═══ -->
+<div class="result-overlay" id="result-overlay">
+  <div class="result-card" id="result-card">
+    <span class="result-icon" id="result-icon">🏆</span>
+    <div class="result-title" id="result-title">Vitória!</div>
+    <div class="result-desc"  id="result-desc"></div>
+    <div class="reward-list"  id="result-rewards"></div>
+    <button class="btn btn-primary btn-block" id="btn-result-continue" onclick="continueAfterResult()">
+      Continuar ▶
+    </button>
+    <button class="btn btn-outline btn-block btn-sm" style="margin-top:8px;" onclick="document.getElementById('result-overlay').classList.remove('show')">
+      Fechar
+    </button>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js"></script>
+<script src="gamedata2.js"></script>
+<script src="gamedata3.js"></script>
+<script src="gamedata-v7-patch.js"></script>
+<script>
+"use strict";
+
+// ─────────────────────────────────────────────────────────
+//  CONFIGURAÇÃO DAS RODADAS
+// ─────────────────────────────────────────────────────────
+const ROUNDS = [
+  {
+    id:        "quartas",
+    name:      "⚔️ Quartas de Final",
+    shortName: "Quartas",
+    color:     "#29b6f6",
+    diffMult:  0.8,         // multiplicador de força do oponente
+    opponentRarityMin: "COMMON",
+    opponent: { name:"ShadowKnight",   emoji:"🗡️", rank:"Prata II" },
+    rewardGold: 300,
+    rewardXp:   500,
+    rewardXpp:  100,
+  },
+  {
+    id:        "semi",
+    name:      "🔥 Semifinal",
+    shortName: "Semi",
+    color:     "#ffc107",
+    diffMult:  1.1,
+    opponentRarityMin: "RARE",
+    opponent: { name:"BladeStorm",     emoji:"⚡", rank:"Ouro I" },
+    rewardGold: 800,
+    rewardXp:   120,
+    rewardXpp:  250,
+  },
+  {
+    id:        "final",
+    name:      "⚔️ Final",
+    shortName: "Final",
+    color:     "#ff6d00",
+    diffMult:  1.4,
+    opponentRarityMin: "EPIC",
+    opponent: { name:"IronEmperor",    emoji:"🏰", rank:"Platina III" },
+    rewardGold: 1000,
+    rewardXp:   300,
+    rewardXpp:  600,
+  },
+  {
+    id:        "grande_final",
+    name:      "🏆 Grande Final",
+    shortName: "G.Final",
+    color:     "#7c4dff",
+    diffMult:  1.8,
+    opponentRarityMin: "LEGENDARY",
+    opponent: { name:"Lorde Origens",  emoji:"👑", rank:"Lenda" },
+    rewardGold: 5000,
+    rewardXp:   10000,
+    rewardXpp:  200,
+    championCard: true,
+    championTitle:"🏆 Campeão do Torneio",
+  },
+];
+
+const ENTRY_COST = 50000;
+const SAVE_KEY_T = "cf_torneio_state";
+
+// ─────────────────────────────────────────────────────────
+//  ESTADO
+// ─────────────────────────────────────────────────────────
+let save, tState = null;
+
+// tState: { active, round (0-3), results: [] }
+// result: { won: bool, damage, rounds }
+
+function loadTState() {
+  try { return JSON.parse(localStorage.getItem(SAVE_KEY_T)||"null"); } catch { return null; }
+}
+function saveTState() {
+  try { localStorage.setItem(SAVE_KEY_T, JSON.stringify(tState)); } catch {}
+}
+
+// ─────────────────────────────────────────────────────────
+//  RENDERIZAR PÁGINA PRINCIPAL
+// ─────────────────────────────────────────────────────────
+function renderPage() {
+  const entryPanel   = document.getElementById("entry-panel");
+  const bracketSec   = document.getElementById("bracket-section");
+
+  if (tState && tState.active) {
+    entryPanel.style.display  = "none";
+    bracketSec.style.display  = "block";
+    renderBracket();
+  } else {
+    entryPanel.style.display  = "block";
+    bracketSec.style.display  = "none";
+    renderRewardsPreview();
+  }
+  renderHistory();
+}
+
+function renderRewardsPreview() {
+  const wrap = document.getElementById("rewards-preview");
+  wrap.innerHTML = ROUNDS.map((r,i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(0,0,0,0.25);border-radius:8px;border-left:3px solid ${r.color};margin-bottom:5px;">
+      <span style="font-size:16px;">${r.opponent.emoji}</span>
+      <div style="flex:1;">
+        <div style="font-size:11px;font-weight:700;color:${r.color};">${r.name}</div>
+        <div style="font-size:10px;color:#9e9e9e;">vs ${r.opponent.name} · ${r.opponent.rank}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:10px;color:#ffc107;font-weight:700;">🪙 ${fmtNum(r.rewardGold)}</div>
+        <div style="font-size:9px;color:#9e9e9e;">${fmtNum(r.rewardXp)} XP · ${fmtNum(r.rewardXpp)} XPP</div>
+        ${r.championCard ? `<div style="font-size:9px;color:#ce93d8;">+ Carta Ultra Rara!</div>` : ""}
+      </div>
+    </div>`).join("");
+}
+
+function renderBracket() {
+  const container = document.getElementById("bracket-container");
+  const chip      = document.getElementById("bracket-status-chip");
+  const currentR  = tState.round;
+
+  chip.textContent = `Rodada ${currentR+1}/4`;
+
+  container.innerHTML = ROUNDS.map((r, i) => {
+    let status = "locked", badgeText = "🔒 Bloqueada";
+    if (i < currentR) { status="won"; badgeText="✅ Vencido"; }
+    if (i === currentR) { status="active"; badgeText="⚔️ Atual"; }
+
+    const res = tState.results[i];
+    const won = res?.won;
+
+    return `<div class="bracket-round ${status}" id="round-${i}">
+      <div class="round-header">
+        <div class="round-number" style="--round-color:${r.color};">${r.name}</div>
+        <div class="round-badge ${status}">${badgeText}</div>
+      </div>
+      <div class="matchup-row">
+        <div class="fighter-box you ${i===currentR?'':(won?'winner':'')}" id="fighter-you-${i}">
+          <span class="fighter-emoji">👤</span>
+          <div class="fighter-name">${save.playerName||"Você"}</div>
+          <div class="fighter-rank">${getRank(save.xpp||0).name}</div>
+          ${res ? `<div class="fighter-card">${won?'✅ VENCEU':'❌ PERDEU'}</div>` : ""}
+        </div>
+        <div class="vs-box">VS</div>
+        <div class="fighter-box enemy ${i===currentR?'':''}" id="fighter-enemy-${i}">
+          <span class="fighter-emoji">${r.opponent.emoji}</span>
+          <div class="fighter-name">${r.opponent.name}</div>
+          <div class="fighter-rank">${r.opponent.rank}</div>
+          ${i < currentR ? `<div class="fighter-card">${won?'❌ PERDEU':'✅ VENCEU'}</div>` : ""}
+        </div>
+      </div>
+      <div class="round-rewards">
+        <span class="reward-chip">🪙 ${fmtNum(r.rewardGold)}</span>
+        <span class="reward-chip">⭐ ${fmtNum(r.rewardXp)} XP</span>
+        <span class="reward-chip">🎖️ ${fmtNum(r.rewardXpp)} XPP</span>
+        ${r.championCard?`<span class="reward-chip" style="border-color:#ce93d8;color:#ce93d8;">💎 Carta Ultra Rara</span>`:""}
+      </div>
+    </div>`;
+  }).join("");
+
+  // Botão lutar
+  const btn = document.getElementById("btn-fight");
+  if (tState.round < 4) {
+    btn.style.display = "block";
+    btn.textContent   = `⚔️ Jogar: ${ROUNDS[tState.round].name}`;
+  } else {
+    btn.style.display = "none";
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+//  ENTRAR NO TORNEIO
+// ─────────────────────────────────────────────────────────
+function enterTournament() {
+  const errEl = document.getElementById("entry-error");
+  if (save.gold < ENTRY_COST) {
+    errEl.style.display   = "block";
+    errEl.textContent     = `❌ Ouro insuficiente! Precisa de 🪙 ${fmtNum(ENTRY_COST)} (você tem ${fmtNum(save.gold)})`;
+    return;
+  }
+  // Verifica se o jogador tem cartas para batalhar
+  const cards = (typeof ALL_CARDS !== "undefined") ? ALL_CARDS.filter(c => save.vault&&save.vault.includes(c.id)) : [];
+  if (cards.length < 3) {
+    errEl.style.display   = "block";
+    errEl.textContent     = "❌ Você precisa de pelo menos 3 cartas no cofre para participar!";
+    return;
+  }
+
+  save.gold -= ENTRY_COST;
+  writeSave(save);
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+
+  tState = { active:true, round:0, results:[], startedAt:Date.now() };
+  saveTState();
+
+  showToast("🏆 Inscrito no Torneio! Boa sorte!", "gold", 3000);
+  renderPage();
+}
+
+function abandonTournament() {
+  if (!confirm("Tem certeza? Você perderá o progresso do torneio atual.")) return;
+  if (tState) {
+    if (!save.torneioHistory) save.torneioHistory = [];
+    save.torneioHistory.unshift({
+      ts:        Date.now(),
+      rounds:    tState.results.length,
+      bestRound: ROUNDS[Math.min(tState.results.length, 3)].shortName,
+      abandoned: true,
+    });
+    if (save.torneioHistory.length > 20) save.torneioHistory.length = 20;
+    writeSave(save);
+  }
+  tState = null;
+  saveTState();
+  showToast("🏳️ Torneio abandonado.", "info");
+  renderPage();
+}
+
+// ─────────────────────────────────────────────────────────
+//  BATALHA — setup
+// ─────────────────────────────────────────────────────────
+let battleState = null;
+
+const RARITY_ORDER = ["COMMON","RARE","EPIC","LEGENDARY","MYTHIC","ULTRA_RARE","ORIGENS"];
+
+function getRarityColor(r) {
+  const RCOLORS = { COMMON:"#9e9e9e", RARE:"#2196F3", EPIC:"#9c27b0", LEGENDARY:"#ffc107", MYTHIC:"#f44336", ULTRA_RARE:"#00e5ff", ORIGENS:"#ff4444" };
+  return RCOLORS[r] || "#9e9e9e";
+}
+
+function getEnemyHand(round) {
+  // Pega cartas do jogo filtradas pela raridade mínima do oponente
+  const minRarityIdx = RARITY_ORDER.indexOf(round.opponentRarityMin) || 0;
+  let pool = (typeof ALL_CARDS !== "undefined") ? ALL_CARDS.filter(c => {
+    const idx = RARITY_ORDER.indexOf(c.rarity);
+    return idx >= minRarityIdx && !c.id.startsWith("ev");
+  }) : [];
+  if (pool.length < 3) pool = (typeof ALL_CARDS !== "undefined") ? ALL_CARDS.filter(c => !c.id.startsWith("ev")) : [];
+
+  // Embaralha e pega 5
+  const shuffled = [...pool].sort(() => Math.random()-0.5);
+  return shuffled.slice(0,5);
+}
+
+function getPlayerHand() {
+  const cards = (typeof ALL_CARDS !== "undefined") ? ALL_CARDS.filter(c => save.vault && save.vault.includes(c.id)) : [];
+  if (cards.length === 0) return [];
+  const shuffled = [...cards].sort(() => Math.random()-0.5);
+  return shuffled.slice(0, Math.min(5, shuffled.length));
+}
+
+function startFight() {
+  if (!tState || tState.round >= 4) return;
+  const round = ROUNDS[tState.round];
+
+  const playerHand = getPlayerHand();
+  const enemyHand  = getEnemyHand(round);
+
+  if (playerHand.length < 1) {
+    showToast("❌ Você não tem cartas no cofre!", "error"); return;
+  }
+
+  battleState = {
+    round,
+    roundIdx:   tState.round,
+    playerHp:   1000,
+    enemyHp:    1000,
+    playerHand: [...playerHand],
+    enemyHand:  [...enemyHand],
+    turn:       0,
+    over:       false,
+    diffMult:   round.diffMult,
+  };
+
+  // Inicializa UI
+  document.getElementById("battle-round-title").textContent = round.name;
+  document.getElementById("enemy-name-label").textContent   = round.opponent.name;
+
+  updateBattleUI();
+  drawBattleCards();
+  document.getElementById("battle-log").innerHTML = `<span style="color:#7c4dff;">📯 ${round.name} iniciada!</span><br>`;
+  document.getElementById("btn-turn").disabled = false;
+  document.getElementById("btn-turn").textContent = "⚔️ Jogar Turno";
+
+  document.getElementById("battle-overlay").classList.add("show");
+}
+
+function drawBattleCards() {
+  if (!battleState) return;
+  const ph = battleState.playerHand;
+  const eh = battleState.enemyHand;
+  const pc = ph[Math.floor(Math.random()*ph.length)];
+  const ec = eh[Math.floor(Math.random()*eh.length)];
+  battleState.currentPlayerCard = pc;
+  battleState.currentEnemyCard  = ec;
+
+  if (pc) {
+    document.getElementById("p-card-emoji").textContent = pc.img;
+    document.getElementById("p-card-name").textContent  = pc.name;
+    document.getElementById("p-card-stat").textContent  = `ATK:${pc.atk} · HP:${pc.hp}`;
+    document.getElementById("p-card-rarity").innerHTML  = `<span style="color:${getRarityColor(pc.rarity)};font-size:9px;">${pc.rarity}</span>`;
+  }
+  if (ec) {
+    document.getElementById("e-card-emoji").textContent = ec.img;
+    document.getElementById("e-card-name").textContent  = ec.name;
+    document.getElementById("e-card-stat").textContent  = `ATK:${Math.floor(ec.atk*battleState.diffMult)} · HP:${ec.hp}`;
+    document.getElementById("e-card-rarity").innerHTML  = `<span style="color:${getRarityColor(ec.rarity)};font-size:9px;">${ec.rarity}</span>`;
+  }
+}
+
+function updateBattleUI() {
+  const bs = battleState;
+  const pPct = Math.max(0, (bs.playerHp/1000)*100);
+  const ePct = Math.max(0, (bs.enemyHp/1000)*100);
+
+  document.getElementById("player-hp-bar").style.width = pPct+"%";
+  document.getElementById("player-hp-label").textContent= `Você · ${Math.max(0,bs.playerHp)} HP`;
+  document.getElementById("enemy-hp-bar").style.width  = ePct+"%";
+  document.getElementById("enemy-hp-label").textContent = `${bs.round.opponent.name} · ${Math.max(0,bs.enemyHp)} HP`;
+  document.getElementById("turn-label").textContent     = `Turno ${bs.turn+1}`;
+
+  // Cores da barra HP conforme % restante
+  const pBar = document.getElementById("player-hp-bar");
+  pBar.style.background = pPct>50 ? "linear-gradient(90deg,#4CAF50,#66bb6a)" : pPct>20 ? "linear-gradient(90deg,#ff9800,#ffc107)" : "linear-gradient(90deg,#f44336,#ff6d00)";
+}
+
+// ─────────────────────────────────────────────────────────
+//  EXECUTAR TURNO
+// ─────────────────────────────────────────────────────────
+function appendLog(text) {
+  const log = document.getElementById("battle-log");
+  log.innerHTML += text + "<br>";
+  log.scrollTop  = log.scrollHeight;
+}
+
+async function doTurn() {
+  if (!battleState || battleState.over) return;
+  const btn = document.getElementById("btn-turn");
+  btn.disabled = true;
+  battleState.turn++;
+
+  // Desenha novas cartas a cada turno
+  drawBattleCards();
+  const pc = battleState.currentPlayerCard;
+  const ec = battleState.currentEnemyCard;
+
+  const pAtk = pc ? pc.atk : 10;
+  const eAtk = ec ? Math.floor((ec.atk || 20) * battleState.diffMult) : 20;
+
+  // Aplica dano
+  const pDmg = Math.max(1, eAtk - Math.floor(pAtk*0.2));
+  const eDmg = Math.max(1, pAtk - Math.floor(eAtk*0.1));
+
+  battleState.playerHp -= pDmg;
+  battleState.enemyHp  -= eDmg;
+
+  // Animações
+  const pBox = document.getElementById("player-card-box");
+  const eBox = document.getElementById("enemy-card-box");
+  pBox.classList.add("attack-anim"); eBox.classList.add("hit-anim");
+  await delay(350);
+  pBox.classList.remove("attack-anim"); eBox.classList.remove("hit-anim");
+
+  updateBattleUI();
+
+  const pcName = pc?.name || "carta";
+  const ecName = ec?.name || "carta do oponente";
+  appendLog(`<span style="color:#a5d6a7;">Seu ${pcName} ataca! -${eDmg} HP inimigo</span>`);
+  appendLog(`<span style="color:#ef9a9a;">${ecName} contra-ataca! -${pDmg} HP seu</span>`);
+
+  // Verificar fim de batalha
+  if (battleState.playerHp <= 0 || battleState.enemyHp <= 0) {
+    await delay(500);
+    endBattle(battleState.enemyHp <= 0);
+    return;
+  }
+
+  // Máximo de turnos (empate pende para o jogador se tiver mais HP)
+  if (battleState.turn >= 12) {
+    await delay(300);
+    endBattle(battleState.playerHp >= battleState.enemyHp);
+    return;
+  }
+
+  btn.disabled = false;
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ─────────────────────────────────────────────────────────
+//  FIM DE BATALHA
+// ─────────────────────────────────────────────────────────
+function endBattle(playerWon) {
+  battleState.over = true;
+  document.getElementById("btn-turn").textContent = playerWon ? "✅ Vitória!" : "❌ Derrota!";
+
+  const round = battleState.round;
+  tState.results.push({ won:playerWon, turns:battleState.turn });
+
+  if (playerWon) {
+    appendLog(`<br><span style="color:#ffc107;font-weight:700;">🏆 VITÓRIA! Você derrotou ${round.opponent.name}!</span>`);
+
+    // Dar recompensas
+    save.gold += round.rewardGold;
+    save.xp   = (save.xp||0) + round.rewardXp;
+    save.xpp  = (save.xpp||0) + round.rewardXpp;
+    save.wins = (save.wins||0) + 1;
+
+    // Carta especial na Grande Final
+    let specialCard = null;
+    if (round.championCard) {
+      const urPool = (typeof ALL_CARDS !== "undefined")
+        ? ALL_CARDS.filter(c => c.rarity==="ULTRA_RARE" && !(save.vault||[]).includes(c.id))
+        : [];
+      if (urPool.length > 0) {
+        specialCard = urPool[Math.floor(Math.random()*urPool.length)];
+        if (!save.vault) save.vault = [];
+        save.vault.push(specialCard.id);
+      }
+      if (!save.titles) save.titles = [];
+      if (!save.titles.includes(round.championTitle)) save.titles.push(round.championTitle);
+    }
+
+    save.totalBattles = (save.totalBattles || 0) + 1;
+    // Evento: conta batalha em todos os eventos ativos
+    if (save.events && typeof GAME_EVENTS !== "undefined") {
+      GAME_EVENTS.forEach(evt => {
+        if (isEventActive(evt, save) && save.events[evt.id] !== undefined) {
+          save.events[evt.id].battles = (save.events[evt.id].battles || 0) + 1;
+        }
+      });
+    }
+    writeSave(save);
+    tState.round++;
+    saveTState();
+
+    // Fecha overlay de batalha com delay
+    setTimeout(() => {
+      document.getElementById("battle-overlay").classList.remove("show");
+      showRoundResult(true, round, specialCard);
+    }, 1200);
+
+  } else {
+    appendLog(`<br><span style="color:#ef9a9a;font-weight:700;">💀 DERROTA! ${round.opponent.name} te eliminou do torneio.</span>`);
+
+    // Registra derrota no histórico
+    if (!save.torneioHistory) save.torneioHistory = [];
+    save.torneioHistory.unshift({
+      ts:        Date.now(),
+      rounds:    tState.results.filter(r=>r.won).length,
+      lostAt:    round.shortName,
+      won:       false,
+    });
+    if (save.torneioHistory.length > 20) save.torneioHistory.length = 20;
+    save.totalBattles = (save.totalBattles || 0) + 1;
+    // Evento: conta batalha em todos os eventos ativos
+    if (save.events && typeof GAME_EVENTS !== "undefined") {
+      GAME_EVENTS.forEach(evt => {
+        if (isEventActive(evt, save) && save.events[evt.id] !== undefined) {
+          save.events[evt.id].battles = (save.events[evt.id].battles || 0) + 1;
+        }
+      });
+    }
+    writeSave(save);
+    tState = null;
+    saveTState();
+
+    setTimeout(() => {
+      document.getElementById("battle-overlay").classList.remove("show");
+      showRoundResult(false, round, null);
+    }, 1500);
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+//  MOSTRAR RESULTADO DE RODADA
+// ─────────────────────────────────────────────────────────
+let _resultContinueAction = null;
+
+function showRoundResult(won, round, specialCard) {
+  const overlay = document.getElementById("result-overlay");
+  const card    = document.getElementById("result-card");
+  const icon    = document.getElementById("result-icon");
+  const title   = document.getElementById("result-title");
+  const desc    = document.getElementById("result-desc");
+  const rewards = document.getElementById("result-rewards");
+  const btn     = document.getElementById("btn-result-continue");
+
+  if (won) {
+    const isChamp = round.id === "grande_final";
+    card.className  = `result-card ${isChamp?"champion":"victory"}`;
+    icon.textContent= isChamp ? "🏆" : "✅";
+    title.textContent= isChamp ? "🏆 CAMPEÃO!" : "Vitória!";
+    title.style.color= isChamp ? "#ce93d8" : "#66bb6a";
+    desc.textContent = isChamp
+      ? `Você derrotou todos os adversários e se tornou Campeão do Torneio! Lenda viva!`
+      : `Você derrotou ${round.opponent.name} e avança para a próxima rodada!`;
+
+    rewards.innerHTML = `
+      <div class="reward-row">🪙 Ouro<span class="rr-val">+${fmtNum(round.rewardGold)}</span></div>
+      <div class="reward-row">⭐ XP<span class="rr-val">+${fmtNum(round.rewardXp)}</span></div>
+      <div class="reward-row">🎖️ XPP<span class="rr-val">+${fmtNum(round.rewardXpp)}</span></div>
+      ${specialCard?`<div class="reward-row">💎 Carta Ultra Rara<span class="rr-val">${specialCard.img} ${specialCard.name}</span></div>`:""}
+      ${round.championTitle?`<div class="reward-row">🏆 Título<span class="rr-val" style="color:#ce93d8;">${round.championTitle}</span></div>`:""}
+    `;
+
+    if (isChamp) {
+      btn.textContent = "🏆 Ver resultado final";
+      _resultContinueAction = "champion";
+    } else {
+      btn.textContent = "⚔️ Próxima rodada!";
+      _resultContinueAction = "next";
+    }
+  } else {
+    card.className  = "result-card defeat";
+    icon.textContent= "💀";
+    title.textContent= "Eliminado!";
+    title.style.color= "#ef9a9a";
+    desc.textContent = `${round.opponent.name} te derrotou na ${round.name}. O torneio começa do zero — mas você pode tentar novamente!`;
+    rewards.innerHTML = `
+      <div class="reward-row" style="color:#9e9e9e;">😤 Rodadas sobrevividas<span class="rr-val" style="color:#9e9e9e;">${tState===null?(()=>{const h=save.torneioHistory;return h&&h[0]?h[0].rounds:0})():0}</span></div>
+    `;
+    btn.textContent = "🔄 Tentar novamente";
+    _resultContinueAction = "retry";
+  }
+
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+  overlay.classList.add("show");
+}
+
+function continueAfterResult() {
+  document.getElementById("result-overlay").classList.remove("show");
+  if (_resultContinueAction === "champion") {
+    if (!save.torneioHistory) save.torneioHistory = [];
+    save.torneioHistory.unshift({ ts:Date.now(), rounds:4, won:true, champion:true });
+    if (save.torneioHistory.length > 20) save.torneioHistory.length = 20;
+    writeSave(save);
+    tState = null;
+    saveTState();
+    showToast("🏆 Parabéns, Campeão! Título e carta guardados no cofre!", "gold", 5000);
+  }
+  renderPage();
+}
+
+// ─────────────────────────────────────────────────────────
+//  HISTÓRICO
+// ─────────────────────────────────────────────────────────
+function renderHistory() {
+  const hist = save.torneioHistory || [];
+  const list = document.getElementById("history-list");
+  if (hist.length === 0) {
+    list.innerHTML = `<div style="text-align:center;padding:30px;color:#555;font-size:12px;">
+      Nenhum torneio jogado ainda.<br><span style="font-size:28px;display:block;margin-top:8px;">🏆</span></div>`;
+    return;
+  }
+
+  list.innerHTML = hist.slice(0,10).map(h => {
+    const d       = new Date(h.ts);
+    const dateStr = `${d.toLocaleDateString("pt-BR")} ${d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}`;
+    const color   = h.champion ? "#7c4dff" : h.won ? "#66bb6a" : h.abandoned ? "#555" : "#f44336";
+    const label   = h.champion ? "🏆 CAMPEÃO" : h.won ? "✅ Venceu" : h.abandoned ? "🏳️ Abandonado" : `❌ Eliminado na ${h.lostAt}`;
+    return `<div class="torneio-hist-item" style="--hist-color:${color};">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <div style="font-size:12px;font-weight:700;color:${color};">${label}</div>
+        <div style="font-size:10px;color:#555;">${dateStr}</div>
+      </div>
+      <div style="font-size:11px;color:#9e9e9e;">
+        Rodadas concluídas: <strong style="color:#fff;">${h.rounds||0}</strong>
+        ${h.champion?` · <span style="color:#ce93d8;">Título de Campeão desbloqueado!</span>`:""}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ─────────────────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────────────────
+function init() {
+  save    = getOrCreateSave();
+  tState  = loadTState();
+
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+  document.getElementById("entry-cost").textContent = fmtNum(ENTRY_COST);
+
+  // Se tinha torneio ativo mas foi completado/derrotado externamente, resetar
+  if (tState && tState.round >= 4) {
+    tState = null;
+    saveTState();
+  }
+
+  renderPage();
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Maestria – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+/* ── CORES DE ESTRELA ──────────────────────────────────────── */
+:root {
+  --star-0: #2a2a4a;
+  --star-1: #cd7f32;
+  --star-2: #aaaaaa;
+  --star-3: #ffd700;
+  --star-4: #00e5ff;
+  --star-5-a: #ff4444;
+  --star-5-b: #ffc107;
+  --star-5-c: #66bb6a;
+}
+
+/* ── HERO TOTAL ───────────────────────────────────────────── */
+.maestria-hero {
+  background: linear-gradient(135deg,#07021a,#1a0740,#07021a);
+  border: 2px solid #7c4dff;
+  border-radius: 20px;
+  padding: 20px 16px 16px;
+  margin-bottom: 14px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.maestria-hero::before {
+  content:'⭐'; position:absolute; font-size:120px;
+  opacity:.04; top:-20px; right:-20px; pointer-events:none;
+}
+.maestria-hero-title {
+  font-family:'Cinzel',serif; font-size:22px; font-weight:900;
+  background:linear-gradient(135deg,#ce93d8,#7c4dff,#00e5ff);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  margin-bottom:4px;
+}
+.maestria-hero-sub { font-size:12px; color:#9e9e9e; margin-bottom:14px; }
+.maestria-stats-row {
+  display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;
+}
+.maestria-stat {
+  background:rgba(0,0,0,0.4); border:1px solid #2a2a4a; border-radius:10px; padding:10px;
+}
+.maestria-stat .val {
+  font-family:'Cinzel',serif; font-size:20px; font-weight:900; color:#ce93d8;
+}
+.maestria-stat .lbl { font-size:10px; color:#9e9e9e; margin-top:2px; }
+
+/* ── PAINEL DE AJUDA (COMO FUNCIONA) ─────────────────────── */
+.help-panel {
+  background: linear-gradient(135deg,#0a0020,#150030);
+  border: 1px solid #7c4dff; border-radius:14px;
+  margin-bottom:14px; overflow:hidden;
+}
+.help-toggle {
+  width:100%; display:flex; align-items:center; justify-content:space-between;
+  padding:13px 14px; background:transparent; border:none; cursor:pointer;
+  color:#ce93d8; font-family:'Cinzel',serif; font-size:13px; font-weight:700;
+}
+.help-toggle .arrow { font-size:18px; transition:transform 0.3s; }
+.help-toggle.open .arrow { transform:rotate(180deg); }
+.help-body { display:none; padding:0 14px 14px; }
+.help-body.open { display:block; }
+
+.help-step {
+  display:flex; gap:10px; align-items:flex-start;
+  background:rgba(0,0,0,0.35); border-radius:10px;
+  padding:10px 12px; margin-bottom:8px; border-left:3px solid #7c4dff;
+}
+.help-step .hs-icon { font-size:20px; flex-shrink:0; }
+.help-step .hs-title { font-weight:700; font-size:12px; color:#ce93d8; margin-bottom:3px; }
+.help-step .hs-desc  { font-size:11px; color:#c0c0d0; line-height:1.6; }
+
+.star-tier-row {
+  display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin:10px 0;
+}
+.star-tier-box {
+  border-radius:8px; padding:8px 4px; text-align:center; border:2px solid;
+  font-size:10px; font-weight:700;
+}
+.star-tier-box.s1 { border-color:#cd7f32; color:#cd7f32; background:rgba(205,127,50,.1); }
+.star-tier-box.s2 { border-color:#aaaaaa; color:#aaaaaa; background:rgba(170,170,170,.1); }
+.star-tier-box.s3 { border-color:#ffd700; color:#ffd700; background:rgba(255,215,0,.1); }
+.star-tier-box.s4 { border-color:#00e5ff; color:#00e5ff; background:rgba(0,229,255,.1); }
+.star-tier-box.s5 { border-color:#ce93d8; color:#ce93d8; background:rgba(206,147,216,.1);
+  animation:rainbow-glow 2s infinite; }
+@keyframes rainbow-glow {
+  0%   { box-shadow: 0 0 6px #ff4444; }
+  33%  { box-shadow: 0 0 6px #ffc107; }
+  66%  { box-shadow: 0 0 6px #66bb6a; }
+  100% { box-shadow: 0 0 6px #ff4444; }
+}
+
+/* ── FILTROS ─────────────────────────────────────────────── */
+.filter-bar {
+  display:flex; gap:5px; margin-bottom:12px; flex-wrap:nowrap;
+  overflow-x:auto; padding-bottom:2px; -ms-overflow-style:none; scrollbar-width:none;
+}
+.filter-bar::-webkit-scrollbar { display:none; }
+.filter-chip {
+  padding:5px 11px; border-radius:20px; border:1px solid #2a2a4a;
+  background:transparent; color:#9e9e9e; font-size:11px; font-weight:700;
+  cursor:pointer; transition:all 0.2s; white-space:nowrap;
+  font-family:'Rajdhani',sans-serif; flex-shrink:0;
+}
+.filter-chip.active { background:#7c4dff; border-color:#ce93d8; color:#fff; }
+
+/* ── GRADE DE CARTAS ─────────────────────────────────────── */
+.maestria-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+
+.mcard {
+  background:#0e0e1c; border-radius:12px; padding:10px 8px;
+  text-align:center; cursor:pointer; transition:all 0.2s;
+  border:2px solid var(--mcard-color,#2a2a4a); position:relative; overflow:hidden;
+}
+.mcard::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(180deg,rgba(255,255,255,0.03) 0%,transparent 60%);
+  pointer-events:none;
+}
+.mcard:hover { transform:translateY(-3px); z-index:2; }
+.mcard:active { transform:scale(0.95); }
+
+.mcard.star-0 { --mcard-color:#2a2a4a; }
+.mcard.star-1 { --mcard-color:#cd7f32; box-shadow:0 0 8px rgba(205,127,50,.25); }
+.mcard.star-2 { --mcard-color:#aaaaaa; box-shadow:0 0 8px rgba(170,170,170,.25); }
+.mcard.star-3 { --mcard-color:#ffd700; box-shadow:0 0 8px rgba(255,215,0,.3); }
+.mcard.star-4 { --mcard-color:#00e5ff; box-shadow:0 0 10px rgba(0,229,255,.35); }
+.mcard.star-5 { --mcard-color:#ce93d8; animation:rainbow-border 2.5s infinite; }
+@keyframes rainbow-border {
+  0%   { border-color:#ff4444; box-shadow:0 0 10px rgba(255,68,68,.4); }
+  33%  { border-color:#ffc107; box-shadow:0 0 10px rgba(255,193,7,.4); }
+  66%  { border-color:#66bb6a; box-shadow:0 0 10px rgba(102,187,106,.4); }
+  100% { border-color:#ff4444; box-shadow:0 0 10px rgba(255,68,68,.4); }
+}
+.mcard.infused { --mcard-color:#00e5ff; }
+.mcard.infused::after {
+  content:'💎'; position:absolute; top:2px; left:2px; font-size:10px;
+}
+
+.mcard-emoji { font-size:26px; display:block; margin-bottom:4px; }
+.mcard-name  { font-size:9px; font-weight:700; margin-bottom:4px;
+  overflow:hidden; white-space:nowrap; text-overflow:ellipsis; color:#c0c0d0; }
+.mcard-stars { font-size:11px; letter-spacing:1px; margin-bottom:5px; height:14px; }
+.mcard-bar-wrap { background:#1e1e30; border-radius:20px; height:4px; overflow:hidden; margin-bottom:4px; }
+.mcard-bar      { height:100%; border-radius:20px; transition:width 0.5s; }
+.mcard-pts  { font-size:9px; color:#777; }
+
+/* ── MODAL DETALHES ──────────────────────────────────────── */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.88);
+  display:flex; align-items:flex-end; justify-content:center;
+  z-index:300; padding:16px;
+}
+.modal-overlay.hidden { display:none; }
+.modal-box {
+  background:#0d0d1c; border:1px solid #2a2a4a; border-radius:20px 20px 0 0;
+  width:100%; max-width:448px; padding:20px 16px 30px;
+  max-height:92vh; overflow-y:auto;
+}
+.modal-close {
+  float:right; background:none; border:none; color:#9e9e9e;
+  font-size:22px; cursor:pointer; line-height:1; margin-top:-4px;
+}
+
+.detail-emoji { font-size:64px; display:block; text-align:center; margin-bottom:8px;
+  animation:float 2s ease-in-out infinite; }
+.detail-name  { font-family:'Cinzel',serif; font-size:17px; font-weight:900;
+  text-align:center; margin-bottom:4px; }
+.detail-rarity{ font-size:12px; text-align:center; margin-bottom:10px; font-weight:700; }
+
+.detail-stars-row {
+  display:flex; justify-content:center; gap:6px; margin-bottom:14px;
+}
+.detail-star {
+  width:36px; height:36px; border-radius:50%; border:2px solid #2a2a4a;
+  display:flex; align-items:center; justify-content:center; font-size:16px;
+  transition:all 0.3s;
+}
+.detail-star.earned.s1 { border-color:#cd7f32; background:rgba(205,127,50,.2); }
+.detail-star.earned.s2 { border-color:#aaaaaa; background:rgba(170,170,170,.2); }
+.detail-star.earned.s3 { border-color:#ffd700; background:rgba(255,215,0,.2); }
+.detail-star.earned.s4 { border-color:#00e5ff; background:rgba(0,229,255,.2); }
+.detail-star.earned.s5 { border-color:#ce93d8; background:rgba(206,147,216,.2); animation:rainbow-glow 2s infinite; }
+
+.progress-section {
+  background:#0e0e1c; border-radius:12px; padding:12px; margin-bottom:10px;
+}
+.progress-label { font-size:11px; color:#9e9e9e; margin-bottom:6px; display:flex; justify-content:space-between; }
+.progress-bar-lg { background:#1e1e30; border-radius:20px; height:8px; overflow:hidden; margin-bottom:4px; }
+.progress-fill-lg { height:100%; border-radius:20px; transition:width 0.5s; }
+
+.buff-box {
+  background:rgba(76,175,80,0.08); border:1px solid #4CAF50; border-radius:10px;
+  padding:10px 12px; margin-bottom:10px; font-size:12px; color:#a5d6a7; text-align:center;
+}
+.buff-box strong { font-size:16px; color:#66bb6a; }
+
+.lore-box {
+  background:rgba(124,77,255,0.08); border:1px solid #7c4dff; border-radius:10px;
+  padding:12px; margin-bottom:10px; font-size:12px; color:#ce93d8; line-height:1.7;
+  min-height:60px; font-style:italic;
+}
+.lore-box .lore-title { font-style:normal; font-weight:700; font-size:11px;
+  color:#9e9e9e; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
+
+.fusion-section {
+  border-top:1px solid #1e1e30; margin-top:12px; padding-top:12px;
+}
+.fusion-title { font-family:'Cinzel',serif; font-size:12px; font-weight:700;
+  color:#ffc107; margin-bottom:8px; }
+.fusion-select {
+  width:100%; background:#0e0e1c; border:1px solid #2a2a4a; border-radius:8px;
+  color:#fff; padding:8px 10px; font-family:'Rajdhani',sans-serif;
+  font-size:12px; margin-bottom:8px;
+}
+.btn-fuse {
+  width:100%; padding:11px; background:linear-gradient(135deg,#4a0072,#7b1fa2);
+  border:none; border-radius:10px; color:#fff; font-family:'Cinzel',serif;
+  font-size:13px; font-weight:700; cursor:pointer; transition:all 0.2s;
+  letter-spacing:0.5px;
+}
+.btn-fuse:hover { filter:brightness(1.15); }
+.btn-fuse:disabled { opacity:0.4; cursor:not-allowed; filter:none; }
+
+/* ── HALL DA FAMA ────────────────────────────────────────── */
+.hall-panel {
+  background:linear-gradient(135deg,#0a0020,#170038);
+  border:1px solid #7c4dff; border-radius:14px;
+  padding:14px; margin-bottom:14px;
+}
+.hall-title {
+  font-family:'Cinzel',serif; font-size:14px; font-weight:900;
+  color:#ce93d8; margin-bottom:10px; text-align:center;
+}
+.hall-stat {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 0; border-bottom:1px solid #1e1e30; font-size:12px;
+}
+.hall-stat:last-child { border-bottom:none; }
+.hall-label { color:#9e9e9e; }
+.hall-val   { font-weight:700; color:#ce93d8; }
+
+/* ── EMPTY STATE ─────────────────────────────────────────── */
+.empty-maestria {
+  text-align:center; padding:40px 20px; color:#555;
+}
+
+/* ── SEÇÃO CONQUISTAS MAESTRIA ───────────────────────────── */
+.maestria-ach-box {
+  background:#0e0e1c; border-radius:12px; padding:12px; margin-bottom:8px;
+  border-left:4px solid #7c4dff; display:flex; gap:10px; align-items:center;
+}
+.maestria-ach-box.locked { opacity:.5; }
+.maestria-ach-box .ach-icon { font-size:24px; flex-shrink:0; }
+.maestria-ach-box .ach-name { font-weight:700; font-size:12px; color:#ce93d8; }
+.maestria-ach-box .ach-desc { font-size:11px; color:#9e9e9e; margin-top:2px; }
+.maestria-ach-box .ach-badge {
+  margin-left:auto; background:#7c4dff; color:#fff; font-size:10px;
+  font-weight:700; border-radius:20px; padding:2px 8px; white-space:nowrap; flex-shrink:0;
+}
+
+@keyframes float {
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(-6px);}
+}
+@keyframes popIn {
+  0%{transform:scale(0.7);opacity:0;}
+  100%{transform:scale(1);opacity:1;}
+}
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title">⭐ MAESTRIA</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content">
+
+  <!-- Hero total -->
+  <div class="maestria-hero">
+    <div class="maestria-hero-title">⭐ Maestria de Cartas</div>
+    <div class="maestria-hero-sub">Evolua suas cartas com dupes e fusões</div>
+    <div class="maestria-stats-row">
+      <div class="maestria-stat">
+        <div class="val" id="stat-total-stars">0</div>
+        <div class="lbl">Estrelas Totais</div>
+      </div>
+      <div class="maestria-stat">
+        <div class="val" id="stat-maxed">0</div>
+        <div class="lbl">Cartas 5★</div>
+      </div>
+      <div class="maestria-stat">
+        <div class="val" id="stat-evolved">0</div>
+        <div class="lbl">Cartas Evoluídas</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Painel de ajuda / como funciona -->
+  <div class="help-panel">
+    <button class="help-toggle" id="help-toggle" onclick="toggleHelp()">
+      <span>❓ Como funciona a Maestria?</span>
+      <span class="arrow">▼</span>
+    </button>
+    <div class="help-body" id="help-body">
+
+      <div class="help-step">
+        <span class="hs-icon">📦</span>
+        <div>
+          <div class="hs-title">Dupes viram Pontos de Maestria</div>
+          <div class="hs-desc">Toda vez que você abrir um pacote e receber uma carta que já possui no cofre, ela não vai mais só virar ouro — ela também concede <strong style="color:#ce93d8;">2 Pontos de Maestria</strong> para aquela carta específica. Você ainda recebe 30% do ouro normal da dupe. Acumule pontos para subir de estrela!</div>
+        </div>
+      </div>
+
+      <div class="help-step">
+        <span class="hs-icon">🔥</span>
+        <div>
+          <div class="hs-title">Fusão: Sacrifique cartas para evoluir</div>
+          <div class="hs-desc">Abra o detalhe de qualquer carta do seu cofre e use a seção <strong style="color:#ffc107;">Fusão</strong> para sacrificar uma carta extra que você possui. Cada carta sacrificada dá pontos de maestria para a carta alvo, com base na raridade da sacrificada. Você perde a carta sacrificada — use cartas duplicadas!</div>
+        </div>
+      </div>
+
+      <div class="help-step">
+        <span class="hs-icon">⭐</span>
+        <div>
+          <div class="hs-title">Sistema de Estrelas (1★ a 5★)</div>
+          <div class="hs-desc">Cada carta tem 5 níveis de estrela. Cartas de raridade mais alta precisam de <strong style="color:#ce93d8;">muito mais pontos</strong> para chegar no 5★ — é isso que torna o completar o jogo um objetivo de longo prazo. Cada estrela muda a borda visual da carta e desbloqueia recompensas!</div>
+        </div>
+      </div>
+
+      <div style="margin:12px 0 8px;">
+        <div style="font-size:11px;color:#9e9e9e;margin-bottom:6px;font-weight:700;">BORDA POR ESTRELA:</div>
+        <div class="star-tier-row">
+          <div class="star-tier-box s1">1★<br>Bronze</div>
+          <div class="star-tier-box s2">2★<br>Prata</div>
+          <div class="star-tier-box s3">3★<br>Ouro</div>
+          <div class="star-tier-box s4">4★<br>Diamante</div>
+          <div class="star-tier-box s5">5★<br>Arco-íris</div>
+        </div>
+      </div>
+
+      <div class="help-step">
+        <span class="hs-icon">⚔️</span>
+        <div>
+          <div class="hs-title">Bônus de Combate por Estrela</div>
+          <div class="hs-desc">Cada estrela concede <strong style="color:#66bb6a;">+1% de ATK e HP</strong> quando a carta é usada em batalha, chegando a <strong style="color:#66bb6a;">+5% no total</strong> com 5★. É uma vantagem real, sem quebrar o balanceamento do jogo.</div>
+        </div>
+      </div>
+
+      <div class="help-step">
+        <span class="hs-icon">📖</span>
+        <div>
+          <div class="hs-title">Lore desbloqueado por Estrela</div>
+          <div class="hs-desc">Cada estrela revela um trecho do lore (história) daquela carta. Evolua para descobrir a história completa de cada personagem do universo Card Fight!</div>
+        </div>
+      </div>
+
+      <div class="help-step">
+        <span class="hs-icon">💎</span>
+        <div>
+          <div class="hs-title">Infusão Diamante (pós-5★)</div>
+          <div class="hs-desc">Após atingir o 5★, você pode realizar a <strong style="color:#00e5ff;">Infusão Diamante</strong> — uma marca cosmética exclusiva (ícone 💎 na carta) sem nenhum custo adicional. É puro status para os completionistas que zeraram tudo!</div>
+        </div>
+      </div>
+
+      <div class="help-step" style="border-color:#ffc107;">
+        <span class="hs-icon">🏅</span>
+        <div>
+          <div class="hs-title">Hall da Fama — Maestria Total</div>
+          <div class="hs-desc">A soma de todas as suas estrelas forma seu <strong style="color:#ffc107;">Score de Maestria Total</strong> — visível no painel abaixo. No futuro, isso aparecerá no placar público do Salão da Fama para comparar quem "zerou" o jogo de verdade!</div>
+        </div>
+      </div>
+
+      <!-- Tabela de custos -->
+      <div style="margin-top:10px;">
+        <div style="font-size:11px;color:#9e9e9e;font-weight:700;margin-bottom:6px;">PONTOS NECESSÁRIOS POR RARIDADE (cumulativo):</div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:10px;">
+            <thead>
+              <tr style="color:#777;">
+                <th style="text-align:left;padding:4px 6px;border-bottom:1px solid #1e1e30;">Raridade</th>
+                <th style="padding:4px 4px;border-bottom:1px solid #1e1e30;">1★</th>
+                <th style="padding:4px 4px;border-bottom:1px solid #1e1e30;">2★</th>
+                <th style="padding:4px 4px;border-bottom:1px solid #1e1e30;">3★</th>
+                <th style="padding:4px 4px;border-bottom:1px solid #1e1e30;">4★</th>
+                <th style="padding:4px 4px;border-bottom:1px solid #1e1e30;">5★</th>
+              </tr>
+            </thead>
+            <tbody id="cost-table-body">
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="margin-top:10px;font-size:11px;color:#9e9e9e;background:#070712;border-radius:8px;padding:8px 10px;">
+        💡 <strong style="color:#ce93d8;">Dica de fusão:</strong> Pontos dados pela carta sacrificada — Comum: +2 pts · Raro: +4 pts · Épico: +10 pts · Lendário: +20 pts · Mítico: +40 pts · Ultra Raro: +70 pts · Origens: +120 pts
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Hall da Fama -->
+  <div class="hall-panel">
+    <div class="hall-title">🏛️ Hall da Fama – Seu Progresso</div>
+    <div class="hall-stat">
+      <span class="hall-label">⭐ Estrelas totais (score de maestria)</span>
+      <span class="hall-val" id="hall-total-stars">0</span>
+    </div>
+    <div class="hall-stat">
+      <span class="hall-label">🃏 Cartas com pelo menos 1★</span>
+      <span class="hall-val" id="hall-evolved">0</span>
+    </div>
+    <div class="hall-stat">
+      <span class="hall-label">🏆 Cartas no nível máximo (5★)</span>
+      <span class="hall-val" id="hall-maxed">0</span>
+    </div>
+    <div class="hall-stat">
+      <span class="hall-label">💎 Cartas com Infusão Diamante</span>
+      <span class="hall-val" id="hall-infused">0</span>
+    </div>
+    <div class="hall-stat">
+      <span class="hall-label">⚔️ Bônus de combate médio</span>
+      <span class="hall-val" id="hall-avg-buff">+0%</span>
+    </div>
+  </div>
+
+  <!-- Codex de Maestria (v11 - novo conteúdo) -->
+  <div class="hall-panel" style="margin-top:12px;">
+    <div class="hall-title">📖 Codex de Maestria</div>
+    <div style="font-size:11px;color:#9e9e9e;margin-bottom:10px;line-height:1.6;">
+      Leve <strong style="color:#ce93d8;">todas as cartas que você possui de uma raridade</strong> a 5★ para completar
+      o Codex daquela raridade e ganhar um selo permanente com bônus extra de combate (+0,5% ATK/HP por raridade completada, acumulável).
+    </div>
+    <div id="codex-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;"></div>
+  </div>
+
+  <!-- Conquistas de Maestria -->
+  <div class="panel-title" style="font-family:'Cinzel',serif;font-size:13px;font-weight:700;color:#ffc107;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+    🏅 Conquistas de Maestria
+    <span style="flex:1;height:1px;background:linear-gradient(90deg,#ffc10733,transparent);display:block;"></span>
+  </div>
+  <div id="achievements-list" style="margin-bottom:14px;"></div>
+
+  <!-- Filtros de raridade -->
+  <div class="panel-title" style="font-family:'Cinzel',serif;font-size:13px;font-weight:700;color:#ffc107;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+    🃏 Suas Cartas
+    <span style="flex:1;height:1px;background:linear-gradient(90deg,#ffc10733,transparent);display:block;"></span>
+  </div>
+  <div class="filter-bar" id="filter-bar">
+    <button class="filter-chip active" data-filter="ALL" onclick="setFilter(this,'ALL')">Todas</button>
+    <button class="filter-chip" data-filter="ORIGENS"    onclick="setFilter(this,'ORIGENS')"    style="color:#ff4444;">Origens</button>
+    <button class="filter-chip" data-filter="ULTRA_RARE" onclick="setFilter(this,'ULTRA_RARE')" style="color:#00e5ff;">Ultra Raro</button>
+    <button class="filter-chip" data-filter="MYTHIC"     onclick="setFilter(this,'MYTHIC')"     style="color:#f44336;">Mítico</button>
+    <button class="filter-chip" data-filter="LEGENDARY"  onclick="setFilter(this,'LEGENDARY')"  style="color:#ffc107;">Lendário</button>
+    <button class="filter-chip" data-filter="EPIC"       onclick="setFilter(this,'EPIC')"       style="color:#9c27b0;">Épico</button>
+    <button class="filter-chip" data-filter="RARE"       onclick="setFilter(this,'RARE')"       style="color:#2196F3;">Raro</button>
+    <button class="filter-chip" data-filter="COMMON"     onclick="setFilter(this,'COMMON')"     style="color:#9e9e9e;">Comum</button>
+    <button class="filter-chip" data-filter="MAXED"      onclick="setFilter(this,'MAXED')"      style="color:#ce93d8;">5★ Maxed</button>
+  </div>
+
+  <div id="maestria-grid" class="maestria-grid">
+    <div class="empty-maestria" style="grid-column:span 3;">
+      <div style="font-size:40px;margin-bottom:8px;">📦</div>
+      <div style="font-weight:700;color:#555;">Nenhuma carta no cofre</div>
+      <div style="font-size:12px;color:#444;margin-top:4px;">Compre pacotes na loja para começar!</div>
+    </div>
+  </div>
+
+  <div style="height:80px;"></div>
+</main>
+
+<!-- Modal de detalhe da carta -->
+<div class="modal-overlay hidden" id="detail-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+
+    <span class="detail-emoji" id="d-emoji">🃏</span>
+    <div class="detail-name"   id="d-name">—</div>
+    <div class="detail-rarity" id="d-rarity">—</div>
+
+    <!-- Estrelas -->
+    <div class="detail-stars-row" id="d-stars"></div>
+
+    <!-- Barra de progresso -->
+    <div class="progress-section">
+      <div class="progress-label">
+        <span id="d-progress-label">Próxima estrela</span>
+        <span id="d-progress-pts">0 / 0 pts</span>
+      </div>
+      <div class="progress-bar-lg">
+        <div class="progress-fill-lg" id="d-progress-fill" style="width:0%;background:#7c4dff;"></div>
+      </div>
+      <div id="d-maxed-note" style="font-size:11px;color:#ce93d8;text-align:center;display:none;">
+        ✨ Esta carta está no nível máximo!
+      </div>
+    </div>
+
+    <!-- Bônus de combate -->
+    <div class="buff-box">
+      <div style="font-size:11px;color:#9e9e9e;margin-bottom:2px;">Bônus de combate atual</div>
+      <strong id="d-buff">+0% ATK / +0% HP</strong>
+    </div>
+
+    <!-- Lore -->
+    <div class="lore-box">
+      <div class="lore-title">📖 Lore da Carta</div>
+      <div id="d-lore">Desbloqueie estrelas para revelar a história desta carta...</div>
+    </div>
+
+    <!-- Infusão (pós-5★) -->
+    <div id="infusion-section" style="display:none;margin-bottom:10px;">
+      <div style="background:rgba(0,229,255,0.08);border:1px solid #00e5ff;border-radius:10px;padding:10px 12px;text-align:center;">
+        <div style="font-size:12px;color:#80deea;margin-bottom:6px;">💎 <strong>Infusão Diamante disponível!</strong></div>
+        <div style="font-size:11px;color:#9e9e9e;margin-bottom:8px;">Marque seu domínio absoluto sobre esta carta com um brilho exclusivo.</div>
+        <button class="btn-fuse" style="background:linear-gradient(135deg,#004d61,#006978);" id="btn-infuse" onclick="doInfuse()">
+          💎 Realizar Infusão
+        </button>
+      </div>
+    </div>
+
+    <!-- Prestige (pós-5★) -->
+    <!-- BUGFIX: não existia nenhuma UI para o sistema de Prestige do patch
+         gamedata-maestria-patch.js — o jogador não tinha como comprá-lo. -->
+    <div id="prestige-section" style="display:none;margin-bottom:10px;">
+      <div style="background:rgba(124,77,255,0.08);border:1px solid #7c4dff;border-radius:10px;padding:10px 12px;text-align:center;">
+        <div style="font-size:12px;color:#ce93d8;margin-bottom:6px;">⚜️ <strong id="prestige-title">Prestige disponível!</strong></div>
+        <div style="font-size:11px;color:#9e9e9e;margin-bottom:8px;" id="prestige-desc"></div>
+        <div style="font-size:11px;color:#ffc107;margin-bottom:8px;" id="prestige-cost"></div>
+        <button class="btn-fuse" style="background:linear-gradient(135deg,#4a148c,#7c4dff);" id="btn-prestige" onclick="doPrestige()">
+          ⚜️ Evoluir Prestige
+        </button>
+      </div>
+    </div>
+
+    <!-- Fusão -->
+    <div class="fusion-section">
+      <div class="fusion-title">🔥 Fusão — Ganhe Pontos de Maestria</div>
+      <div style="font-size:11px;color:#9e9e9e;margin-bottom:8px;line-height:1.6;">
+        Sacrifique uma carta extra do seu cofre para ganhar pontos de maestria para <strong style="color:#ffc107;" id="d-fusion-target">esta carta</strong>. A carta sacrificada é permanentemente removida.
+      </div>
+      <select class="fusion-select" id="fusion-select">
+        <option value="">— Selecione uma carta para sacrificar —</option>
+      </select>
+      <div id="fusion-preview" style="font-size:11px;color:#9e9e9e;margin-bottom:8px;text-align:center;min-height:16px;"></div>
+      <button class="btn-fuse" id="btn-fuse" onclick="doFusion()" disabled>
+        🔥 Fundir Carta
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js"></script>
+<script src="gamedata2.js"></script>
+<script src="gamedata3.js"></script>
+<script src="gamedata-v7-patch.js"></script>
+<script src="gamedata-pesca.js"></script>
+<script src="gamedata-pesca-patch.js"></script>
+<script src="gamedata-maestria-patch.js"></script>
+<script src="gamedata-prime-patch.js"></script>
+<script src="gamedata-sabio-patch.js"></script>
+<script src="gamedata-aventuras-patch.js"></script>
+<script src="gamedata-vendedor-patch.js"></script>
+<script>
+"use strict";
+
+let save;
+let currentFilter = "ALL";
+let activeCardId  = null;
+
+// ─── INIT ─────────────────────────────────────────────────────────────────
+function init() {
+  save = getOrCreateSave();
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+
+  buildCostTable();
+  renderStats();
+  renderHall();
+  renderCodex();
+  renderAchievements();
+  renderGrid();
+}
+
+// ─── CODEX DE MAESTRIA (v11) ────────────────────────────────────────────
+function renderCodex() {
+  const el = document.getElementById("codex-grid");
+  if (!el) return;
+  if (typeof checkMaestriaCodex === "function") checkMaestriaCodex(save);
+  const codex  = save.maestriaCodex || {};
+  const order  = ["ORIGENS","ULTRA_RARE","MYTHIC","LEGENDARY","EPIC","RARE","COMMON"];
+  const labels = { COMMON:"Comum",RARE:"Raro",EPIC:"Épico",LEGENDARY:"Lendário",MYTHIC:"Mítico",ULTRA_RARE:"Ultra Raro",ORIGENS:"Origens" };
+  const colors = { COMMON:"#9e9e9e",RARE:"#2196F3",EPIC:"#9c27b0",LEGENDARY:"#ffc107",MYTHIC:"#f44336",ULTRA_RARE:"#00e5ff",ORIGENS:"#ff4444" };
+
+  el.innerHTML = order.map(rar => {
+    const done = !!codex[rar];
+    return `<div style="text-align:center;padding:10px 4px;border-radius:8px;background:${done ? "#1a0a2a" : "#0a0a14"};border:1px solid ${done ? colors[rar] : "#1e1e30"};opacity:${done ? 1 : 0.5};">
+      <div style="font-size:18px;">${done ? "📖" : "📕"}</div>
+      <div style="font-size:10px;font-weight:700;color:${colors[rar]};margin-top:2px;">${labels[rar]}</div>
+      <div style="font-size:9px;color:#9e9e9e;">${done ? "Completo" : "Incompleto"}</div>
+    </div>`;
+  }).join("");
+}
+
+// ─── TABELA DE CUSTOS (no painel de ajuda) ────────────────────────────────
+function buildCostTable() {
+  if (typeof MAESTRIA_CONFIG === "undefined") return;
+  const order = ["COMMON","RARE","EPIC","LEGENDARY","MYTHIC","ULTRA_RARE","ORIGENS"];
+  const labels = { COMMON:"Comum",RARE:"Raro",EPIC:"Épico",LEGENDARY:"Lendário",MYTHIC:"Mítico",ULTRA_RARE:"Ultra Raro",ORIGENS:"Origens" };
+  const colors = { COMMON:"#9e9e9e",RARE:"#2196F3",EPIC:"#9c27b0",LEGENDARY:"#ffc107",MYTHIC:"#f44336",ULTRA_RARE:"#00e5ff",ORIGENS:"#ff4444" };
+
+  let html = "";
+  for (const rar of order) {
+    const costs = MAESTRIA_CONFIG.starCost[rar] || [];
+    // cumulative
+    let cum = 0;
+    const cumArr = costs.map(c => { cum += c; return fmtNum(cum); });
+    html += `<tr>
+      <td style="padding:4px 6px;color:${colors[rar]};font-weight:700;font-size:10px;">${labels[rar]}</td>
+      ${cumArr.map(v => `<td style="padding:4px 4px;text-align:center;color:#c0c0d0;">${v}</td>`).join("")}
+    </tr>`;
+  }
+  document.getElementById("cost-table-body").innerHTML = html;
+}
+
+// ─── STATS GLOBAIS ────────────────────────────────────────────────────────
+function renderStats() {
+  const m = save.maestria || {};
+  const uniqueInVault = getUniqueCardsInVault();
+  let totalStars = 0, maxed = 0, evolved = 0;
+
+  for (const cardId of uniqueInVault) {
+    const pts  = (m[cardId] && m[cardId].pts) || 0;
+    const card = getCardById(cardId);
+    if (!card) continue;
+    const stars = getMaestriaStars(pts, card.rarity);
+    totalStars += stars;
+    if (stars > 0)  evolved++;
+    if (stars >= 5) maxed++;
+  }
+
+  document.getElementById("stat-total-stars").textContent = totalStars;
+  document.getElementById("stat-maxed").textContent       = maxed;
+  document.getElementById("stat-evolved").textContent     = evolved;
+}
+
+// ─── HALL DA FAMA ─────────────────────────────────────────────────────────
+function renderHall() {
+  const m = save.maestria || {};
+  const uniqueInVault = getUniqueCardsInVault();
+  let totalStars = 0, evolved = 0, maxed = 0, infused = 0, buffSum = 0, buffCount = 0;
+
+  for (const cardId of uniqueInVault) {
+    const pts   = (m[cardId] && m[cardId].pts) || 0;
+    const card  = getCardById(cardId);
+    if (!card) continue;
+    const stars = getMaestriaStars(pts, card.rarity);
+    totalStars += stars;
+    if (stars > 0) evolved++;
+    if (stars >= 5) maxed++;
+    if (m[cardId] && m[cardId].infused) infused++;
+    buffSum += stars; buffCount++;
+  }
+
+  const avgBuff = buffCount ? (buffSum / buffCount).toFixed(1) : 0;
+
+  document.getElementById("hall-total-stars").textContent = totalStars;
+  document.getElementById("hall-evolved").textContent     = evolved;
+  document.getElementById("hall-maxed").textContent       = maxed;
+  document.getElementById("hall-infused").textContent     = infused;
+  document.getElementById("hall-avg-buff").textContent    = `+${avgBuff}% ATK/HP`;
+}
+
+// ─── CONQUISTAS ───────────────────────────────────────────────────────────
+function renderAchievements() {
+  const m = save.maestria || {};
+  const uniqueInVault = getUniqueCardsInVault();
+  let totalStars = 0, maxed = 0;
+  const maxedByRarity = {};
+
+  for (const cardId of uniqueInVault) {
+    const pts  = (m[cardId] && m[cardId].pts) || 0;
+    const card = getCardById(cardId);
+    if (!card) continue;
+    const stars = getMaestriaStars(pts, card.rarity);
+    totalStars += stars;
+    if (stars >= 5) {
+      maxed++;
+      maxedByRarity[card.rarity] = (maxedByRarity[card.rarity] || 0) + 1;
+    }
+  }
+
+  // Contar cartas únicas por raridade que existem no jogo inteiro
+  const allCards = (typeof ALL_CARDS !== "undefined") ? ALL_CARDS : [];
+  const totalByRarity = {};
+  for (const c of allCards) {
+    totalByRarity[c.rarity] = (totalByRarity[c.rarity] || 0) + 1;
+  }
+
+  const achs = [
+    { icon:"⭐", name:"Primeira Evolução",          desc:"Evolua qualquer carta para 1★",                     done: totalStars >= 1 },
+    { icon:"🌟", name:"Colecionador Bronze",         desc:"Acumule 10 estrelas de maestria no total",          done: totalStars >= 10 },
+    { icon:"🏆", name:"Colecionador Ouro",           desc:"Acumule 50 estrelas de maestria no total",          done: totalStars >= 50 },
+    { icon:"💎", name:"Mestre das Cartas",           desc:"Acumule 200 estrelas de maestria no total",         done: totalStars >= 200 },
+    { icon:"🔥", name:"Primeira Carta Máxima",       desc:"Leve qualquer carta a 5★",                          done: maxed >= 1 },
+    { icon:"⚡", name:"Dez Cartas Máximas",          desc:"Leve 10 cartas diferentes a 5★",                   done: maxed >= 10 },
+    { icon:"👑", name:"Coleção Épica Completa",      desc:`Leve todas as cartas Épicas (${totalByRarity.EPIC||"?"}x) a 5★`, done: (maxedByRarity.EPIC||0) >= (totalByRarity.EPIC||Infinity) },
+    { icon:"💛", name:"Coleção Lendária Completa",   desc:`Leve todas as cartas Lendárias (${totalByRarity.LEGENDARY||"?"}x) a 5★`, done: (maxedByRarity.LEGENDARY||0) >= (totalByRarity.LEGENDARY||Infinity) },
+    { icon:"❤️", name:"Coleção Mítica Completa",     desc:`Leve todas as cartas Míticas (${totalByRarity.MYTHIC||"?"}x) a 5★ — meta que só os mais dedicados alcançam!`, done: (maxedByRarity.MYTHIC||0) >= (totalByRarity.MYTHIC||Infinity) },
+    { icon:"🌊", name:"Coleção Ultra Rara Completa", desc:`Leve todas as cartas Ultra Raras (${totalByRarity.ULTRA_RARE||"?"}x) a 5★`, done: (maxedByRarity.ULTRA_RARE||0) >= (totalByRarity.ULTRA_RARE||Infinity) },
+    { icon:"🌌", name:"Coleção Origens Completa",    desc:`Leve todas as cartas Origens (${totalByRarity.ORIGENS||"?"}x) a 5★ — a meta definitiva do jogo!`, done: (maxedByRarity.ORIGENS||0) >= (totalByRarity.ORIGENS||Infinity) },
+  ];
+
+  const list = document.getElementById("achievements-list");
+  list.innerHTML = achs.map(a => `
+    <div class="maestria-ach-box${a.done ? "" : " locked"}">
+      <span class="ach-icon">${a.icon}</span>
+      <div>
+        <div class="ach-name">${a.name}</div>
+        <div class="ach-desc">${a.desc}</div>
+      </div>
+      <span class="ach-badge">${a.done ? "✅ Feito!" : "🔒"}</span>
+    </div>
+  `).join("");
+}
+
+// ─── GRADE DE CARTAS ──────────────────────────────────────────────────────
+function getUniqueCardsInVault() {
+  const counts = {};
+  for (const id of (save.vault || [])) {
+    counts[id] = (counts[id] || 0) + 1;
+  }
+  return Object.keys(counts);
+}
+
+function renderGrid() {
+  const grid = document.getElementById("maestria-grid");
+  const m    = save.maestria || {};
+  const counts = {};
+  for (const id of (save.vault || [])) counts[id] = (counts[id] || 0) + 1;
+
+  const uniqueIds = Object.keys(counts);
+  if (!uniqueIds.length) {
+    grid.innerHTML = `<div class="empty-maestria" style="grid-column:span 3;">
+      <div style="font-size:40px;margin-bottom:8px;">📦</div>
+      <div style="font-weight:700;color:#555;">Nenhuma carta no cofre</div>
+      <div style="font-size:12px;color:#444;margin-top:4px;">Compre pacotes na loja para começar!</div>
+    </div>`;
+    return;
+  }
+
+  // Raridade order para sort
+  const rarityOrder = { ORIGENS:0, ULTRA_RARE:1, MYTHIC:2, LEGENDARY:3, EPIC:4, RARE:5, COMMON:6 };
+
+  let filtered = uniqueIds
+    .map(id => ({ id, card: getCardById(id) }))
+    .filter(({card}) => card)
+    .filter(({card}) => {
+      if (currentFilter === "ALL")   return true;
+      if (currentFilter === "MAXED") {
+        const pts  = (m[card.id] && m[card.id].pts) || 0;
+        return getMaestriaStars(pts, card.rarity) >= 5;
+      }
+      return card.rarity === currentFilter;
+    })
+    .sort((a,b) => (rarityOrder[a.card.rarity]||9) - (rarityOrder[b.card.rarity]||9));
+
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="empty-maestria" style="grid-column:span 3;">
+      <div style="font-size:32px;margin-bottom:8px;">🔍</div>
+      <div style="font-weight:700;color:#555;">Nenhuma carta neste filtro</div>
+    </div>`;
+    return;
+  }
+
+  const starColors = ["#2a2a4a","#cd7f32","#aaaaaa","#ffd700","#00e5ff","#ce93d8"];
+
+  grid.innerHTML = filtered.map(({id, card}) => {
+    const pts    = (m[id] && m[id].pts) || 0;
+    const stars  = getMaestriaStars(pts, card.rarity);
+    const prog   = getMaestriaProgress(pts, card.rarity);
+    const pct    = prog.isMaxed ? 100 : Math.round((prog.currentInStar / prog.starCost) * 100);
+    const color  = starColors[stars] || "#2a2a4a";
+    const starsDisplay = "★".repeat(stars) + "☆".repeat(5-stars);
+
+    return `<div class="mcard star-${stars}${(m[id]&&m[id].infused)?' infused':''}"
+      onclick="openCard('${id}')" style="--mcard-color:${color}">
+      <span class="mcard-emoji">${card.img}</span>
+      <div class="mcard-name">${card.name}</div>
+      <div class="mcard-stars" style="color:${color};">${starsDisplay}</div>
+      <div class="mcard-bar-wrap">
+        <div class="mcard-bar" style="width:${pct}%;background:${color};"></div>
+      </div>
+      <div class="mcard-pts">${fmtNum(pts)} pts</div>
+    </div>`;
+  }).join("");
+}
+
+// ─── FILTRO ───────────────────────────────────────────────────────────────
+function setFilter(btn, filter) {
+  currentFilter = filter;
+  document.querySelectorAll(".filter-chip").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderGrid();
+}
+
+// ─── PAINEL DE AJUDA ──────────────────────────────────────────────────────
+function toggleHelp() {
+  const btn  = document.getElementById("help-toggle");
+  const body = document.getElementById("help-body");
+  btn.classList.toggle("open");
+  body.classList.toggle("open");
+}
+
+// ─── MODAL DE DETALHE ─────────────────────────────────────────────────────
+function openCard(cardId) {
+  activeCardId = cardId;
+  const card = getCardById(cardId);
+  if (!card) return;
+
+  const m     = save.maestria || {};
+  const pts   = (m[cardId] && m[cardId].pts) || 0;
+  const stars = getMaestriaStars(pts, card.rarity);
+  const prog  = getMaestriaProgress(pts, card.rarity);
+  const r     = (typeof RARITY !== "undefined") ? RARITY[card.rarity] : null;
+  const color = r ? r.color : "#9e9e9e";
+
+  document.getElementById("d-emoji").textContent  = card.img;
+  document.getElementById("d-name").textContent   = card.name;
+  document.getElementById("d-rarity").textContent = r ? r.name : card.rarity;
+  document.getElementById("d-rarity").style.color = color;
+
+  // Estrelas visuais
+  const starColors  = ["","#cd7f32","#aaaaaa","#ffd700","#00e5ff","#ce93d8"];
+  const starClasses = ["","s1","s2","s3","s4","s5"];
+  const starsRow = document.getElementById("d-stars");
+  starsRow.innerHTML = Array.from({length:5},(_,i) => {
+    const idx  = i + 1;
+    const earned = idx <= stars;
+    const cls  = earned ? `detail-star earned ${starClasses[idx]}` : "detail-star";
+    const sc   = earned ? starColors[idx] : "#2a2a4a";
+    return `<div class="${cls}" style="${earned?`border-color:${sc};`:''}">
+      <span style="color:${earned?sc:'#2a2a4a'};">★</span>
+    </div>`;
+  }).join("");
+
+  // Progresso
+  const pLabel = document.getElementById("d-progress-label");
+  const pPts   = document.getElementById("d-progress-pts");
+  const pFill  = document.getElementById("d-progress-fill");
+  const pNote  = document.getElementById("d-maxed-note");
+
+  if (prog.isMaxed) {
+    pLabel.textContent = "Nível máximo atingido!";
+    pPts.textContent   = fmtNum(pts) + " pts";
+    pFill.style.width  = "100%";
+    pFill.style.background = "#ce93d8";
+    pNote.style.display = "block";
+  } else {
+    pLabel.textContent = `${stars}★ → ${stars+1}★`;
+    pPts.textContent   = `${fmtNum(prog.currentInStar)} / ${fmtNum(prog.starCost)} pts`;
+    const pct = prog.starCost ? Math.round((prog.currentInStar / prog.starCost) * 100) : 0;
+    pFill.style.width      = pct + "%";
+    pFill.style.background = starColors[stars+1] || "#7c4dff";
+    pNote.style.display    = "none";
+  }
+
+  // Bônus de combate
+  // BUGFIX: mostrar o bônus real que vale em batalha (getMaestriaBuffWithPrestige),
+  // não apenas a estimativa de +N% por estrela — para o jogador ver o efeito do Prestige.
+  const currentPrestige = (save.maestriaPrestige && save.maestriaPrestige[cardId]) || 0;
+  if (typeof getMaestriaBuffWithPrestige === "function") {
+    const totalBuffPct = Math.round((getMaestriaBuffWithPrestige(save, cardId) - 1) * 100);
+    document.getElementById("d-buff").textContent = `+${totalBuffPct}% ATK / +${totalBuffPct}% HP` +
+      (currentPrestige > 0 ? ` (Prestige ${["","I","II","III"][currentPrestige]})` : "");
+  } else {
+    document.getElementById("d-buff").textContent = `+${stars}% ATK / +${stars}% HP`;
+  }
+
+  // Lore
+  const lore = getLoreForStars(cardId, stars);
+  document.getElementById("d-lore").textContent = lore;
+
+  // Infusão
+  const infSection = document.getElementById("infusion-section");
+  const alreadyInfused = m[cardId] && m[cardId].infused;
+  if (prog.isMaxed && !alreadyInfused) {
+    infSection.style.display = "block";
+  } else if (alreadyInfused) {
+    infSection.style.display = "block";
+    document.getElementById("btn-infuse").disabled = true;
+    document.getElementById("btn-infuse").textContent = "💎 Já infundida!";
+  } else {
+    infSection.style.display = "none";
+  }
+
+  // Prestige
+  renderPrestigeSection(cardId, prog.isMaxed);
+
+  // Fusão — lista de cartas disponíveis para sacrificar
+  document.getElementById("d-fusion-target").textContent = card.name;
+  populateFusionSelect(cardId);
+
+  document.getElementById("detail-modal").classList.remove("hidden");
+}
+
+function getLoreForStars(cardId, stars) {
+  if (typeof MAESTRIA_LORE !== "undefined" && MAESTRIA_LORE[cardId]) {
+    const loreParts = MAESTRIA_LORE[cardId];
+    if (stars === 0) return "Nenhum lore desbloqueado ainda. Evolua para 1★ para começar!";
+    return loreParts.slice(0, stars).join(" ✦ ");
+  }
+
+  // Lore genérico baseado na carta e estrelas
+  const card = getCardById(cardId);
+  if (!card) return "Desbloqueie estrelas para revelar a história...";
+  const genericLore = [
+    `${card.name} surgiu das sombras do tempo, carregando um poder que poucos ousam questionar.`,
+    `Dizem que sua força foi forjada em batalhas que marcaram a história do reino para sempre.`,
+    `Ao terceiro teste, ${card.name} revelou sua verdadeira natureza — e o mundo tremeu.`,
+    `No auge do poder, sua presença no campo de batalha é suficiente para virar o jogo.`,
+    `Lendas serão contadas por gerações sobre o que ${card.name} fez quando chegou ao limite final.`,
+  ];
+  if (stars === 0) return "Nenhum lore desbloqueado ainda. Evolua para 1★ para começar!";
+  return genericLore.slice(0, stars).join(" ✦ ");
+}
+
+function populateFusionSelect(targetCardId) {
+  const select = document.getElementById("fusion-select");
+  const fusionPreview = document.getElementById("fusion-preview");
+  const btnFuse = document.getElementById("btn-fuse");
+
+  // Contar cartas no cofre
+  const counts = {};
+  for (const id of (save.vault || [])) counts[id] = (counts[id] || 0) + 1;
+
+  // Só pode sacrificar cartas das quais tem mais de 1 cópia, ou tem 1 cópia mas não é a carta alvo
+  const options = Object.entries(counts)
+    .filter(([id, cnt]) => {
+      if (id === targetCardId) return cnt > 1; // pode sacrificar dupe de si mesma
+      return cnt >= 1;
+    })
+    .map(([id, cnt]) => ({ id, cnt, card: getCardById(id) }))
+    .filter(({card}) => card);
+
+  const rarOrder = { ORIGENS:0, ULTRA_RARE:1, MYTHIC:2, LEGENDARY:3, EPIC:4, RARE:5, COMMON:6 };
+  options.sort((a,b) => (rarOrder[a.card.rarity]||9) - (rarOrder[b.card.rarity]||9));
+
+  if (!options.length) {
+    select.innerHTML = '<option value="">— Sem cartas extras para sacrificar —</option>';
+    btnFuse.disabled = true;
+    fusionPreview.textContent = "";
+    return;
+  }
+
+  const fusionPts = (typeof MAESTRIA_CONFIG !== "undefined") ? MAESTRIA_CONFIG.fusionPts : {COMMON:1,RARE:2,EPIC:5,LEGENDARY:10,MYTHIC:20,ULTRA_RARE:35,ORIGENS:60};
+  const rarLabels = {COMMON:"Comum",RARE:"Raro",EPIC:"Épico",LEGENDARY:"Lendário",MYTHIC:"Mítico",ULTRA_RARE:"Ultra Raro",ORIGENS:"Origens"};
+
+  select.innerHTML = '<option value="">— Selecione uma carta para sacrificar —</option>' +
+    options.map(({id,cnt,card}) => {
+      const pts = fusionPts[card.rarity] || 1;
+      return `<option value="${id}">
+        ${card.img} ${card.name} [${rarLabels[card.rarity]||card.rarity}] (x${cnt}) → +${pts} pts
+      </option>`;
+    }).join("");
+
+  select.onchange = () => {
+    const val = select.value;
+    if (!val) { fusionPreview.textContent=""; btnFuse.disabled=true; return; }
+    const sc = getCardById(val);
+    if (!sc) return;
+    const pts = (fusionPts[sc.rarity] || 1);
+    fusionPreview.textContent = `Sacrificando ${sc.img} ${sc.name} → +${pts} pontos de maestria`;
+    btnFuse.disabled = false;
+  };
+
+  btnFuse.disabled = true;
+  fusionPreview.textContent = "";
+}
+
+function doFusion() {
+  const targetId  = activeCardId;
+  const sacrificeId = document.getElementById("fusion-select").value;
+  if (!targetId || !sacrificeId) return;
+
+  const result = maestriaFusion(save, targetId, sacrificeId);
+  if (!result.success) {
+    showToast("❌ " + result.error, "error");
+    return;
+  }
+
+  writeSave(save);
+  showToast(`🔥 Fusão realizada! +${result.pts} pontos de maestria para ${getCardById(targetId)?.name || ""}!`, "gold", 3500);
+
+  // Atualizar modal
+  openCard(targetId);
+
+  // Atualizar grid e stats
+  renderGrid();
+  renderStats();
+  renderHall();
+  renderCodex();
+  renderAchievements();
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+}
+
+function doInfuse() {
+  if (!activeCardId) return;
+  const m = save.maestria || {};
+  const pts = (m[activeCardId] && m[activeCardId].pts) || 0;
+  const card = getCardById(activeCardId);
+  if (!card) return;
+  const stars = getMaestriaStars(pts, card.rarity);
+  if (stars < 5) { showToast("❌ Leve a carta a 5★ antes da Infusão!", "error"); return; }
+
+  if (!save.maestria) save.maestria = {};
+  if (!save.maestria[activeCardId]) save.maestria[activeCardId] = { pts:0 };
+  save.maestria[activeCardId].infused = true;
+  writeSave(save);
+
+  showToast(`💎 Infusão Diamante realizada em ${card.name}!`, "gold", 4000);
+  openCard(activeCardId);
+  renderGrid();
+  renderHall();
+  renderCodex();
+}
+
+// BUGFIX: sistema de Prestige (gamedata-maestria-patch.js) não tinha
+// nenhuma UI — o jogador não conseguia acioná-lo de jeito nenhum.
+function renderPrestigeSection(cardId, isMaxed) {
+  const section = document.getElementById("prestige-section");
+  if (typeof PRESTIGE_CONFIG === "undefined" || typeof evolveToPrestige !== "function") {
+    section.style.display = "none";
+    return;
+  }
+  if (!isMaxed) {
+    section.style.display = "none";
+    return;
+  }
+
+  const currentPrestige = (save.maestriaPrestige && save.maestriaPrestige[cardId]) || 0;
+  if (currentPrestige >= 3) {
+    section.style.display = "block";
+    document.getElementById("prestige-title").textContent = "⚜️ Prestige III — nível máximo!";
+    document.getElementById("prestige-desc").textContent = "Esta carta já atingiu o Prestige máximo.";
+    document.getElementById("prestige-cost").textContent = "";
+    const btn = document.getElementById("btn-prestige");
+    btn.disabled = true;
+    btn.textContent = "⚜️ Nível máximo";
+    return;
+  }
+
+  const nextLevel = currentPrestige + 1;
+  const cost = PRESTIGE_CONFIG.costs[nextLevel];
+  const romanLevel = ["","I","II","III"][nextLevel];
+
+  section.style.display = "block";
+  document.getElementById("prestige-title").textContent = `⚜️ Prestige ${romanLevel} disponível!`;
+  document.getElementById("prestige-desc").textContent = cost.desc;
+  document.getElementById("prestige-cost").textContent =
+    `Custo: ${fmtNum(cost.pointsRequired)} pts de maestria + ${fmtNum(cost.goldRequired)} ouro`;
+
+  const btn = document.getElementById("btn-prestige");
+  btn.disabled = false;
+  btn.textContent = `⚜️ Evoluir para Prestige ${romanLevel}`;
+}
+
+function doPrestige() {
+  if (!activeCardId) return;
+  if (typeof evolveToPrestige !== "function") return;
+
+  const result = evolveToPrestige(save, activeCardId);
+  if (!result.success) {
+    showToast("❌ " + result.reason, "error");
+    return;
+  }
+
+  writeSave(save);
+  const romanLevel = ["","I","II","III"][result.newLevel];
+  showToast(`⚜️ Prestige ${romanLevel} conquistado! ${result.desc}`, "gold", 4000);
+
+  openCard(activeCardId);
+  renderGrid();
+  renderStats();
+  renderHall();
+  renderCodex();
+  renderAchievements();
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+}
+
+function closeModal() {
+  document.getElementById("detail-modal").classList.add("hidden");
+  activeCardId = null;
+}
+
+// ─── UTILS INLINE (fallback se gamedata3 não carregar antes) ─────────────
+function getMaestriaStars(pts, rarity) {
+  if (typeof MAESTRIA_CONFIG !== "undefined") {
+    const costs = MAESTRIA_CONFIG.starCost[rarity] || MAESTRIA_CONFIG.starCost.COMMON;
+    let stars = 0;
+    let cum   = 0;
+    for (let i = 0; i < costs.length; i++) {
+      cum += costs[i];
+      if (pts >= cum) stars = i + 1;
+      else break;
+    }
+    return stars;
+  }
+  // Fallback simples
+  const fallback = { COMMON:4,RARE:8,EPIC:16,LEGENDARY:30,MYTHIC:50,ULTRA_RARE:80,ORIGENS:120 };
+  const perStar  = fallback[rarity] || 4;
+  return Math.min(5, Math.floor(pts / perStar));
+}
+
+function getMaestriaProgress(pts, rarity) {
+  if (typeof MAESTRIA_CONFIG !== "undefined") {
+    const costs = MAESTRIA_CONFIG.starCost[rarity] || MAESTRIA_CONFIG.starCost.COMMON;
+    let cum = 0;
+    for (let i = 0; i < costs.length; i++) {
+      const prevCum = cum;
+      cum += costs[i];
+      if (pts < cum) {
+        return { stars:i, starCost:costs[i], currentInStar:pts-prevCum, isMaxed:false };
+      }
+    }
+    return { stars:5, starCost:costs[4]||1, currentInStar:costs[4]||0, isMaxed:true };
+  }
+  const stars = getMaestriaStars(pts, rarity);
+  const fallback = { COMMON:4,RARE:8,EPIC:16,LEGENDARY:30,MYTHIC:50,ULTRA_RARE:80,ORIGENS:120 };
+  const perStar  = fallback[rarity] || 4;
+  if (stars >= 5) return { stars:5, starCost:perStar, currentInStar:perStar, isMaxed:true };
+  const base = stars * perStar;
+  return { stars, starCost:perStar, currentInStar: pts - base, isMaxed:false };
+}
+
+function maestriaFusion(sv, targetId, sacrificeId) {
+  if (typeof maestriaDoFusion !== "undefined") {
+    return maestriaDoFusion(sv, targetId, sacrificeId);
+  }
+  // Fallback inline
+  const fusionPts = {COMMON:1,RARE:2,EPIC:5,LEGENDARY:10,MYTHIC:20,ULTRA_RARE:35,ORIGENS:60};
+  const sc = getCardById(sacrificeId);
+  if (!sc) return { success:false, error:"Carta não encontrada." };
+
+  const idx = sv.vault.indexOf(sacrificeId);
+  if (idx === -1) {
+    if (sacrificeId === targetId) {
+      // precisa de 2 cópias
+      return { success:false, error:"Você não tem cópias extras desta carta para sacrificar." };
+    }
+    return { success:false, error:"Carta não encontrada no cofre." };
+  }
+
+  // Não deixar sacrificar a única cópia da carta alvo
+  const targetCount = sv.vault.filter(id => id === targetId).length;
+  if (sacrificeId === targetId && targetCount <= 1) {
+    return { success:false, error:"Você precisa ter pelo menos 1 cópia desta carta para mantê-la!" };
+  }
+
+  sv.vault.splice(idx, 1);
+
+  if (!sv.maestria) sv.maestria = {};
+  if (!sv.maestria[targetId]) sv.maestria[targetId] = { pts:0 };
+  const pts = fusionPts[sc.rarity] || 1;
+  sv.maestria[targetId].pts += pts;
+
+  return { success:true, pts };
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Battle Pass – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+.pass-hero {
+  background:linear-gradient(135deg,#1a0040,#2d0060,#1a0040);
+  border:2px solid #7c4dff; border-radius:16px;
+  padding:20px 16px 16px; margin-bottom:14px; text-align:center;
+  position:relative; overflow:hidden;
+}
+.pass-hero::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(124,77,255,0.15) 0%,transparent 60%);
+  pointer-events:none;
+}
+.pass-hero .icon { font-size:52px; display:block; margin-bottom:8px;
+  animation:float 2.5s ease-in-out infinite; filter:drop-shadow(0 0 18px rgba(124,77,255,0.6)); }
+.pass-hero .title { font-family:'Cinzel',serif; font-size:20px; font-weight:900;
+  background:linear-gradient(135deg,#7c4dff,#e040fb);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  margin-bottom:4px; }
+.pass-hero .sub { font-size:12px; color:#9e9e9e; }
+
+.pass-tabs { display:flex; background:#0e0e1c; border-radius:12px; padding:3px; gap:3px; margin-bottom:14px; }
+.pass-tab { flex:1; padding:9px 4px; border:none; border-radius:9px; background:transparent; color:#9e9e9e;
+  font-family:'Rajdhani',sans-serif; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.2s; }
+.pass-tab.active { background:linear-gradient(135deg,#4a0072,#7c4dff); color:#fff; }
+
+.pass-progress-bar {
+  background:#0e0e1c; border:1px solid #2a2a4a; border-radius:10px;
+  padding:12px 14px; margin-bottom:14px;
+}
+.xp-bar-wrap { background:#1e1e30; border-radius:20px; height:10px; overflow:hidden; margin:8px 0; }
+.xp-bar-fill { height:100%; border-radius:20px; transition:width 0.5s ease; }
+.xp-bar-fill.free { background:linear-gradient(90deg,#4a148c,#7c4dff); }
+.xp-bar-fill.premium { background:linear-gradient(90deg,#b8730a,#ffc107); }
+
+/* Season stats */
+.season-stats {
+  background:linear-gradient(135deg,#0a0020,#150030);
+  border:1px solid #4a0072; border-radius:12px; padding:12px; margin-bottom:14px;
+}
+.season-stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+.stat-cell {
+  background:rgba(0,0,0,0.35); border-radius:8px; padding:8px 10px;
+  border-left:3px solid #7c4dff;
+}
+.stat-cell .k { font-size:10px; color:#9e9e9e; text-transform:uppercase; letter-spacing:0.4px; }
+.stat-cell .v { font-family:'Cinzel',serif; font-size:16px; font-weight:900; color:#ce93d8; margin-top:2px; }
+.stat-cell.warn { border-left-color:#f44336; }
+.stat-cell.warn .v { color:#ef9a9a; }
+.stat-cell.good { border-left-color:#4CAF50; }
+.stat-cell.good .v { color:#a5d6a7; }
+.countdown-strip {
+  display:flex; justify-content:center; align-items:center; gap:6px;
+  margin-top:8px; font-size:11px; color:#c0c0d0;
+}
+.countdown-strip b { color:#ffc107; font-family:'Cinzel',serif; }
+
+/* Next preview */
+.next-preview {
+  background:#0e0e1c; border:1px solid #2a2a4a; border-radius:12px;
+  padding:10px 12px; margin-bottom:14px;
+}
+.next-preview .np-title { font-size:11px; font-weight:700; color:#7c4dff; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; }
+.np-list { display:flex; flex-direction:column; gap:6px; }
+.np-row {
+  display:flex; align-items:center; gap:8px; padding:6px 8px;
+  background:rgba(124,77,255,0.06); border-radius:8px; font-size:11px;
+}
+.np-row .np-tier { font-family:'Cinzel',serif; font-weight:900; color:#ce93d8; font-size:12px; min-width:52px; }
+.np-row .np-need { color:#9e9e9e; font-size:10px; margin-left:auto; }
+
+/* Batch claim */
+.batch-bar {
+  display:flex; align-items:center; gap:8px; margin-bottom:12px;
+  background:linear-gradient(135deg,#1b5e20,#2e7d32);
+  border:1px solid #66bb6a; border-radius:10px; padding:10px 12px;
+}
+.batch-bar .bb-txt { flex:1; font-size:12px; color:#c8e6c9; }
+.batch-bar .bb-txt b { color:#fff; }
+.batch-bar button {
+  padding:7px 14px; border-radius:8px; border:none; cursor:pointer;
+  background:linear-gradient(135deg,#fff,#e8f5e8); color:#1b5e20;
+  font-family:'Rajdhani',sans-serif; font-weight:800; font-size:12px;
+}
+
+/* Filter chips */
+.filter-chips { display:flex; gap:6px; margin-bottom:10px; overflow-x:auto; padding-bottom:2px; }
+.filter-chip {
+  flex:0 0 auto; padding:5px 12px; border-radius:16px; font-size:11px;
+  border:1px solid #2a2a4a; background:#0e0e1c; color:#9e9e9e;
+  cursor:pointer; font-family:'Rajdhani',sans-serif; font-weight:700;
+  white-space:nowrap;
+}
+.filter-chip.active { background:linear-gradient(135deg,#4a0072,#7c4dff); color:#fff; border-color:#7c4dff; }
+
+/* Tier card */
+.tier-card {
+  background:var(--bg-card); border:2px solid #1e1e30; border-radius:14px;
+  margin-bottom:8px; overflow:hidden; transition:all 0.2s;
+}
+.tier-card.unlocked { border-color:#7c4dff; }
+.tier-card.claimed  { border-color:#66bb6a; opacity:0.7; }
+.tier-card.locked   { opacity:0.5; }
+.tier-card.milestone { border-color:#ffc107; box-shadow:0 0 14px rgba(255,193,7,0.12); }
+.tier-card.pinnacle { border-color:#ff4444; box-shadow:0 0 20px rgba(255,68,68,0.25); }
+
+.tier-header {
+  display:flex; align-items:center; gap:10px; padding:12px 14px;
+  cursor:pointer;
+}
+.tier-num {
+  font-family:'Cinzel',serif; font-weight:900; font-size:16px;
+  width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+}
+.pass-cta {
+  background:linear-gradient(135deg,#1a0a00,#2d1a00);
+  border:2px solid #ffc107; border-radius:14px; padding:16px; margin-bottom:14px;
+  text-align:center;
+}
+.season-info {
+  background:linear-gradient(135deg,#0a0020,#150030);
+  border:1px solid #4a0072; border-radius:12px; padding:14px; margin-bottom:14px;
+}
+.claim-btn {
+  padding:6px 14px; border-radius:8px; font-weight:700; font-size:12px;
+  border:none; cursor:pointer; transition:all 0.2s;
+}
+.claim-btn.free-claim    { background:linear-gradient(135deg,#4a0072,#7c4dff); color:#fff; }
+.claim-btn.premium-claim { background:linear-gradient(135deg,#b8730a,#ffc107); color:#000; }
+.claim-btn.claimed-btn   { background:#1e1e30; color:#555; cursor:not-allowed; }
+.claim-btn.locked-btn    { background:#1e1e30; color:#555; cursor:not-allowed; opacity:0.5; }
+
+/* Missions */
+.pmission-card {
+  background:var(--bg-card); border:2px solid #2a2a4a; border-radius:12px;
+  padding:12px 14px; margin-bottom:8px;
+}
+.pmission-card.done { border-color:#66bb6a; }
+.pmission-card.claimed { opacity:0.55; }
+.pmission-head { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+.pmission-head .ic { font-size:22px; }
+.pmission-head .nm { flex:1; font-weight:700; font-size:13px; }
+.pmission-head .rw { font-size:11px; color:#ce93d8; font-weight:700; }
+.pmission-desc { font-size:11px; color:#9e9e9e; margin-bottom:6px; line-height:1.5; }
+.pmission-bar { background:#1e1e30; height:6px; border-radius:20px; overflow:hidden; }
+.pmission-bar>div { height:100%; background:linear-gradient(90deg,#4a148c,#7c4dff); border-radius:20px; transition:width 0.3s; }
+.pmission-foot { display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-size:10px; color:#9e9e9e; }
+.pmission-foot button {
+  padding:5px 12px; border-radius:8px; border:none; cursor:pointer;
+  background:linear-gradient(135deg,#4a0072,#7c4dff); color:#fff;
+  font-family:'Rajdhani',sans-serif; font-weight:700; font-size:11px;
+}
+.pmission-foot button:disabled { background:#1e1e30; color:#555; cursor:not-allowed; }
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title" style="background:linear-gradient(135deg,#7c4dff,#e040fb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">🎟️ BATTLE PASS</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content">
+
+  <div class="pass-hero">
+    <span class="icon">🎟️</span>
+    <div class="title">BATTLE PASS</div>
+    <div id="pass-season-label" class="sub">Temporada 1 · Passe Sazonal</div>
+    <div class="countdown-strip">⏳ Encerra em <b id="season-countdown">—</b></div>
+  </div>
+
+  <!-- Estatísticas da temporada -->
+  <div class="season-stats">
+    <div style="font-family:'Cinzel',serif;font-size:13px;font-weight:700;color:#ce93d8;">📊 Sua Temporada</div>
+    <div class="season-stats-grid">
+      <div class="stat-cell"><div class="k">Tier atual</div><div class="v"><span id="ss-current">0</span>/60</div></div>
+      <div class="stat-cell"><div class="k">Nível atual</div><div class="v" id="ss-level">1</div></div>
+      <div class="stat-cell good"><div class="k">Tiers resgatados</div><div class="v" id="ss-claimed">0</div></div>
+      <div class="stat-cell warn"><div class="k">Não resgatados</div><div class="v" id="ss-pending">0</div></div>
+      <div class="stat-cell"><div class="k">Projeção final</div><div class="v" id="ss-projected">—</div></div>
+      <div class="stat-cell"><div class="k">XP/dia p/ próx.</div><div class="v" id="ss-xpday">—</div></div>
+    </div>
+  </div>
+
+  <!-- Progresso -->
+  <div class="pass-progress-bar">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <div style="font-family:'Cinzel',serif;font-size:13px;font-weight:700;color:#ce93d8;">
+        🎖️ Tier <span id="pass-tier-current">1</span> / 60
+      </div>
+      <div style="font-size:11px;color:#9e9e9e;">
+        Nível <span id="pass-level-show" style="color:#7c4dff;font-weight:700;">1</span> · avança em <span id="pass-xp-need" style="color:#ffc107;font-weight:700;">—</span>
+      </div>
+    </div>
+    <div class="xp-bar-wrap">
+      <div class="xp-bar-fill free" id="pass-bar" style="width:0%;"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:#555;">
+      <span>Nível <span id="bar-from">1</span></span>
+      <span>Nível <span id="bar-to">5</span></span>
+    </div>
+  </div>
+
+  <!-- Premium status -->
+  <div id="premium-banner"></div>
+
+  <!-- Tabs -->
+  <div class="pass-tabs">
+    <button class="pass-tab active" onclick="switchTab('tiers',this)">🎁 Recompensas</button>
+    <button class="pass-tab" onclick="switchTab('missions',this)">📋 Missões</button>
+    <button class="pass-tab" onclick="switchTab('info',this)">ℹ️ Info</button>
+  </div>
+
+  <!-- ═══ TIERS ═══ -->
+  <div id="tab-tiers">
+    <!-- Batch claim bar -->
+    <div id="batch-bar-wrap"></div>
+
+    <!-- Preview próximos -->
+    <div class="next-preview" id="next-preview"></div>
+
+    <!-- Filtros -->
+    <div class="filter-chips" id="tier-filters">
+      <button class="filter-chip active" data-f="all" onclick="setFilter('all',this)">🎁 Todos</button>
+      <button class="filter-chip" data-f="ready" onclick="setFilter('ready',this)">📥 Prontos</button>
+      <button class="filter-chip" data-f="claimed" onclick="setFilter('claimed',this)">✅ Resgatados</button>
+      <button class="filter-chip" data-f="locked" onclick="setFilter('locked',this)">🔒 Bloqueados</button>
+      <button class="filter-chip" data-f="milestone" onclick="setFilter('milestone',this)">⭐ Marcos</button>
+    </div>
+
+    <div id="tiers-list"></div>
+  </div>
+
+  <!-- ═══ MISSIONS ═══ -->
+  <div id="tab-missions" style="display:none;">
+    <div class="panel" style="margin-bottom:12px;background:linear-gradient(135deg,#0a0020,#150030);border-color:#7c4dff;">
+      <div class="panel-title" style="color:#ce93d8;">📋 Missões Semanais do Pass</div>
+      <p style="font-size:11.5px;color:#c0c0d0;line-height:1.7;margin:6px 0 0;">
+        Missões extras que dão <strong style="color:#ffc107;">XP direto no Pass</strong>. Reset toda segunda-feira.
+      </p>
+    </div>
+    <div id="pmission-list"></div>
+  </div>
+
+  <!-- ═══ INFO ═══ -->
+  <div id="tab-info" style="display:none;">
+    <div class="panel" style="margin-bottom:10px;">
+      <div class="panel-title">🎟️ O Que é o Battle Pass?</div>
+      <p style="font-size:12px;color:#c0c0d0;line-height:1.8;margin:0;">
+        O Battle Pass é um sistema sazonal de recompensas com <strong>30 tiers</strong>.
+        Ao subir de nível, você desbloqueia recompensas automaticamente.<br><br>
+        Cada tier gratuito dá recompensas básicas. O pass premium (💎 500 Diamantes ou via Discord)
+        dá recompensas <strong>muito melhores</strong> em cada tier — incluindo cartas exclusivas e títulos raros.
+      </p>
+    </div>
+
+    <div class="panel" style="margin-bottom:10px;">
+      <div class="panel-title">📈 Como Avançar?</div>
+      <div style="font-size:12px;color:#c0c0d0;line-height:2.0;">
+        <div style="padding:6px 0;border-bottom:1px solid var(--border);">🎖️ Tier 1: Nível 5</div>
+        <div style="padding:6px 0;border-bottom:1px solid var(--border);">🎖️ Tier 5: Nível 25</div>
+        <div style="padding:6px 0;border-bottom:1px solid var(--border);">🎖️ Tier 10: Nível 50 ⭐ Marco</div>
+        <div style="padding:6px 0;border-bottom:1px solid var(--border);">🎖️ Tier 20: Nível 100 ⭐ Marco</div>
+        <div style="padding:6px 0;">🎖️ Tier 60: Nível 300 🌌 MÁXIMO</div>
+      </div>
+      <p style="font-size:11px;color:#555;margin-top:8px;line-height:1.6;">
+  ⚠️ Propositalmente difícil — o jogo foi pensado para ser zerado em anos!
+  São <strong>60 tiers</strong> no total, cada um exigindo 10 níveis a mais.
+  Complete missões diárias, batalhas, eventos e as novas <strong>Missões do Pass</strong> para avançar mais rápido.
+</p>
+    </div>
+
+    <div class="panel" style="margin-bottom:10px;border-color:#7c4dff;background:linear-gradient(135deg,#0a0020,#150030);">
+      <div class="panel-title" style="color:#e040fb;">💎 Pass Premium</div>
+      <ul style="font-size:12px;color:#c0c0d0;padding-left:14px;line-height:2.2;margin:0;">
+        <li>💰 <strong>10x mais ouro</strong> por tier</li>
+        <li>⭐ <strong>XP bônus</strong> em cada nível</li>
+        <li>🃏 <strong>Cartas exclusivas</strong> não disponíveis em nenhum outro lugar</li>
+        <li>🏆 <strong>Título de Temporada</strong> exclusivo para detentores do pass</li>
+        <li>🌟 <strong>Avatar e moldura</strong> exclusivos de temporada</li>
+        <li>⚡ <strong>Boosts garantidos</strong> a cada 5 tiers</li>
+        <li>🎖️ <strong>XPP bônus</strong> para avançar mais rápido no ranking</li>
+      </ul>
+      <div style="margin-top:12px;text-align:center;">
+        <button class="btn btn-gold btn-block btn-lg" onclick="buyPremium()">
+          💎 Comprar Pass Premium — via Discord
+        </button>
+        <div style="font-size:10px;color:#555;margin-top:6px;">
+          Acesse o Discord da Origens Games e vá ao canal #battle-pass
+        </div>
+      </div>
+    </div>
+
+    <div class="season-info">
+      <div style="font-family:'Cinzel',serif;font-size:13px;font-weight:700;color:#ce93d8;margin-bottom:8px;">📅 Duração da Temporada</div>
+      <div style="font-size:12px;color:#c0c0d0;line-height:1.8;">
+        Cada temporada do Battle Pass dura <strong>90 dias (3 meses)</strong>.
+        No final da temporada, os tiers não resgatados são perdidos.
+        Ao iniciar uma nova temporada, o progresso zera mas você mantém o que já resgatou.<br><br>
+        <span style="color:#ffc107;">⚠️ Os tiers premium só aparecem se você tiver o Pass Premium ativo!</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:70px;"></div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js?v=8.1"></script>
+<script src="gamedata2.js?v=8.1"></script>
+<script src="gamedata3.js?v=8.1"></script>
+<script src="gamedata-v7-patch.js?v=8.1"></script>
+<script>
+"use strict";
+let save;
+let currentFilter = "all";
+
+// Todas as funções e dados de Battle Pass vêm do gamedata3.js:
+// - PASS_TIERS, BATTLE_PASS_CONFIG
+// - getCurrentPassSeason, getPassSeasonStartMs, getPassSeasonEndMs
+// - fmtPassCountdown, getPassTierFromLevel, getLevelForTier
+// - isMilestoneTier, isPinnacleTier
+// - renderPassRewards, applyPassRewards, claimPassTier, claimAllUnlockedPass
+// - countReadyPassRewards, getUpcomingPassTiers
+// - xpForPassLevel
+// - PASS_MISSIONS, getPassWeekKey, ensurePassMissions, claimPassMission
+
+// FIX (bug "toques não correspondem / nenhuma recompensa coleta"):
+// os botões chamavam claimPassTier/claimAllUnlockedPass/claimPassMission
+// direto no onclick. Essas funções só mexem no objeto `save` em memória —
+// nunca salvavam (writeSave) nem atualizavam a tela (render). O resultado
+// parecia "clique não funciona": nada mudava na tela, e se a página
+// recarregasse antes do autosave (15s) a coleta nem persistia. Os handlers
+// abaixo chamam a função certa, tratam erro com toast, salvam e re-renderizam.
+function handleClaimPassTier(tier, type) {
+  const result = claimPassTier(save, tier, type);
+  if (!result.ok) {
+    const msgs = {
+      already:   "✅ Você já resgatou essa recompensa!",
+      notfound:  "❌ Tier inválido.",
+      level:     "🔒 Você ainda não atingiu o nível necessário.",
+      nopremium: "💎 Essa recompensa é exclusiva do Pass Premium.",
+    };
+    showToast(msgs[result.reason] || "❌ Não foi possível resgatar.", "error");
+    return;
+  }
+  writeSave(save);
+  renderAll();
+  showToast(`🎉 Recompensa do Tier ${tier} resgatada!`, "gold", 3000);
+}
+
+function handleClaimAllPass() {
+  const result = claimAllUnlockedPass(save);
+  if (!result.count) {
+    showToast("Nenhuma recompensa nova pra resgatar agora.", "info");
+    return;
+  }
+  writeSave(save);
+  renderAll();
+  showToast(`🎉 ${result.count} recompensa(s) resgatada(s)!`, "gold", 3000);
+}
+
+function handleClaimPassMission(id) {
+  const result = claimPassMission(save, id);
+  if (!result.ok) {
+    const msgs = {
+      already:    "✅ Missão já resgatada!",
+      incomplete: "🔒 Ainda não completou essa missão.",
+    };
+    showToast(msgs[result.reason] || "❌ Não foi possível resgatar.", "error");
+    return;
+  }
+  writeSave(save);
+  renderAll();
+  showToast(`🎉 Missão concluída! +${fmtNum(result.xp)} XP${result.gold ? ` +${fmtNum(result.gold)}🪙` : ""}`, "gold", 3000);
+}
+
+// ── Filter (usa isMilestoneTier e isPinnacleTier do gamedata3.js) ───────────────────────────────────────────────────
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll(".filter-chip").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderTiers();
+}
+function tierMatchesFilter(tier, level, hasPrem, claimed) {
+  const unlocked = level >= tier.lv;
+  const freeC = !!claimed[`t${tier.t}_free`];
+  const premC = !!claimed[`t${tier.t}_premium`];
+  const fullyClaimed = freeC && (!hasPrem || premC);
+  const readyToClaim = unlocked && (!freeC || (hasPrem && !premC));
+  switch (currentFilter) {
+    case "ready":     return readyToClaim;
+    case "claimed":   return fullyClaimed;
+    case "locked":    return !unlocked;
+    case "milestone": return isMilestoneTier(tier.t) || isPinnacleTier(tier.t);
+    default: return true;
+  }
+}
+
+function renderTiers() {
+  const level    = getLevel(save.xp);
+  const hasPrem  = !!save.hasPremiumPass;
+  const claimed  = save.passClaimed || {};
+
+  const list = document.getElementById("tiers-list");
+  const filtered = PASS_TIERS.filter(t => tierMatchesFilter(t, level, hasPrem, claimed));
+  if (filtered.length === 0) {
+    list.innerHTML = `<div style="text-align:center;padding:30px;color:#555;font-size:12px;">Nenhum tier neste filtro.</div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(tier => {
+    const unlocked   = level >= tier.lv;
+    const freeKey    = `t${tier.t}_free`;
+    const premKey    = `t${tier.t}_premium`;
+    const freeClaimed  = !!claimed[freeKey];
+    const premClaimed  = !!claimed[premKey];
+
+    let cardClass = "tier-card";
+    if (isPinnacleTier(tier.t)) cardClass += " pinnacle";
+    else if (isMilestoneTier(tier.t)) cardClass += " milestone";
+    if (freeClaimed && (!hasPrem || premClaimed)) cardClass += " claimed";
+    else if (unlocked) cardClass += " unlocked";
+    else cardClass += " locked";
+
+    const tierEmoji = tier.t === 30 ? "🌌" : tier.t >= 25 ? "💎" : tier.t >= 20 ? "🔥" : tier.t >= 15 ? "⭐" : tier.t >= 10 ? "🌟" : "🎁";
+
+    let freeBtnHtml, premBtnHtml;
+    if (freeClaimed) freeBtnHtml = `<button class="claim-btn claimed-btn" disabled>✅ Resgatado</button>`;
+    else if (unlocked) freeBtnHtml = `<button class="claim-btn free-claim" onclick="handleClaimPassTier(${tier.t}, 'free')">📥 Resgatar</button>`;
+    else freeBtnHtml = `<button class="claim-btn locked-btn" disabled>🔒 Nível ${tier.lv}</button>`;
+
+    if (!hasPrem) premBtnHtml = `<button class="claim-btn locked-btn" disabled title="Compre o Pass Premium">💎 Premium</button>`;
+    else if (premClaimed) premBtnHtml = `<button class="claim-btn claimed-btn" disabled>✅ Resgatado</button>`;
+    else if (unlocked) premBtnHtml = `<button class="claim-btn premium-claim" onclick="handleClaimPassTier(${tier.t}, 'premium')">📥 Resgatar</button>`;
+    else premBtnHtml = `<button class="claim-btn locked-btn" disabled>🔒 Nível ${tier.lv}</button>`;
+
+    return `<div class="${cardClass}">
+      <div style="background:${unlocked ? (tier.t===30?"linear-gradient(90deg,#1a0040,#4a0072)":"rgba(124,77,255,0.08)") : "#0a0a0a"};padding:8px 14px;border-bottom:1px solid #1e1e30;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;color:${unlocked?"#ce93d8":"#555"};">${tierEmoji} TIER ${tier.t}</span>
+          ${isPinnacleTier(tier.t) ? `<span style="font-size:9px;font-weight:700;background:#ff4444;color:#fff;padding:1px 6px;border-radius:4px;">MÁXIMO</span>` : ""}
+          ${isMilestoneTier(tier.t) ? `<span style="font-size:9px;font-weight:700;background:#ffc107;color:#000;padding:1px 6px;border-radius:4px;">MARCO</span>` : ""}
+        </div>
+        <span style="font-size:10px;color:${unlocked?"#66bb6a":"#555"};">${unlocked?"✅ Nível "+tier.lv:"🔒 Nível "+tier.lv}</span>
+      </div>
+      <div style="padding:10px 14px;border-bottom:1px solid #1e1e30;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <span class="tier-num" style="width:28px;height:28px;font-size:12px;background:${freeClaimed?"#1b5e20":"#4a0072"};color:#fff;">${freeClaimed?"✅":"🆓"}</span>
+          <div class="tier-rewards">${renderPassRewards(tier.free)}</div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;">${freeBtnHtml}</div>
+      </div>
+      <div style="padding:10px 14px;background:${hasPrem?"rgba(255,193,7,0.04)":"rgba(0,0,0,0.2)"};">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <span class="tier-num" style="width:28px;height:28px;font-size:12px;background:${premClaimed?"#1b5e20":"#b8730a"};color:#fff;">${premClaimed?"✅":"💎"}</span>
+          <div class="tier-rewards">${renderPassRewards(tier.premium)}</div>
+          <span class="premium-label" style="font-size:9px;background:#ffc107;color:#000;padding:1px 6px;border-radius:4px;font-weight:700;">PREMIUM</span>
+        </div>
+        <div style="display:flex;justify-content:flex-end;">${premBtnHtml}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function renderProgressBar() {
+  const level = getLevel(save.xp);
+  const passUnlocked = getPassTierFromLevel(level);
+  document.getElementById("pass-tier-current").textContent = Math.max(passUnlocked, 0);
+  document.getElementById("pass-level-show").textContent = level;
+
+  const nextTier = PASS_TIERS.find(t => level < t.lv);
+  if (nextTier) {
+    const prevLv = nextTier.t > 1 ? PASS_TIERS[nextTier.t-2].lv : 1;
+    const pct    = Math.min(100, Math.round(((level - prevLv) / (nextTier.lv - prevLv)) * 100));
+    document.getElementById("pass-bar").style.width = pct + "%";
+    document.getElementById("bar-from").textContent = prevLv;
+    document.getElementById("bar-to").textContent   = nextTier.lv;
+    document.getElementById("pass-xp-need").textContent = (nextTier.lv - level) + " nv";
+  } else {
+    document.getElementById("pass-bar").style.width = "100%";
+    document.getElementById("bar-from").textContent = 145;
+    document.getElementById("bar-to").textContent   = 150;
+    document.getElementById("pass-xp-need").textContent = "MAX";
+  }
+}
+
+function renderSeasonStats() {
+  const level = getLevel(save.xp);
+  const tier = getPassTierFromLevel(level);
+  const claimed = save.passClaimed || {};
+  const hasPrem = !!save.hasPremiumPass;
+  let cCount = 0, pCount = 0;
+  PASS_TIERS.forEach(t => {
+    if (level >= t.lv) {
+      if (claimed[`t${t.t}_free`]) cCount++; else pCount++;
+      if (hasPrem) { if (claimed[`t${t.t}_premium`]) cCount++; else pCount++; }
+    }
+  });
+  document.getElementById("ss-current").textContent = tier;
+  document.getElementById("ss-level").textContent = level;
+  document.getElementById("ss-claimed").textContent = cCount;
+  document.getElementById("ss-pending").textContent = pCount;
+
+  // Projeção: XP/dia médio na temporada -> nível projetado no fim
+  const start = getPassSeasonStartMs();
+  const end   = getPassSeasonEndMs();
+  const now   = Date.now();
+  const elapsed = Math.max(now - start, 3600000); // pelo menos 1h
+  const daysElapsed = elapsed / 86400000;
+  const daysLeft    = Math.max(0, (end - now) / 86400000);
+  // XP diário estimado com base no XP total acumulado desde o início da temporada
+  const seasonXP = save.xpSeasonStart != null ? Math.max(0, save.xp - save.xpSeasonStart) : save.xp;
+  const xpPerDay = seasonXP / daysElapsed;
+  const projectedXP = save.xp + xpPerDay * daysLeft;
+  const projectedLevel = getLevel(projectedXP);
+  const projectedTier = getPassTierFromLevel(projectedLevel);
+  document.getElementById("ss-projected").textContent = `T${projectedTier}`;
+
+  // XP/dia para próximo tier
+  const nextTier = PASS_TIERS.find(t => level < t.lv);
+  if (nextTier && daysLeft > 0.1) {
+    const nextXP = xpForPassLevel(nextTier.lv);
+    const need = Math.max(0, nextXP - save.xp);
+    const perDay = need / Math.max(daysLeft, 1);
+    document.getElementById("ss-xpday").textContent = fmtNum(Math.ceil(perDay));
+  } else {
+    document.getElementById("ss-xpday").textContent = nextTier ? "—" : "MAX";
+  }
+}
+
+function renderCountdown() {
+  const ends = getPassSeasonEndMs();
+  document.getElementById("season-countdown").textContent = fmtPassCountdown(ends - Date.now());
+}
+
+function renderBatchBar() {
+  const ready = countReadyPassRewards(save);
+  const wrap = document.getElementById("batch-bar-wrap");
+  if (ready === 0) { wrap.innerHTML = ""; return; }
+  wrap.innerHTML = `<div class="batch-bar">
+    <span style="font-size:22px;">🎁</span>
+    <div class="bb-txt"><b>${ready}</b> recompensa${ready>1?"s":""} pronta${ready>1?"s":""} para resgatar!</div>
+    <button onclick="handleClaimAllPass()">Resgatar Todos</button>
+  </div>`;
+}
+
+function renderNextPreview() {
+  const level = getLevel(save.xp);
+  const upcoming = getUpcomingPassTiers(save, 3);
+  const wrap = document.getElementById("next-preview");
+  if (upcoming.length === 0) { wrap.style.display = "none"; return; }
+  wrap.style.display = "block";
+  wrap.innerHTML = `<div class="np-title">🔭 Próximos Tiers</div>
+    <div class="np-list">${upcoming.map(t => {
+      const hasPrem = save.hasPremiumPass;
+      const rewards = hasPrem ? [...t.free, ...t.premium] : t.free;
+      const preview = rewards.slice(0,2).map(r => r.label).join(" · ");
+      return `<div class="np-row">
+        <span class="np-tier">T${t.t}</span>
+        <span style="flex:1;color:#c0c0d0;">${preview}${rewards.length>2?" · +"+(rewards.length-2):""}</span>
+        <span class="np-need">Nv ${t.lv} (faltam ${t.lv-level})</span>
+      </div>`;
+    }).join("")}</div>`;
+}
+
+function renderPremiumBanner() {
+  const banner = document.getElementById("premium-banner");
+  if (save.hasPremiumPass) {
+    banner.innerHTML = `<div style="background:linear-gradient(135deg,#1a1400,#2d2200);border:2px solid #ffc107;border-radius:12px;padding:12px 14px;margin-bottom:14px;text-align:center;">
+      <div style="font-size:24px;">💎</div>
+      <div style="font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:#ffc107;margin:4px 0;">PASS PREMIUM ATIVO</div>
+      <div style="font-size:11px;color:#9e9e9e;">Todas as recompensas premium desbloqueadas!</div>
+    </div>`;
+  } else {
+    banner.innerHTML = `<div class="pass-cta">
+      <div style="font-size:24px;">💎</div>
+      <div style="font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:#ffc107;margin:4px 0;">UPGRADE PARA PREMIUM</div>
+      <div style="font-size:11px;color:#9e9e9e;margin-bottom:10px;">Recompensas 10x melhores em cada tier!</div>
+      <button class="btn btn-gold btn-block" onclick="buyPremium()">💎 Comprar via Discord</button>
+    </div>`;
+  }
+}
+
+// ── PASS MISSIONS (usa PASS_MISSIONS, getPassWeekKey, ensurePassMissions, claimPassMission do gamedata3.js) ───────────────────────────────────────────
+function renderPassMissions() {
+  ensurePassMissions(save);
+  const wrap = document.getElementById("pmission-list");
+  wrap.innerHTML = PASS_MISSIONS.map(m => {
+    const val = save.passMissions.stats[m.stat] || 0;
+    const pct = Math.min(100, Math.floor(val*100/m.goal));
+    const done = val >= m.goal;
+    const claimed = !!save.passMissions.claimed[m.id];
+    const cls = "pmission-card" + (claimed ? " claimed" : done ? " done" : "");
+    return `<div class="${cls}">
+      <div class="pmission-head">
+        <span class="ic">${m.ic}</span>
+        <span class="nm">${m.nm}</span>
+        <span class="rw">+${fmtNum(m.xp)} XP${m.gold?` +${fmtNum(m.gold)}🪙`:""}</span>
+      </div>
+      <div class="pmission-desc">${m.desc}</div>
+      <div class="pmission-bar"><div style="width:${pct}%"></div></div>
+      <div class="pmission-foot">
+        <span>${Math.min(val,m.goal)} / ${m.goal}</span>
+        <button ${done && !claimed ? `onclick="handleClaimPassMission('${m.id}')"`:"disabled"}>
+          ${claimed?"✅ Resgatado":done?"📥 Resgatar":"Em progresso"}
+        </button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function buyPremium() {
+  showToast("💬 Entre no Discord da Origens Games e vá ao canal #battle-pass!", "info", 4000);
+}
+
+function switchTab(tab, btn) {
+  ["tiers","missions","info"].forEach(t => {
+    document.getElementById("tab-"+t).style.display = t === tab ? "block" : "none";
+  });
+  document.querySelectorAll(".pass-tab").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+}
+
+function renderAll() {
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+  renderProgressBar();
+  renderPremiumBanner();
+  renderBatchBar();
+  renderNextPreview();
+  renderSeasonStats();
+  renderCountdown();
+  renderTiers();
+  renderPassMissions();
+}
+
+function init() {
+  save = getOrCreateSave();
+  // Marca o XP no início da temporada para calcular XP/dia
+  const sStart = getPassSeasonStartMs();
+  if (save.passSeasonAnchor !== sStart) {
+    save.passSeasonAnchor = sStart;
+    save.xpSeasonStart = save.xp;
+    writeSave(save);
+  }
+  document.getElementById("pass-season-label").textContent = `Temporada ${getCurrentPassSeason()} · Passe Sazonal`;
+  renderAll();
+  setInterval(renderCountdown, 60000);
+  startAutoSave(() => save);
+}
+
+init();
+</script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1dabe925bc8e2a0',t:'MTc4NDQ3NDc4NQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

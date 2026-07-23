@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Eventos – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+.event-card {
+  border-radius:16px; padding:16px; margin-bottom:14px;
+  border:2px solid; position:relative; overflow:hidden;
+}
+.event-card::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(180deg,rgba(255,255,255,0.04) 0%,transparent 60%);
+  pointer-events:none;
+}
+.event-icon  { font-size:40px; margin-bottom:8px; display:block; }
+.event-title { font-family:'Cinzel',serif; font-size:16px; font-weight:900; margin-bottom:4px; }
+.event-desc  { font-size:12px; color:#c0c0d0; line-height:1.7; margin-bottom:10px; }
+.event-timer { font-size:13px; font-weight:700; margin-bottom:10px; }
+.reward-steps { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+.reward-step  {
+  display:flex; align-items:center; gap:10px; padding:8px 10px;
+  background:rgba(0,0,0,0.4); border-radius:8px; border:1px solid #1e1e30;
+}
+.reward-step.completed { border-color:#4CAF50; background:rgba(76,175,80,0.08); }
+.reward-step.claimed   { border-color:#555; opacity:0.5; }
+.step-icon { font-size:22px; flex-shrink:0; }
+.step-info { flex:1; }
+.step-req  { font-size:11px; font-weight:700; }
+.step-reward { font-size:10px; color:#9e9e9e; margin-top:2px; }
+.step-btn  { font-size:11px; padding:5px 10px; border-radius:8px; border:none;
+  font-family:'Rajdhani',sans-serif; font-weight:700; cursor:pointer; }
+.progress-bar-wrap { background:#1e1e30; border-radius:20px; height:8px; overflow:hidden; margin-bottom:4px; }
+.progress-bar-fill { height:100%; border-radius:20px; transition:width 0.5s ease; }
+.coming-soon-badge {
+  position:absolute; top:12px; right:12px;
+  background:#333; color:#9e9e9e; border-radius:8px;
+  padding:3px 10px; font-size:11px; font-weight:700;
+}
+.event-card-reward {
+  background:#0e0e1c; border-radius:10px; padding:10px;
+  display:flex; align-items:center; gap:8px; margin-top:8px;
+}
+.event-ended-banner {
+  background:rgba(0,0,0,0.5); border:1px solid #333; border-radius:8px;
+  padding:8px 12px; font-size:12px; color:#9e9e9e; text-align:center;
+  margin-bottom:8px;
+}
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title">🔥 EVENTOS</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content">
+
+  <div class="panel" style="margin-bottom:14px;background:linear-gradient(135deg,#1a0500,#2d0a00);border-color:#ff6d00;">
+    <div style="font-size:13px;color:#ffd54f;line-height:1.8;">
+      ⚠️ <strong>Cartas de Evento são PERMANENTES!</strong><br>
+      Mesmo depois do evento acabar, as cartas que você ganhou ficam no seu cofre para sempre.
+      Elas NUNCA estarão disponíveis novamente.<br>
+      <strong style="color:#ff4444;">Não perca nenhuma!</strong>
+    </div>
+  </div>
+
+  <div id="events-list"></div>
+
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js?v=8.1"></script>
+<script src="gamedata2.js?v=8.1"></script>
+<script src="gamedata3.js?v=8.1"></script>
+<script src="gamedata-v7-patch.js?v=8.1"></script>
+<script>
+let save;
+
+function init() {
+  save = getOrCreateSave();
+  renderEvents();
+  updateHeader();
+  startAutoSave(() => save);
+}
+
+// FIX (bug "batalhas não contam nos eventos"): ao voltar de battle.html pelo
+// botão "voltar" do navegador (comum no mobile), a página pode ser restaurada
+// direto do cache (bfcache) SEM rodar init() de novo — então a tela mostrava
+// o progresso antigo, de antes da última batalha. Isso força recarregar o
+// save do localStorage e re-renderizar sempre que a página volta a ficar visível.
+window.addEventListener("pageshow", function (e) {
+  if (e.persisted) {
+    save = getOrCreateSave();
+    renderEvents();
+    updateHeader();
+  }
+});
+document.addEventListener("visibilitychange", function () {
+  if (document.visibilityState === "visible") {
+    save = getOrCreateSave();
+    renderEvents();
+    updateHeader();
+  }
+});
+
+function updateHeader() {
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+}
+
+function renderEvents() {
+  const list = document.getElementById("events-list");
+  if (!list) return;
+  list.innerHTML = "";
+
+  GAME_EVENTS.forEach(event => {
+    if (event.archived) return; // arquivado: some da lista visual, mas cartas continuam válidas em todo o resto do jogo
+    const active = isEventActive(event, save);
+    const ended  = isEventEnded(event, save);
+    const coming = event.comingSoon && !active && !ended;
+
+    const evSave = save.events[event.id] || { battles:0, claimedSteps:[] };
+    if (!save.events[event.id]) save.events[event.id] = evSave;
+
+    const battles = evSave.battles || 0;
+    const claimed = evSave.claimedSteps || [];
+
+    // Timer
+    let timerHtml = "";
+    if (active && event.fromCreated) {
+      const end  = (save.createdAt || Date.now()) + event.durationDays * 86400000;
+      const rem  = end - Date.now();
+      if (rem > 0) {
+        const d = Math.floor(rem / 86400000);
+        const h = Math.floor((rem % 86400000) / 3600000);
+        timerHtml = `<div class="event-timer" style="color:${event.color};">⏳ Tempo restante: ${d}d ${h}h</div>`;
+      }
+    } else if (ended) {
+      timerHtml = `<div class="event-ended-banner">⚠️ Este evento terminou. Cartas obtidas ficam no cofre permanentemente.</div>`;
+    } else if (coming) {
+      timerHtml = `<div style="color:#9e9e9e;font-size:12px;margin-bottom:8px;">📅 Disponível em breve!</div>`;
+    }
+
+    // Rewards
+    let stepsHtml = "";
+    event.rewards.forEach((reward, i) => {
+      const isDone    = battles >= reward.req;
+      const isClaimed = claimed.includes(i);
+      const icon      = isClaimed ? "✅" : isDone ? "🎁" : "🔒";
+      const btnLabel  = isClaimed ? "Coletado" : isDone ? "Coletar!" : `${battles}/${reward.req}`;
+      const btnColor  = isClaimed ? "#555" : isDone ? "#ffc107" : "#333";
+      const btnTxtClr = isClaimed ? "#777" : isDone ? "#000" : "#9e9e9e";
+
+      const cardReward = reward.card ? (EVENT_CARDS.find(c => c.id === reward.card) || null) : null;
+      const cardHtml   = cardReward
+        ? `<div class="event-card-reward">
+             <span style="font-size:24px;">${cardReward.img}</span>
+             <div>
+               <div style="font-size:12px;font-weight:700;">${cardReward.name}</div>
+               <div style="font-size:11px;color:${RARITY[cardReward.rarity]?.color||"#9e9e9e"};">
+                 ${RARITY[cardReward.rarity]?.name||""} – Exclusivo!</div>
+             </div>
+           </div>` : "";
+
+      stepsHtml += `<div class="reward-step ${isClaimed?"claimed":isDone?"completed":""}">
+        <div class="step-icon">${icon}</div>
+        <div class="step-info">
+          <div class="step-req">${reward.label}</div>
+          <div class="step-reward">
+            🪙${fmtNum(reward.gold)} · ⭐${fmtNum(reward.xp)} XP · 🎖️${fmtNum(reward.xpp)} XPP
+            ${cardReward ? `<br>🃏 <strong style="color:${RARITY[cardReward.rarity]?.color};">+ Carta Exclusiva: ${cardReward.name}</strong>` : ""}
+          </div>
+          ${cardHtml}
+        </div>
+        <button class="step-btn" style="background:${btnColor};color:${btnTxtClr};"
+                ${isClaimed||!isDone||(!active&&!ended)?"disabled":""}
+                onclick="claimReward('${event.id}',${i})">
+          ${btnLabel}
+        </button>
+      </div>`;
+    });
+
+    // Progresso bar
+    const maxReq = event.rewards[event.rewards.length-1].req;
+    const pct    = Math.min(100, Math.round((battles / maxReq) * 100));
+    const progressHtml = active ? `
+      <div style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#9e9e9e;margin-bottom:3px;">
+          <span>Progresso: ${battles} batalhas</span><span>${pct}%</span>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" style="width:${pct}%;background:${event.color};"></div>
+        </div>
+      </div>` : "";
+
+    const card = document.createElement("div");
+    card.className = "event-card";
+    card.style.background = `linear-gradient(135deg,${event.color}11,${event.color}05)`;
+    card.style.borderColor = event.color + (coming || ended ? "44" : "99");
+    if (coming || ended) card.style.opacity = "0.75";
+
+    card.innerHTML = `
+      ${coming ? `<div class="coming-soon-badge">Em Breve</div>` : ""}
+      ${ended  ? `<div class="coming-soon-badge" style="background:#444;color:#aaa;">Encerrado</div>` : ""}
+      <span class="event-icon">${event.icon}</span>
+      <div class="event-title" style="color:${event.color};">${event.name}</div>
+      <div class="event-desc">${event.desc}</div>
+      ${timerHtml}
+      ${progressHtml}
+      <div class="reward-steps">${stepsHtml}</div>
+      ${active ? `<a href="battle.html" class="btn btn-primary btn-block">⚔️ Ir Batalhar Agora!</a>` : ""}
+    `;
+
+    list.appendChild(card);
+  });
+}
+
+function claimReward(eventId, stepIdx) {
+  const event = GAME_EVENTS.find(e => e.id === eventId);
+  if (!event) return;
+
+  const evSave = save.events[eventId] || { battles:0, claimedSteps:[] };
+  if (!save.events[eventId]) save.events[eventId] = evSave;
+  if (!evSave.claimedSteps) evSave.claimedSteps = [];
+
+  if (evSave.claimedSteps.includes(stepIdx)) { showToast("✅ Já coletado!", "info"); return; }
+
+  const reward  = event.rewards[stepIdx];
+  if (!reward) return;
+  if ((evSave.battles||0) < reward.req) { showToast("⚠️ Ainda não completou!", "error"); return; }
+
+  // Dar recompensas
+  earnGold(save, reward.gold);
+  save.xp  += reward.xp;
+  save.xpp += reward.xpp;
+
+  // Carta de evento – vai para o cofre permanentemente
+  if (reward.card) {
+    const eventCard = EVENT_CARDS.find(c => c.id === reward.card);
+    if (eventCard) {
+      if (save.vault.length < save.vaultLimit) {
+        save.vault.push(reward.card);
+        showToast(`🎉 Carta exclusiva adicionada: ${eventCard.name}!`, "gold");
+      } else {
+        showToast(`⚠️ Cofre cheio! Expanda o cofre e tente novamente.`, "error");
+        // Devolve gold pois não conseguiu pegar
+        spendGold(save, reward.gold);
+        save.xp  -= reward.xp;
+        save.xpp -= reward.xpp;
+        return;
+      }
+    }
+  }
+
+  evSave.claimedSteps.push(stepIdx);
+  save.events[eventId] = evSave;
+  writeSave(save);
+  updateHeader();
+  renderEvents();
+
+  if (!reward.card) showToast(`🎉 Recompensa coletada! +${fmtNum(reward.gold)} ouro`, "gold");
+}
+
+init();
+</script>
+</body>
+</html>

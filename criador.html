@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Central do Criador – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+.creator-hero {
+  background:linear-gradient(135deg,#001a2e,#00263d,#001a2e);
+  border:2px solid #29b6f6; border-radius:16px;
+  padding:22px 16px; margin-bottom:14px; text-align:center;
+  position:relative; overflow:hidden;
+}
+.creator-hero::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(41,182,246,0.10) 0%,transparent 60%);
+  pointer-events:none;
+}
+.creator-hero .icon { font-size:52px; display:block; margin-bottom:8px;
+  animation:float 2.5s ease-in-out infinite; filter:drop-shadow(0 0 16px rgba(41,182,246,0.5)); }
+.creator-hero .title { font-family:'Cinzel',serif; font-size:20px; font-weight:900; color:#29b6f6; margin-bottom:4px; }
+.creator-hero .sub { font-size:12px; color:#9e9e9e; }
+
+.rule-row { display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); }
+.rule-row:last-child { border-bottom:none; }
+.rule-row .icon { font-size:20px; flex-shrink:0; }
+.rule-row .txt { font-size:13px; line-height:1.5; color:#c0c0d0; }
+
+.discord-cta {
+  background:linear-gradient(135deg,#2b1055,#4a1a8f);
+  border:2px solid #7c4dff; border-radius:14px; padding:14px;
+  text-align:center; margin-bottom:14px;
+}
+
+.key-box { max-width:340px; margin:0 auto; }
+.key-error { display:none; color:#ef9a9a; font-size:12px; text-align:center; margin-top:8px; }
+.key-success { display:none; color:#a5d6a7; font-size:12px; text-align:center; margin-top:8px; }
+
+.verified-banner {
+  background:linear-gradient(135deg,#001a2e,#00263d); border:2px solid #29b6f6;
+  border-radius:16px; padding:18px; text-align:center; margin-bottom:14px;
+}
+.verified-banner .badge-big { font-size:44px; display:block; margin-bottom:6px; animation:glow-pulse 2s infinite; }
+.verified-banner .name { font-family:'Cinzel',serif; font-size:18px; font-weight:900; color:#29b6f6; }
+.verified-banner .since { font-size:11px; color:#9e9e9e; margin-top:4px; }
+
+.tool-card {
+  background:var(--bg-card); border:1px solid var(--border); border-radius:14px;
+  padding:14px; margin-bottom:10px;
+}
+.tool-card .head { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.tool-card .head .icon { font-size:24px; }
+.tool-card .head .name { font-weight:700; font-size:14px; color:#29b6f6; }
+.tool-card .desc { font-size:12px; color:#9e9e9e; line-height:1.6; margin-bottom:10px; }
+
+.equip-quick-row { display:flex; gap:8px; flex-wrap:wrap; }
+.equip-quick-btn {
+  flex:1; min-width:90px; background:#0a0a1e; border:2px solid #2a2a4a; border-radius:10px;
+  padding:10px 6px; text-align:center; cursor:pointer; transition:all 0.2s;
+}
+.equip-quick-btn:hover { border-color:#29b6f6; }
+.equip-quick-btn.on { border-color:#29b6f6; background:rgba(41,182,246,0.1); }
+.equip-quick-btn .em { font-size:22px; }
+.equip-quick-btn .lb { font-size:10px; color:#9e9e9e; margin-top:4px; }
+
+.card-preview-box {
+  background:#070712; border:1px solid var(--border); border-radius:10px;
+  padding:10px; font-size:12px; font-family:monospace; color:#c0c0d0;
+  white-space:pre-wrap; word-break:break-word; line-height:1.6; margin-bottom:10px;
+}
+
+.benefit-row {
+  display:flex; align-items:flex-start; gap:10px; padding:9px 0;
+  border-bottom:1px solid var(--border);
+}
+.benefit-row:last-child { border-bottom:none; }
+.benefit-row .bi { font-size:18px; flex-shrink:0; }
+.benefit-row .bt { font-size:12px; line-height:1.5; color:#c0c0d0; }
+.benefit-row .bt strong { color:#29b6f6; }
+
+.inactivity-warning {
+  background:linear-gradient(135deg,#1a0000,#2d0a00);
+  border:2px solid #ff4444; border-radius:14px; padding:14px; margin-bottom:14px;
+}
+.inactivity-warning .iw-title {
+  font-family:'Cinzel',serif; font-size:14px; font-weight:700; color:#ff4444;
+  margin-bottom:8px; display:flex; align-items:center; gap:8px;
+}
+.inactivity-warning .iw-body { font-size:12px; color:#ef9a9a; line-height:1.8; }
+.inactivity-warning .iw-body strong { color:#ff6d00; }
+
+.disc-preview-box {
+  background:#0a1a2e; border:1px solid #1a3a5e; border-radius:10px;
+  padding:10px 12px; margin-top:8px;
+}
+.disc-preview-row {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:5px 0; border-bottom:1px solid #1a2a3e; font-size:12px;
+}
+.disc-preview-row:last-child { border-bottom:none; }
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title" style="background:linear-gradient(135deg,#29b6f6,#7c4dff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">🎬 CRIADOR</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content">
+
+  <!-- ═══════════ TELA: NÃO VERIFICADO ═══════════ -->
+  <div id="screen-locked">
+    <div class="creator-hero">
+      <span class="icon">🎬</span>
+      <div class="title">Central do Criador de Conteúdo</div>
+      <div class="sub">Divulgue Card Fight e ganhe vantagens exclusivas oficiais</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">✅ Como se tornar verificado</div>
+      <div id="rules-list"></div>
+    </div>
+
+    <!-- Benefícios detalhados -->
+    <div class="panel" style="border-color:#29b6f630;">
+      <div class="panel-title" style="color:#29b6f6;">🎁 Vantagens Exclusivas do Criador</div>
+      <div class="benefit-row">
+        <span class="bi">📬</span>
+        <span class="bt"><strong>Correio VIP garantido todo dia</strong> — ouro, XP, XPP e boosts muito melhores que membros comuns. Chance de receber <strong>2 cartas no mesmo dia</strong> (20%).</span>
+      </div>
+      <div class="benefit-row">
+        <span class="bi">🏟️</span>
+        <span class="bt"><strong>50 salas/dia</strong> no sistema de Salas Personalizadas — membros comuns têm apenas 5.</span>
+      </div>
+      <div class="benefit-row">
+        <span class="bi">🛒</span>
+        <span class="bt"><strong>Descontos na Loja de Compra (dinheiro real):</strong> 15–40% em dias úteis, 30–55% em fins de semana + <strong style="color:#ffd600;">+10% exclusivo de criador</strong> empilhado por cima. Rotaciona a cada hora.</span>
+      </div>
+      <div class="benefit-row">
+        <span class="bi">🎴</span>
+        <span class="bt"><strong>Cartões de Sala grátis</strong> — membros normais precisam comprar por 50.000 ouro cada.</span>
+      </div>
+      <div class="benefit-row">
+        <span class="bi">✅</span>
+        <span class="bt"><strong>Selo ✅ exclusivo</strong> equipável no perfil, moldura e título de Criador Origens.</span>
+      </div>
+      <div class="benefit-row">
+        <span class="bi">🎖️</span>
+        <span class="bt"><strong>XPP em dobro em todas as batalhas</strong> — suba de rank 2× mais rápido que os outros jogadores. Lenda mais rápido, mais conteúdo mais épico!</span>
+      </div>
+      <div class="benefit-row">
+        <span class="bi">💀</span>
+        <span class="bt"><strong>Modo Sobrevivência com recompensas 1.5×</strong> — no modo infinito de sobrevivência, criadores ganham 50% mais ouro, XP e XPP por onda sobrevivida.</span>
+      </div>
+      <div class="benefit-row">
+        <span class="bi">⚡</span>
+        <span class="bt"><strong>Boost diário grátis</strong> — receba 1 boost aleatório (XP, Ouro ou Sorte) automaticamente todo dia. Ativado via Correio VIP.</span>
+      </div>
+      <div class="benefit-row">
+        <span class="bi">📦</span>
+        <span class="bt"><strong>Expansão de Cofre gratuita por semana</strong> — membros comuns pagam ouro por cada expansão de cofre. Criadores recebem 1 grátis toda semana.</span>
+      </div>
+      <div class="benefit-row">
+        <span class="bi">🌟</span>
+        <span class="bt"><strong>Cartas Ultra Raras no Correio</strong> — pool de recompensas inclui cartas ULTRA_RARE que nunca aparecem no correio comum.</span>
+      </div>
+      <div class="benefit-row">
+        <span class="bi">📋</span>
+        <span class="bt"><strong>Cartão de Apresentação</strong> — texto pronto para descrição de vídeo/bio com seus stats atuais.</span>
+      </div>
+      <div class="benefit-row">
+        <span class="bi">💬</span>
+        <span class="bt"><strong>Canal exclusivo</strong> de criadores no Discord com acesso direto à equipe Origens Games.</span>
+      </div>
+
+      <!-- Prévia dos descontos -->
+      <div class="disc-preview-box">
+        <div style="font-size:11px;font-weight:700;color:#29b6f6;margin-bottom:6px;">💰 Exemplo de Desconto na Loja</div>
+        <div class="disc-preview-row">
+          <span style="color:#9e9e9e;">Membro comum · dia útil</span>
+          <span style="color:#66bb6a;font-weight:700;">5% a 15% OFF</span>
+        </div>
+        <div class="disc-preview-row">
+          <span style="color:#9e9e9e;">Membro comum · fim de semana</span>
+          <span style="color:#a5d6a7;font-weight:700;">10% a 25% OFF</span>
+        </div>
+        <div class="disc-preview-row">
+          <span style="color:#29b6f6;">🎬 Criador · dia útil</span>
+          <span style="color:#29b6f6;font-weight:700;">15% a 40% OFF</span>
+        </div>
+        <div class="disc-preview-row">
+          <span style="color:#29b6f6;">🎬 Criador · fim de semana</span>
+          <span style="color:#80deea;font-weight:700;">30% a 55% OFF 🔥</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="discord-cta">
+      <div style="font-size:28px;margin-bottom:6px;">💬</div>
+      <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Fale com a equipe no Discord</div>
+      <div style="font-size:12px;color:#d0c0ff;line-height:1.6;margin-bottom:10px;">
+        Entre no nosso Discord e mande seu canal/perfil para um dev avaliar.
+        Se aprovado, você recebe a <strong>chave de verificação</strong> por lá.
+      </div>
+      <a href="#" class="btn btn-outline btn-block" onclick="showToast('🔗 Peça o link do Discord da Origens Games à equipe!','info');return false;">
+        🔗 Entrar no Discord da Origens Games
+      </a>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">🔑 Já tenho minha chave</div>
+      <p style="font-size:12px;color:#9e9e9e;margin-bottom:12px;">
+        Recebeu a chave de um dev no Discord? Cole ela abaixo para liberar seu selo ✅,
+        itens exclusivos de perfil, descontos na loja e presentes diários melhores no
+        <a href="correio.html" style="color:#29b6f6;">Correio</a>.
+      </p>
+      <div class="key-box">
+        <input type="text" id="key-input" class="input" placeholder="Cole sua chave de verificação"
+               onkeydown="if(event.key==='Enter')tryVerify()"
+               style="margin-bottom:10px;"/>
+        <button class="btn btn-primary btn-block" style="background:linear-gradient(135deg,#0d47a1,#1565c0);"
+                onclick="tryVerify()">✅ Verificar Chave</button>
+        <div class="key-error" id="key-error">❌ Chave inválida. Confira com a equipe no Discord.</div>
+        <div class="key-success" id="key-success">🎉 Verificado com sucesso!</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ TELA: VERIFICADO ═══════════ -->
+  <div id="screen-verified" style="display:none;">
+
+    <div class="verified-banner">
+      <span class="badge-big">✅</span>
+      <div class="name">Criador Verificado</div>
+      <div style="font-size:13px;color:#c0c0d0;margin-top:4px;" id="creator-name">—</div>
+      <div class="since" id="creator-since">Verificado desde —</div>
+    </div>
+
+    <!-- AVISO DE INATIVIDADE -->
+    <div class="inactivity-warning" id="inactivity-warning" style="display:none;">
+      <div class="iw-title">⚠️ AVISO DE INATIVIDADE</div>
+      <div class="iw-body">
+        Você está há <strong id="days-inactive">?</strong> dias sem postar conteúdo sobre Card Fight.<br><br>
+        🚨 <strong>O selo de Criador Verificado pode ser removido a qualquer momento</strong> se a inatividade continuar — e junto com ele todos os seus benefícios exclusivos (descontos, salas extras, Correio VIP, itens e selo).<br><br>
+        📹 Poste um vídeo, live ou post sobre Card Fight e comunique à equipe no Discord para renovar seu status!<br><br>
+        <a href="#" class="btn btn-outline btn-sm" onclick="showToast('💬 Entre no Discord e avise a equipe!','info');return false;" style="margin-top:4px;">
+          💬 Avisar no Discord
+        </a>
+      </div>
+    </div>
+
+    <!-- Benefícios ativos -->
+    <div class="tool-card" style="border-color:#29b6f630;">
+      <div class="head"><span class="icon">🎁</span><span class="name">Seus Benefícios Ativos</span></div>
+      <div class="benefit-row">
+        <span class="bi">🏟️</span><span class="bt"><strong>50 salas/dia</strong> no sistema de salas · <a href="sala.html" style="color:#29b6f6;">Abrir Salas</a></span>
+      </div>
+      <div class="benefit-row">
+        <span class="bi">🛒</span><span class="bt"><strong>Descontos exclusivos + 10% extra</strong> na Loja · <a href="comprar.html" style="color:#29b6f6;">Ir à Loja</a></span>
+      </div>
+      <div class="benefit-row">
+        <span class="bi">📬</span><span class="bt"><strong>Correio VIP</strong> — carta garantida todo dia (chance de 2!) · <a href="correio.html" style="color:#29b6f6;">Abrir</a></span>
+      </div>
+      <div class="benefit-row">
+        <span class="bi">🎴</span><span class="bt"><strong>Salas grátis</strong> — sem precisar de Cartões de Sala</span>
+      </div>
+      <div class="benefit-row">
+        <span class="bi">🎖️</span><span class="bt"><strong>XPP em dobro</strong> — sobe de rank 2× mais rápido · <a href="battle.html" style="color:#29b6f6;">Batalhar</a></span>
+      </div>
+      <div class="benefit-row">
+        <span class="bi">💀</span><span class="bt"><strong>Sobrevivência com recompensas 1.5×</strong> · <a href="sobrevivencia.html" style="color:#29b6f6;">Jogar</a></span>
+      </div>
+      <div class="benefit-row">
+        <span class="bi">⚡</span><span class="bt"><strong>Boost diário grátis</strong> via Correio VIP automaticamente</span>
+      </div>
+      <div class="benefit-row">
+        <span class="bi">📦</span><span class="bt"><strong>1 Expansão de Cofre grátis/semana</strong> · <a href="vault.html" style="color:#29b6f6;">Ver Cofre</a></span>
+      </div>
+      <div class="benefit-row">
+        <span class="bi">✅</span><span class="bt">Selo, moldura e título exclusivos de criador</span>
+      </div>
+    </div>
+
+    <!-- Equipar selo e itens exclusivos -->
+    <div class="tool-card">
+      <div class="head"><span class="icon">🎨</span><span class="name">Selo & Itens Exclusivos</span></div>
+      <div class="desc">Equipe ou retire seus itens exclusivos de criador com um toque. Eles aparecem no topo do seu perfil e no ranking.</div>
+      <div class="equip-quick-row" id="quick-equip-row"></div>
+    </div>
+
+    <!-- Cartão de apresentação -->
+    <div class="tool-card">
+      <div class="head"><span class="icon">📋</span><span class="name">Cartão de Apresentação</span></div>
+      <div class="desc">Texto pronto pra colar na descrição do vídeo, bio ou anúncio da live. Atualiza com suas stats atuais.</div>
+      <div class="card-preview-box" id="card-preview">Carregando...</div>
+      <button class="btn btn-outline btn-block" onclick="copyCreatorCard()">📋 Copiar Texto</button>
+    </div>
+
+    <!-- Correio VIP -->
+    <div class="tool-card">
+      <div class="head"><span class="icon">📬</span><span class="name">Correio VIP</span></div>
+      <div class="desc">
+        Como criador verificado, você recebe uma carta garantida todo dia no
+        <strong>Correio</strong>, com muito mais ouro, XP, XPP e às vezes um boost —
+        bem melhor do que a carta ocasional dos jogadores comuns.
+      </div>
+      <a href="correio.html" class="btn btn-gold btn-block">📬 Abrir Correio</a>
+    </div>
+
+    <!-- Recursos -->
+    <div class="tool-card">
+      <div class="head"><span class="icon">🔗</span><span class="name">Recursos do Criador</span></div>
+      <div class="desc">Canal direto com a equipe e materiais para divulgação.</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <a href="#" class="btn btn-outline btn-block" onclick="showToast('🔗 Peça o link do canal de criadores à equipe!','info');return false;">
+          💬 Canal de Criadores no Discord
+        </a>
+        <a href="sala.html" class="btn btn-outline btn-block">🏟️ Salas Personalizadas (50/dia)</a>
+        <a href="comprar.html" class="btn btn-outline btn-block">🛒 Loja com Desconto Exclusivo</a>
+        <a href="sobrevivencia.html" class="btn btn-outline btn-block">💀 Modo Sobrevivência (1.5× recompensas)</a>
+        <a href="events.html" class="btn btn-outline btn-block">🎯 Ver Eventos Ativos</a>
+        <a href="profile.html" class="btn btn-outline btn-block">👤 Ir para o Perfil</a>
+      </div>
+    </div>
+
+    <div style="text-align:center;font-size:11px;color:#555;margin-top:6px;">
+      Selo concedido pela equipe Origens Games. Inatividade prolongada pode resultar em revogação automática.
+    </div>
+  </div>
+
+  <div style="height:70px;"></div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js"></script>
+<script src="gamedata2.js"></script>
+<script>
+let save;
+
+function init() {
+  save = getOrCreateSave();
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+  renderRules();
+
+  if (save.isVerifiedCreator) {
+    document.getElementById("screen-locked").style.display = "none";
+    document.getElementById("screen-verified").style.display = "block";
+    renderVerifiedScreen();
+  } else {
+    document.getElementById("screen-locked").style.display = "block";
+    document.getElementById("screen-verified").style.display = "none";
+  }
+  startAutoSave(() => save);
+}
+
+function renderRules() {
+  const list = document.getElementById("rules-list");
+  list.innerHTML = CREATOR_RULES.map(r => `
+    <div class="rule-row">
+      <span class="icon">${r.icon}</span>
+      <span class="txt">${r.text}</span>
+    </div>`).join("");
+}
+
+function tryVerify() {
+  const key = document.getElementById("key-input").value;
+  const result = applyCreatorVerification(save, key);
+
+  if (result.ok) {
+    writeSave(save);
+    document.getElementById("key-error").style.display = "none";
+    document.getElementById("key-success").style.display = "block";
+    showToast("🎉 Chave válida! Você agora é um Criador Verificado!", "gold", 4000);
+    setTimeout(() => {
+      document.getElementById("screen-locked").style.display = "none";
+      document.getElementById("screen-verified").style.display = "block";
+      renderVerifiedScreen();
+    }, 1200);
+  } else if (result.reason === "already") {
+    showToast("✅ Você já é um criador verificado!", "info");
+  } else {
+    document.getElementById("key-success").style.display = "none";
+    document.getElementById("key-error").style.display = "block";
+    setTimeout(() => document.getElementById("key-error").style.display = "none", 2500);
+  }
+}
+
+function renderVerifiedScreen() {
+  document.getElementById("creator-name").textContent = save.playerName;
+  const since = save.verifiedSince ? new Date(save.verifiedSince).toLocaleDateString("pt-BR") : "—";
+  document.getElementById("creator-since").textContent = "Verificado desde " + since;
+
+  // Aviso de inatividade
+  const lastContent = save.lastContentDate || save.verifiedSince || Date.now();
+  const daysSince   = Math.floor((Date.now() - lastContent) / 86400000);
+  const warnEl = document.getElementById("inactivity-warning");
+  if (daysSince >= 25) {
+    warnEl.style.display = "block";
+    document.getElementById("days-inactive").textContent = daysSince;
+    // Destacar mais se passaram 30+ dias
+    if (daysSince >= 30) {
+      warnEl.style.borderColor = "#ff0000";
+      warnEl.style.boxShadow = "0 0 20px rgba(255,0,0,0.2)";
+    }
+  } else {
+    warnEl.style.display = "none";
+  }
+
+  renderQuickEquip();
+  renderCreatorCard();
+}
+
+function renderQuickEquip() {
+  const row = document.getElementById("quick-equip-row");
+  row.innerHTML = CREATOR_ITEMS.map(item => {
+    const key = "profile" + item.type.charAt(0).toUpperCase() + item.type.slice(1);
+    const on  = save[key] === item.id;
+    return `<div class="equip-quick-btn ${on?"on":""}" onclick="toggleCreatorItem('${item.id}','${item.type}')">
+      <div class="em">${item.emoji}</div>
+      <div class="lb">${on ? "Equipado" : item.type === "badge" ? "Selo" : item.type === "frame" ? "Moldura" : "Título"}</div>
+    </div>`;
+  }).join("");
+}
+
+function toggleCreatorItem(itemId, type) {
+  const key = "profile" + type.charAt(0).toUpperCase() + type.slice(1);
+  save[key] = (save[key] === itemId) ? "" : itemId;
+  writeSave(save);
+  renderQuickEquip();
+  showToast(save[key] ? "✅ Item equipado!" : "🗑️ Item removido.", save[key] ? "gold" : "info");
+}
+
+function renderCreatorCard() {
+  const rank = getRank(save.xpp);
+  const level = getLevel(save.xp);
+  const total = (save.wins + save.losses) || 1;
+  const wr = Math.round((save.wins / total) * 100);
+  const text =
+`✅ Criador Verificado Origens Games
+🎬 ${save.playerName} — ${rank.name} · Nível ${level}
+⚔️ ${fmtNum(save.wins)} vitórias · ${wr}% winrate
+🃏 ${save.vault.length} cartas no cofre
+🎖️ XPP 2× | 💀 Sobrevivência 1.5× | ⚡ Boost diário grátis
+🛒 Descontos exclusivos (até 65%!) · 50 salas/dia · Correio VIP
+👉 Jogue Card Fight grátis, direto no navegador!`;
+  document.getElementById("card-preview").textContent = text;
+}
+
+function copyCreatorCard() {
+  const text = document.getElementById("card-preview").textContent;
+  try {
+    navigator.clipboard.writeText(text);
+    showToast("📋 Cartão copiado! Cole na descrição do vídeo.", "gold");
+  } catch(e) {
+    showToast("❌ Não foi possível copiar automaticamente.", "error");
+  }
+}
+
+init();
+</script>
+</body>
+</html>

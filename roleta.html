@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Roleta – Card Fight</title>
+<script>
+  var CF_BUILD = Date.now();
+  document.write('<link rel="stylesheet" href="game.css?v=' + CF_BUILD + '"/>');
+</script>
+<style>
+  /* ===== ESTILOS ESPECÍFICOS DA ROLETA ===== */
+  .roleta-aviso {
+    background: linear-gradient(135deg, #2a0000, #4a0000);
+    border: 2px solid #ff1744;
+    border-radius: 16px;
+    padding: 16px 14px;
+    margin-bottom: 16px;
+    color: #ffcdd2;
+    font-size: 12px;
+    line-height: 1.8;
+    position: relative;
+    overflow: hidden;
+  }
+  .roleta-aviso::before {
+    content: '⚠️';
+    position: absolute;
+    font-size: 60px;
+    right: 10px;
+    top: 10px;
+    opacity: 0.08;
+  }
+  .roleta-aviso strong { color: #ff8a80; font-weight: 700; }
+  .roleta-aviso .aviso-titulo {
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    font-weight: 900;
+    color: #ff5252;
+    margin-bottom: 4px;
+  }
+  .roleta-aviso .aviso-texto { font-size: 12px; }
+
+  .roleta-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+
+  /* ---- TABS (CORRIGIDO: sem sobreposição de nomes) ---- */
+  .roleta-tabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    margin-bottom: 14px;
+    scrollbar-width: thin;
+  }
+  .roleta-tabs::-webkit-scrollbar { height: 4px; }
+  .roleta-tabs::-webkit-scrollbar-thumb { background: #ff444488; border-radius: 4px; }
+
+  .roleta-tabs .tab-btn {
+    flex: 0 0 auto;         /* FIX: antes era flex:1, causava overlap em container com scroll */
+    max-width: 130px;
+    padding: 9px 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid #2a2a4a;
+    border-radius: 10px;
+    color: #9e9e9e;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;  /* FIX: trunca em vez de sobrepor */
+  }
+  .roleta-tabs .tab-btn.active {
+    background: linear-gradient(135deg, #8b0000, #c62828);
+    border-color: #ff4444;
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(198,40,40,0.4);
+  }
+  .roleta-tabs .tab-btn:hover:not(.active) {
+    border-color: #ff444466;
+    color: #ccc;
+    background: rgba(255,68,68,0.06);
+  }
+
+  .roleta-canvas-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 380px;
+    margin: 0 auto 16px;
+    aspect-ratio: 1/1;
+    background: radial-gradient(circle at center, #12122a, #05050e);
+    border-radius: 50%;
+    border: 3px solid #3a3a5e;
+    box-shadow: 0 0 50px rgba(255,68,68,0.15), inset 0 0 30px rgba(0,0,0,0.5);
+  }
+  .roleta-canvas-wrap canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    transition: filter 0.3s;
+  }
+  .roleta-canvas-wrap .ponteiro {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 30px;
+    filter: drop-shadow(0 0 10px rgba(255,193,7,0.9));
+    z-index: 5;
+    pointer-events: none;
+  }
+  .roleta-canvas-wrap .ponteiro::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 16px solid #ffc107;
+  }
+
+  .roleta-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    font-size: 13px;
+    gap: 10px;
+  }
+  .roleta-info .custo {
+    background: rgba(255,193,7,0.12);
+    border: 1px solid rgba(255,193,7,0.3);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-weight: 700;
+    color: var(--gold);
+    white-space: nowrap;
+  }
+  .roleta-info .custo span { font-size: 15px; }
+
+  .btn-girar {
+    background: linear-gradient(135deg, #b8730a, #e65100);
+    border: none;
+    border-radius: 12px;
+    padding: 14px 24px;
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    font-size: 18px;
+    color: #fff;
+    width: 100%;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 20px rgba(230,81,0,0.4);
+    letter-spacing: 1px;
+    margin-top: 14px;
+  }
+  .btn-girar:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 28px rgba(230,81,0,0.6);
+  }
+  .btn-girar:active:not(:disabled) { transform: scale(0.96); }
+  .btn-girar:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: grayscale(0.4);
+  }
+
+  .resultado-destaque {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    padding: 12px;
+    margin: 10px 0;
+    background: rgba(255,193,7,0.06);
+    border-radius: 12px;
+    border: 1px solid rgba(255,193,7,0.15);
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+  }
+  .resultado-destaque.premio-grande {
+    background: rgba(255,193,7,0.15);
+    border-color: #ffc107;
+    animation: premio-pulse 0.8s ease 3;
+  }
+  @keyframes premio-pulse {
+    0%,100% { transform: scale(1); }
+    50%     { transform: scale(1.04); background: rgba(255,193,7,0.25); }
+  }
+
+  .historico {
+    margin-top: 16px;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+  }
+  .historico-titulo {
+    font-size: 12px;
+    font-weight: 700;
+    color: #9e9e9e;
+    margin-bottom: 6px;
+  }
+  .historico-lista {
+    max-height: 120px;
+    overflow-y: auto;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .historico-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 6px;
+    border-bottom: 1px solid #14141e;
+    color: #b0b0c0;
+  }
+  .historico-item .h-roleta { color: #888; font-weight: 600; }
+  .historico-item .h-premio { color: #ffc107; }
+
+  .roleta-stats-mini {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    font-size: 12px;
+    color: #9e9e9e;
+    margin-top: 10px;
+  }
+
+  .explicacao {
+    background: rgba(255,255,255,0.02);
+    border-radius: 12px;
+    padding: 14px;
+    margin-top: 12px;
+    border: 1px solid #1a1a2e;
+    font-size: 12px;
+    line-height: 1.9;
+    color: #b0b0c0;
+  }
+  .explicacao strong { color: #ffc107; }
+  .explicacao .ex-titulo {
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #ce93d8;
+    margin-bottom: 6px;
+  }
+
+  /* Responsivo */
+  @media (max-width: 420px) {
+    .roleta-tabs .tab-btn {
+      font-size: 10px;
+      padding: 7px 10px;
+      max-width: 100px;
+    }
+    .roleta-canvas-wrap { max-width: 300px; }
+    .btn-girar { font-size: 15px; padding: 12px 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Início</a>
+  <span class="logo-title">🎰 ROLETA</span>
+  <span style="width:80px;"></span>
+</header>
+
+<main class="content">
+
+  <div class="roleta-aviso">
+    <div class="aviso-titulo">⚠️ ATENÇÃO – JOGO RESPONSÁVEL</div>
+    <div class="aviso-texto">
+      <strong>Card Fight NÃO incentiva o uso de plataformas de aposta!</strong><br>
+      Este sistema é puramente uma <strong>mecânica de jogo</strong> para entretenimento, sem qualquer envolvimento com dinheiro real.
+      <br><br>
+      Jogos de azar podem <strong>causar sérios danos financeiros e emocionais</strong>, além de prejudicar relacionamentos familiares e sociais.
+      <br><br>
+      Se você ou alguém que conhece está enfrentando problemas com apostas, procure ajuda profissional.
+      <br><br>
+      <span style="color:#ff8a80;">— Equipe Origens Games —</span><br>
+      <span style="font-size:11px;color:#ff8a80;">💬 Discord Oficial: disponível para suporte e remoção deste conteúdo, se necessário.</span>
+    </div>
+  </div>
+
+  <div class="roleta-container">
+    <div class="roleta-tabs" id="roletaTabs"></div>
+
+    <div class="roleta-canvas-wrap">
+      <canvas id="roletaCanvas" width="400" height="400"></canvas>
+      <div class="ponteiro">▼</div>
+    </div>
+
+    <div class="roleta-info">
+      <div class="custo">💰 <span id="roletaCusto">1.000</span></div>
+      <div style="font-size:12px;color:#9e9e9e;" id="roletaDesc">Pequenas apostas, grandes emoções.</div>
+    </div>
+
+    <button class="btn-girar" id="btnGirar">🎰 GIRAR</button>
+
+    <div class="roleta-stats-mini">
+      <span>🔄 <span id="totalGiros">0</span> giros</span>
+      <span>🏆 maior prêmio: <span id="maiorPremio">0</span> 🪙</span>
+    </div>
+
+    <div class="resultado-destaque" id="resultadoDisplay">⚡ Gire a roleta para começar!</div>
+  </div>
+
+  <div class="roleta-container">
+    <div class="historico">
+      <div class="historico-titulo">📜 Últimos giros</div>
+      <div class="historico-lista" id="historicoLista">
+        <div style="color:#555;text-align:center;padding:12px;">Nenhum giro ainda.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="roleta-container">
+    <div class="explicacao">
+      <div class="ex-titulo">🎲 Como funciona a Roleta?</div>
+      <strong>1. Escolha uma roleta</strong> – cada uma tem custo e prêmios diferentes.<br>
+      <strong>2. Gire</strong> – o resultado é totalmente aleatório, baseado em probabilidades justas.<br>
+      <strong>3. Receba seu prêmio</strong> – ouro, XP, XPP ou cartas exclusivas entram diretamente na sua conta.<br>
+      <br>
+      <strong>💡 Dica:</strong> Quanto mais cara a roleta, maiores as recompensas… mas também maior o risco!<br>
+      <strong>👑 Roleta Origens</strong> – a única que pode conceder a carta <strong>Rei Das Roletas</strong>, uma das mais raras do jogo!<br>
+      <br>
+      <span style="color:#ff8a80;">⚠️ Lembre-se: jogue com responsabilidade. A sorte é uma aliada, mas não uma garantia.</span>
+    </div>
+  </div>
+
+  <div style="height:80px;"></div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html" class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html" class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html" class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html" class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script>
+  var scripts = [
+    "gamedata.js",
+    "gamedata2.js",
+    "gamedata3.js",
+    "gamedata-v7-patch.js",
+    "gamedata-pesca.js",
+    "gamedata-pesca-patch.js",
+    "gamedata-maestria-patch.js",
+    "gamedata-prime-patch.js",
+    "gamedata-sabio-patch.js",
+    "gamedata-roleta.js"
+  ];
+  scripts.forEach(function(src) {
+    document.write('<scr' + 'ipt src="' + src + '?v=' + CF_BUILD + '"></scr' + 'ipt>');
+  });
+</script>
+<script>
+(function() {
+  var save = getOrCreateSave();
+  var canvas = document.getElementById('roletaCanvas');
+  var ctx = canvas.getContext('2d');
+  var currentRoletaId = 'roleta_sorte';
+  var isGirando = false;
+  var animFrame = null;
+  var anguloAtual = 0;
+  var anguloDestino = 0;
+  var ultimoPremio = null;
+
+  var tabsContainer = document.getElementById('roletaTabs');
+  var custoEl = document.getElementById('roletaCusto');
+  var descEl = document.getElementById('roletaDesc');
+  var resultadoDisplay = document.getElementById('resultadoDisplay');
+  var historicoLista = document.getElementById('historicoLista');
+  var totalGirosEl = document.getElementById('totalGiros');
+  var maiorPremioEl = document.getElementById('maiorPremio');
+  var btnGirar = document.getElementById('btnGirar');
+
+  var roletas = ROLETA_CONFIG || [];
+  var TWO_PI = Math.PI * 2;
+
+  function getRoletaConfig(id) {
+    return roletas.find(r => r.id === id) || roletas[0];
+  }
+
+  // FIX: removida a duplicata local — usa sempre getPremiosDisplay() global
+  // definida em gamedata-roleta.js, evitando divergência entre as duas cópias.
+
+  function normalizeAngle(a) {
+    a = a % TWO_PI;
+    if (a < 0) a += TWO_PI;
+    return a;
+  }
+
+  // ===== DESENHO DA ROLETA =====
+  function desenharRoleta(angulo) {
+    var config = getRoletaConfig(currentRoletaId);
+    if (!config) return;
+    var premios = getPremiosDisplay(currentRoletaId);
+    if (premios.length === 0) return;
+
+    angulo = normalizeAngle(angulo); // FIX: evita drift/flip de texto após muitos giros
+
+    var w = canvas.width, h = canvas.height;
+    var cx = w/2, cy = h/2, raio = Math.min(w,h)*0.43;
+
+    ctx.clearRect(0, 0, w, h);
+
+    var grad = ctx.createRadialGradient(cx, cy, 10, cx, cy, raio);
+    grad.addColorStop(0, '#22224a');
+    grad.addColorStop(1, '#0a0a1a');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, raio, 0, TWO_PI);
+    ctx.fill();
+
+    var totalPeso = premios.reduce(function(acc, p) { return acc + p.weight; }, 0);
+    var cores = [
+      '#d32f2f','#388e3c','#1976d2','#8e24aa','#f57c00','#00897b',
+      '#c2185b','#5e35b1','#d84315','#283593','#9e9d24','#6d4c41'
+    ];
+    var startAngle = angulo;
+    for (var i = 0; i < premios.length; i++) {
+      var p = premios[i];
+      var sliceAngle = (p.weight / totalPeso) * TWO_PI;
+      var endAngle = startAngle + sliceAngle;
+
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, raio, startAngle, endAngle);
+      ctx.closePath();
+      var fillGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, raio);
+      fillGrad.addColorStop(0, cores[i % cores.length]);
+      fillGrad.addColorStop(1, shadeColor(cores[i % cores.length], -20));
+      ctx.fillStyle = fillGrad;
+      ctx.fill();
+      ctx.strokeStyle = '#0a0a1a';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      var midAngle = startAngle + sliceAngle/2;
+      var textRadius = raio * 0.68;
+      var tx = cx + Math.cos(midAngle) * textRadius;
+      var ty = cy + Math.sin(midAngle) * textRadius;
+
+      // FIX: flip de texto calculado a partir do ângulo normalizado (0–2π),
+      // então nunca fica de cabeça para baixo aleatoriamente durante o giro.
+      var normMid = normalizeAngle(midAngle);
+      var flip = normMid > Math.PI/2 && normMid < (3*Math.PI/2);
+
+      ctx.save();
+      ctx.translate(tx, ty);
+      ctx.rotate(midAngle + (flip ? Math.PI : 0));
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 10px Rajdhani, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(0,0,0,0.6)';
+      ctx.shadowBlur = 3;
+      var label = p.label.length > 11 ? p.label.substr(0,9)+'…' : p.label;
+      ctx.fillText(label, 0, 0);
+      ctx.restore();
+
+      startAngle = endAngle;
+    }
+
+    var grad2 = ctx.createRadialGradient(cx, cy, 4, cx, cy, 20);
+    grad2.addColorStop(0, '#fff176');
+    grad2.addColorStop(1, '#e65100');
+    ctx.beginPath();
+    ctx.arc(cx, cy, 18, 0, TWO_PI);
+    ctx.fillStyle = grad2;
+    ctx.shadowColor = '#ffc107';
+    ctx.shadowBlur = 20;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, raio, 0, TWO_PI);
+    ctx.strokeStyle = '#ffc10755';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+
+  // Pequeno utilitário para escurecer/clarear cor hex (efeito de profundidade nas fatias)
+  function shadeColor(hex, percent) {
+    var num = parseInt(hex.slice(1), 16);
+    var r = Math.min(255, Math.max(0, (num >> 16) + percent));
+    var g = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + percent));
+    var b = Math.min(255, Math.max(0, (num & 0xff) + percent));
+    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+  }
+
+  // ===== ANIMAÇÃO =====
+  function animarRoleta() {
+    if (!isGirando) {
+      desenharRoleta(anguloAtual);
+      return;
+    }
+
+    var dif = anguloDestino - anguloAtual;
+    if (Math.abs(dif) < 0.02) {
+      anguloAtual = anguloDestino;
+      isGirando = false;
+      desenharRoleta(anguloAtual);
+      var config = getRoletaConfig(currentRoletaId);
+      if (config && ultimoPremio) {
+        var label = ultimoPremio.label || 'Prêmio!';
+        resultadoDisplay.textContent = '🎉 ' + label;
+        resultadoDisplay.className = 'resultado-destaque premio-grande';
+        setTimeout(function() {
+          resultadoDisplay.className = 'resultado-destaque';
+        }, 2000);
+        atualizarHistorico();
+        atualizarEstatisticas();
+        btnGirar.disabled = false;
+      }
+      return;
+    }
+
+    anguloAtual += dif * 0.12;
+    desenharRoleta(anguloAtual);
+    animFrame = requestAnimationFrame(animarRoleta);
+  }
+
+  // ===== GIRAR =====
+  function girar() {
+    if (isGirando) return;
+    var config = getRoletaConfig(currentRoletaId);
+    if (!config) return;
+    if (save.gold < config.cost) {
+      showToast('Ouro insuficiente!', 'error');
+      return;
+    }
+
+    isGirando = true;
+    btnGirar.disabled = true;
+    resultadoDisplay.textContent = '🌀 Girando...';
+    resultadoDisplay.className = 'resultado-destaque';
+
+    var resultado = girarRoleta(save, currentRoletaId);
+    if (!resultado.ok) {
+      isGirando = false;
+      btnGirar.disabled = false;
+      showToast(resultado.error || 'Erro ao girar', 'error');
+      return;
+    }
+
+    ultimoPremio = resultado.resultado;
+
+    var premios = getPremiosDisplay(currentRoletaId);
+    var totalPeso = premios.reduce(function(acc, p) { return acc + p.weight; }, 0);
+
+    // BUGFIX: antes tentávamos "adivinhar" a fatia comparando tipo/valor do
+    // prêmio final com a lista de prêmios — isso falhava quando uma carta
+    // duplicada virava ouro de compensação (valor aleatório, não batia com
+    // nenhuma fatia) e a roleta acabava sempre parando na fatia 0. Agora
+    // usamos o índice real devolvido por girarRoleta(), sem adivinhação.
+    var idx = (typeof ultimoPremio.premioIndex === 'number' && ultimoPremio.premioIndex >= 0)
+      ? ultimoPremio.premioIndex
+      : 0;
+
+    var sliceAngle = (premios[idx].weight / totalPeso) * TWO_PI;
+    var midAngle = (premios.slice(0, idx).reduce(function(acc, p) { return acc + (p.weight / totalPeso) * TWO_PI; }, 0) + sliceAngle/2);
+
+    // FIX: normaliza tudo em [0, 2π) e sempre soma voltas completas ADIANTE
+    // do ângulo atual, então a roleta nunca "pula para trás" em giros seguides.
+    anguloAtual = normalizeAngle(anguloAtual);
+    var targetAngle = normalizeAngle(-Math.PI/2 - midAngle);
+    var delta = normalizeAngle(targetAngle - anguloAtual);
+    var voltas = 5 + Math.floor(Math.random() * 5);
+    anguloDestino = anguloAtual + delta + voltas * TWO_PI;
+
+    if (animFrame) cancelAnimationFrame(animFrame);
+    animarRoleta();
+  }
+
+  // ===== ATUALIZAR UI =====
+  function atualizarAbas() {
+    tabsContainer.innerHTML = '';
+    roletas.forEach(function(r) {
+      var btn = document.createElement('button');
+      btn.className = 'tab-btn' + (r.id === currentRoletaId ? ' active' : '');
+      btn.textContent = r.name;
+      btn.title = r.name; // mostra nome completo via tooltip se truncado
+      btn.dataset.id = r.id;
+      btn.addEventListener('click', function() {
+        if (isGirando) return;
+        currentRoletaId = this.dataset.id;
+        atualizarAbas();
+        selecionarRoleta();
+      });
+      tabsContainer.appendChild(btn);
+    });
+  }
+
+  function selecionarRoleta() {
+    var config = getRoletaConfig(currentRoletaId);
+    if (!config) return;
+    custoEl.textContent = config.cost.toLocaleString();
+    descEl.textContent = config.desc || '';
+    anguloAtual = 0;
+    anguloDestino = 0;
+    desenharRoleta(0);
+    resultadoDisplay.textContent = '⚡ Gire a roleta para começar!';
+    resultadoDisplay.className = 'resultado-destaque';
+    ultimoPremio = null;
+    btnGirar.disabled = false;
+    isGirando = false;
+    if (animFrame) cancelAnimationFrame(animFrame);
+  }
+
+  function atualizarHistorico() {
+    var hist = save.roletaHistorico || [];
+    if (hist.length === 0) {
+      historicoLista.innerHTML = '<div style="color:#555;text-align:center;padding:12px;">Nenhum giro ainda.</div>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < Math.min(10, hist.length); i++) {
+      var item = hist[i];
+      html += '<div class="historico-item">' +
+        '<span class="h-roleta">' + item.roleta + '</span>' +
+        '<span class="h-premio">' + item.premio + '</span>' +
+        '<span style="font-size:10px;color:#666;">' + item.data + '</span>' +
+        '</div>';
+    }
+    historicoLista.innerHTML = html;
+  }
+
+  function atualizarEstatisticas() {
+    var stats = save.roletaStats || { totalGiros: 0, maiorPremio: 0 };
+    totalGirosEl.textContent = stats.totalGiros || 0;
+    maiorPremioEl.textContent = (stats.maiorPremio || 0).toLocaleString();
+  }
+
+  function showToast(msg, type) {
+    var container = document.getElementById('toast-container');
+    if (!container) return;
+    var t = document.createElement('div');
+    t.className = 'toast ' + (type || 'info');
+    t.textContent = msg;
+    container.appendChild(t);
+    setTimeout(function() { t.remove(); }, 3200);
+  }
+
+  btnGirar.addEventListener('click', girar);
+
+  function init() {
+    if (typeof ROLETA_CONFIG === 'undefined') {
+      console.error('Roleta: dados não carregados (verifique se gamedata-roleta.js foi incluído corretamente).');
+      return;
+    }
+    atualizarAbas();
+    selecionarRoleta();
+    atualizarHistorico();
+    atualizarEstatisticas();
+
+    var goldEl = document.getElementById('player-gold');
+    if (goldEl) {
+      goldEl.textContent = save.gold.toLocaleString();
+    }
+  }
+
+  if (document.readyState === 'complete') {
+    init();
+  } else {
+    window.addEventListener('load', init);
+  }
+
+})();
+</script>
+</body>
+</html>

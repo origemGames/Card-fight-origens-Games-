@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Perfil – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+.profile-hero {
+  background:linear-gradient(135deg,#0a0a1e,#1a0a2e,#0a0a1e);
+  border:2px solid #ffc107; border-radius:16px;
+  padding:20px; margin-bottom:14px; text-align:center;
+  position:relative; overflow:hidden;
+}
+.profile-hero::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(255,193,7,0.06) 0%,transparent 60%);
+  pointer-events:none;
+}
+.profile-badge-top {
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  margin-bottom:8px; min-height:26px;
+}
+.profile-badge-chip {
+  display:inline-flex; align-items:center; gap:5px;
+  background:rgba(41,182,246,0.12); border:1px solid #29b6f6;
+  border-radius:20px; padding:3px 12px; font-size:11px; font-weight:700;
+  color:#29b6f6; box-shadow:0 0 10px rgba(41,182,246,0.25);
+  animation:glow-pulse 2s infinite;
+}
+.profile-avatar-wrap {
+  position:relative; display:inline-block; margin-bottom:10px;
+}
+.badge-slot-locked {
+  background:#0e0e1c; border:2px dashed #2a2a4a; border-radius:12px;
+  padding:12px; display:flex; align-items:center; gap:10px;
+  text-decoration:none; color:inherit; margin-bottom:14px; transition:all 0.2s;
+}
+.badge-slot-locked:hover { border-color:#29b6f6; }
+.badge-slot-locked .icon { font-size:26px; }
+.badge-slot-locked .txt-title { font-weight:700; font-size:13px; color:#29b6f6; }
+.badge-slot-locked .txt-desc { font-size:11px; color:#9e9e9e; margin-top:2px; }
+.profile-avatar-emoji {
+  font-size:64px; display:block;
+  filter:drop-shadow(0 0 12px rgba(255,193,7,0.3));
+  animation:float 2.5s ease-in-out infinite;
+}
+.profile-frame-ring {
+  position:absolute; inset:-6px; border-radius:50%;
+  border:3px solid var(--frame-color,transparent);
+  box-shadow:0 0 20px var(--frame-color,transparent);
+}
+.profile-effect-overlay {
+  position:absolute; inset:-12px; border-radius:50%;
+  pointer-events:none;
+  background:radial-gradient(ellipse at 50% 50%,var(--effect-color,transparent) 0%,transparent 60%);
+  opacity:0.3; animation:pulse 1.5s ease-in-out infinite;
+}
+.profile-name { font-family:'Cinzel',serif; font-size:22px; font-weight:900; margin-bottom:4px; }
+.profile-title-text { font-size:13px; font-weight:700; margin-bottom:8px; }
+.profile-rank-badge {
+  display:inline-block; padding:4px 16px; border-radius:20px;
+  font-family:'Cinzel',serif; font-size:12px; font-weight:700;
+  background:rgba(255,193,7,0.15); border:1px solid #ffc107;
+}
+
+/* ═══ SELO PRIME VIII (canto inferior direito do avatar) ═══ */
+.prime-avatar-badge {
+  position:absolute; right:-6px; bottom:-6px;
+  width:34px; height:34px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; font-weight:900; z-index:3;
+  background:radial-gradient(circle,#ff00aa 0%,#7a0055 100%);
+  border:2px solid #ffc107;
+  box-shadow:0 0 12px #ff00aa,0 0 24px rgba(255,0,170,0.6),inset 0 0 8px rgba(255,255,255,0.3);
+  animation:pab-spin 4s linear infinite, pab-pulse 1.6s ease-in-out infinite;
+}
+.prime-avatar-badge .pab-glow {
+  position:absolute; inset:-4px; border-radius:50%;
+  background:conic-gradient(from 0deg,#ff00aa,#ffc107,#ff4444,#ff00aa);
+  filter:blur(6px); opacity:0.7; z-index:-1;
+  animation:pab-spin 3s linear infinite reverse;
+}
+.prime-avatar-badge .pab-num { position:relative; z-index:1; text-shadow:0 0 6px #fff; }
+@keyframes pab-spin  { to { transform:rotate(360deg); } }
+@keyframes pab-pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.12);} }
+  color:#ffc107; margin-bottom:10px;
+}
+.stats-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+.stat-mini-box {
+  background:#0e0e1c; border-radius:10px; padding:10px; text-align:center;
+}
+.stat-mini-box .val { font-size:18px; font-weight:900; }
+.stat-mini-box .lbl { font-size:10px; color:#9e9e9e; margin-top:2px; }
+.section-title {
+  font-family:'Cinzel',serif; font-size:14px; font-weight:700; color:#ffc107;
+  margin:16px 0 10px; display:flex; align-items:center; gap:8px;
+}
+.section-title::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,#ffc10744,transparent); }
+.equip-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
+.equip-slot {
+  background:#0e0e1c; border:2px solid #2a2a4a; border-radius:12px;
+  padding:12px; display:flex; flex-direction:column; align-items:center;
+  gap:6px; cursor:pointer; transition:all 0.2s;
+}
+.equip-slot:hover { border-color:#ffc107; transform:translateY(-2px); }
+.equip-slot.equipped { border-color:var(--equip-color,#ffc107); }
+.equip-slot .slot-icon { font-size:28px; }
+.equip-slot .slot-label { font-size:10px; color:#9e9e9e; }
+.equip-slot .slot-name { font-size:12px; font-weight:700; text-align:center; }
+.card-showcase-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.showcase-card-slot {
+  background:#0e0e1c; border:2px dashed #2a2a4a; border-radius:10px;
+  padding:12px 6px; text-align:center; cursor:pointer; transition:all 0.2s;
+  min-height:90px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+}
+.showcase-card-slot:hover { border-color:#ffc107; border-style:solid; }
+.showcase-card-slot.filled { border-style:solid; }
+.xp-bar-wrap { background:#1e1e30; border-radius:20px; height:8px; overflow:hidden; }
+.xp-bar-fill { height:100%; border-radius:20px; background:linear-gradient(90deg,#1a237e,#5c6bc0); }
+.xpp-bar-fill{ height:100%; border-radius:20px; background:linear-gradient(90deg,#4a148c,#e040fb); }
+/* Modal seletor de item */
+.item-picker-modal { max-height:70vh; overflow-y:auto; }
+.item-picker-row {
+  display:flex; align-items:center; gap:10px; padding:10px 12px;
+  background:#0a0a1e; border:1px solid #2a2a4a; border-radius:10px;
+  margin-bottom:6px; cursor:pointer; transition:all 0.2s;
+}
+.item-picker-row:hover { border-color:#ffc107; }
+.item-picker-row.selected { border-color:#4CAF50; background:#0a1a0a; }
+.card-picker-row {
+  display:flex; align-items:center; gap:10px; padding:8px 10px;
+  background:#0a0a1e; border:1px solid #2a2a4a; border-radius:10px;
+  margin-bottom:6px; cursor:pointer; transition:all 0.2s;
+}
+.card-picker-row:hover { border-color:#ffc107; }
+.card-picker-row.selected { border-color:#4CAF50; }
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title">👤 PERFIL</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content">
+
+  <!-- Hero do perfil -->
+  <div class="profile-hero">
+    <div class="profile-badge-top" id="badge-top"></div>
+    <div class="profile-avatar-wrap">
+      <div class="profile-effect-overlay" id="effect-overlay"></div>
+      <span class="profile-avatar-emoji" id="hero-avatar">👤</span>
+      <div class="profile-frame-ring" id="frame-ring"></div>
+      <span id="prime-avatar-badge-slot"></span>
+    </div>
+    <div class="profile-name" id="hero-name">Carregando...</div>
+    <div class="profile-title-text" id="hero-title"></div>
+    <div class="profile-rank-badge" id="hero-rank">Bronze I</div>
+
+    <!-- Progresso de rank -->
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#9e9e9e;margin-bottom:3px;">
+        <span>🎖️ Progresso de Patente</span>
+        <span id="rank-pct">0%</span>
+      </div>
+      <div class="xp-bar-wrap"><div class="xpp-bar-fill" id="rank-bar" style="width:0%"></div></div>
+      <div style="font-size:10px;color:#9e9e9e;margin-top:2px;" id="rank-next">Próxima: —</div>
+    </div>
+
+    <!-- Progresso de XP/Level -->
+    <div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#9e9e9e;margin-bottom:3px;">
+        <span>⭐ Nível <span id="hero-level">1</span></span>
+        <span id="xp-pct">0%</span>
+      </div>
+      <div class="xp-bar-wrap"><div class="xp-bar-fill" id="xp-bar" style="width:0%"></div></div>
+      <div style="font-size:10px;color:#9e9e9e;margin-top:2px;" id="xp-next">XP para o próximo nível: —</div>
+    </div>
+  </div>
+
+  <!-- Estatísticas -->
+  <div class="section-title">📊 Estatísticas</div>
+  <div class="stats-grid-3" style="margin-bottom:14px;">
+    <div class="stat-mini-box"><div class="val" style="color:#66bb6a;" id="stat-wins">0</div><div class="lbl">Vitórias</div></div>
+    <div class="stat-mini-box"><div class="val" style="color:#ef5350;" id="stat-losses">0</div><div class="lbl">Derrotas</div></div>
+    <div class="stat-mini-box"><div class="val" style="color:#ffc107;" id="stat-wr">0%</div><div class="lbl">WinRate</div></div>
+    <div class="stat-mini-box"><div class="val" style="color:#90caf9;" id="stat-xp">0</div><div class="lbl">XP Total</div></div>
+    <div class="stat-mini-box"><div class="val" style="color:#ce93d8;" id="stat-xpp">0</div><div class="lbl">XPP Total</div></div>
+    <div class="stat-mini-box"><div class="val" style="color:#2196F3;" id="stat-cards">0</div><div class="lbl">No Cofre</div></div>
+    <div class="stat-mini-box" style="grid-column:span 3;"><div class="val" style="color:#ffd54f;" id="stat-battles">0</div><div class="lbl">Batalhas Totais</div></div>
+  </div>
+
+  <!-- Selo de Criador Verificado -->
+  <div id="badge-slot-wrap"></div>
+
+  <!-- Personalização equipada -->
+  <div class="section-title">🎨 Personalização</div>
+  <div class="equip-grid" id="equip-grid">
+    <div class="equip-slot" id="slot-frame" onclick="openPicker('frame')">
+      <span class="slot-label">🖼️ Moldura</span>
+      <span class="slot-icon" id="frame-icon">➕</span>
+      <span class="slot-name" id="frame-name" style="color:#9e9e9e;">Nenhuma</span>
+    </div>
+    <div class="equip-slot" id="slot-title" onclick="openPicker('title')">
+      <span class="slot-label">🏷️ Título</span>
+      <span class="slot-icon" id="title-icon">➕</span>
+      <span class="slot-name" id="title-name" style="color:#9e9e9e;">Nenhum</span>
+    </div>
+    <div class="equip-slot" id="slot-avatar" onclick="openPicker('avatar')">
+      <span class="slot-label">👤 Avatar</span>
+      <span class="slot-icon" id="avatar-icon">➕</span>
+      <span class="slot-name" id="avatar-name" style="color:#9e9e9e;">Padrão</span>
+    </div>
+    <div class="equip-slot" id="slot-effect" onclick="openPicker('effect')">
+      <span class="slot-label">✨ Efeito</span>
+      <span class="slot-icon" id="effect-icon">➕</span>
+      <span class="slot-name" id="effect-name" style="color:#9e9e9e;">Nenhum</span>
+    </div>
+  </div>
+
+  <!-- Cartas em destaque -->
+  <div class="section-title">🃏 Cartas em Destaque</div>
+  <p style="font-size:12px;color:#9e9e9e;margin-bottom:10px;">Escolha até 3 cartas do cofre para exibir no seu perfil público.</p>
+  <div class="card-showcase-grid" id="card-showcase"></div>
+
+  <!-- Ações -->
+  <div style="margin-top:20px;display:flex;flex-direction:column;gap:8px;">
+    <a href="shop.html?tab=profile" class="btn btn-gold btn-block">🛒 Comprar Itens de Perfil</a>
+    <a href="correio.html" class="btn btn-outline btn-block">📬 Correio</a>
+    <a href="ranking.html" class="btn btn-outline btn-block">🏆 Ver Ranking</a>
+  </div>
+  <div style="height:80px;"></div>
+</main>
+
+<!-- Modal picker de item -->
+<div class="modal-overlay hidden" id="picker-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="picker-title">Escolher Item</div>
+    <div class="item-picker-modal" id="picker-list"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn btn-outline" style="flex:1;" onclick="removePicker()">❌ Remover</button>
+      <button class="btn btn-outline" style="flex:1;" onclick="closePickerModal()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal picker de carta -->
+<div class="modal-overlay hidden" id="card-picker-modal">
+  <div class="modal-box">
+    <div class="modal-title">Escolher Carta em Destaque</div>
+    <p style="font-size:12px;color:#9e9e9e;margin-bottom:10px;">Selecione uma carta do seu cofre para exibir.</p>
+    <div class="item-picker-modal" id="card-picker-list"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn btn-outline" style="flex:1;" onclick="removeCardSlot()">❌ Remover</button>
+      <button class="btn btn-outline" style="flex:1;" onclick="closeCardPicker()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js"></script>
+<script src="gamedata2.js"></script>
+<script src="gamedata-prime-patch.js?v=13.1"></script>
+<script>
+let save, pickerType = null, pickerCardSlot = -1;
+
+function init() {
+  save = getOrCreateSave();
+  renderProfile();
+  startAutoSave(() => save);
+}
+
+function renderProfile() {
+  const level   = getLevel(save.xp);
+  const rank    = getRank(save.xpp);
+  const nextRank= getNextRank(save.xpp);
+  const xpCur   = save.xp;
+  const xpPrev  = xpForLevel(level);
+  const xpNext  = xpForNextLevel(save.xp);
+  const xpPct   = xpNext > xpPrev ? Math.min(100, Math.round(((xpCur-xpPrev)/(xpNext-xpPrev))*100)) : 100;
+  const xppPct  = nextRank ? Math.min(100, Math.round((save.xpp / nextRank.xpp) * 100)) : 100;
+  const total   = (save.wins + save.losses) || 1;
+  const wr      = Math.round((save.wins / total) * 100);
+
+  const frame  = getProfileItemById(save.profileFrame);
+  const title  = getProfileItemById(save.profileTitle);
+  const avatar = getProfileItemById(save.profileAvatar);
+  const effect = getProfileItemById(save.profileEffect);
+  const badge  = getProfileItemById(save.profileBadge);
+
+  // Selo no topo do perfil
+  const badgeTop = document.getElementById("badge-top");
+  badgeTop.innerHTML = badge
+    ? `<span class="profile-badge-chip">${badge.emoji} ${badge.name}</span>`
+    : "";
+
+  // Selo 8️⃣ do Prime VIII no canto inferior direito do avatar
+  const pabSlot = document.getElementById("prime-avatar-badge-slot");
+  if (pabSlot && typeof primeRenderAvatarBadge === "function") {
+    pabSlot.innerHTML = primeRenderAvatarBadge(save);
+  }
+
+  // Slot de selo (equipar/desequipar se verificado, ou link p/ virar criador)
+  const badgeWrap = document.getElementById("badge-slot-wrap");
+  if (save.isVerifiedCreator) {
+    badgeWrap.innerHTML = `
+      <div class="equip-slot" style="margin-bottom:14px;flex-direction:row;justify-content:flex-start;text-align:left;"
+           onclick="openPicker('badge')">
+        <span class="slot-icon" style="font-size:26px;">${badge ? badge.emoji : "➕"}</span>
+        <div style="margin-left:4px;">
+          <div class="slot-label" style="margin-bottom:2px;">✅ Selo de Criador</div>
+          <div class="slot-name" style="color:${badge ? badge.color : "#9e9e9e"};">${badge ? badge.name : "Nenhum equipado"}</div>
+        </div>
+      </div>`;
+  } else {
+    badgeWrap.innerHTML = `
+      <a href="criador.html" class="badge-slot-locked">
+        <span class="icon">🎬</span>
+        <div>
+          <div class="txt-title">Torne-se Criador Verificado</div>
+          <div class="txt-desc">Desbloqueie o selo ✅, itens exclusivos e presentes diários no Correio.</div>
+        </div>
+      </a>`;
+  }
+
+  // Hero
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+  document.getElementById("hero-avatar").textContent  = avatar?.emoji || "👤";
+  document.getElementById("hero-name").textContent    = save.playerName;
+  document.getElementById("hero-rank").textContent    = rank.name;
+  document.getElementById("hero-level").textContent   = level;
+  document.getElementById("hero-title").textContent   = title ? `${title.emoji} ${title.name}` : "";
+  document.getElementById("hero-title").style.color   = title?.color || "";
+
+  // Barras de progresso
+  document.getElementById("rank-bar").style.width  = xppPct + "%";
+  document.getElementById("rank-pct").textContent  = xppPct + "%";
+  document.getElementById("rank-next").textContent = nextRank ? `Próxima: ${nextRank.name} (${fmtNum(nextRank.xpp)} XPP)` : "Patente máxima!";
+  document.getElementById("xp-bar").style.width    = xpPct + "%";
+  document.getElementById("xp-pct").textContent    = xpPct + "%";
+  document.getElementById("xp-next").textContent   = `XP para nível ${level+1}: ${fmtNum(xpNext)}`;
+
+  // Frame e efeito
+  const frameRing = document.getElementById("frame-ring");
+  if (frame) { frameRing.style.setProperty("--frame-color", frame.color); frameRing.style.borderColor = frame.color; }
+  else { frameRing.style.borderColor = "transparent"; }
+
+  const effectOverlay = document.getElementById("effect-overlay");
+  if (effect) { effectOverlay.style.setProperty("--effect-color", effect.color); effectOverlay.style.display = "block"; }
+  else { effectOverlay.style.display = "none"; }
+
+  // Stats
+  document.getElementById("stat-wins").textContent    = fmtNum(save.wins);
+  document.getElementById("stat-losses").textContent  = fmtNum(save.losses);
+  document.getElementById("stat-wr").textContent      = wr + "%";
+  document.getElementById("stat-xp").textContent      = fmtNum(save.xp);
+  document.getElementById("stat-xpp").textContent     = fmtNum(save.xpp);
+  document.getElementById("stat-cards").textContent   = save.vault.length;
+  document.getElementById("stat-battles").textContent = fmtNum((save.wins||0)+(save.losses||0));
+
+  // Slots de equipamento
+  renderSlot("frame",  frame,  "🖼️ Moldura",  "Nenhuma", "#2a2a4a");
+  renderSlot("title",  title,  "🏷️ Título",   "Nenhum",  "#2a2a4a");
+  renderSlot("avatar", avatar, "👤 Avatar",   "Padrão",  "#2a2a4a");
+  renderSlot("effect", effect, "✨ Efeito",   "Nenhum",  "#2a2a4a");
+
+  // Cartas em destaque
+  renderShowcaseCards();
+}
+
+function renderSlot(type, item, label, emptyLabel, defColor) {
+  const slot = document.getElementById("slot-"+type);
+  const icon = document.getElementById(type+"-icon");
+  const name = document.getElementById(type+"-name");
+  if (item) {
+    icon.textContent = item.emoji;
+    name.textContent = item.name;
+    name.style.color = item.color;
+    slot.style.borderColor = item.color;
+    slot.style.setProperty("--equip-color", item.color);
+    slot.classList.add("equipped");
+  } else {
+    icon.textContent = "➕";
+    name.textContent = emptyLabel;
+    name.style.color = "#9e9e9e";
+    slot.style.borderColor = defColor;
+    slot.classList.remove("equipped");
+  }
+}
+
+function renderShowcaseCards() {
+  const grid = document.getElementById("card-showcase");
+  const showcaseCards = save.profileCards || [];
+  grid.innerHTML = [0,1,2].map(i => {
+    const cardId = showcaseCards[i];
+    const card   = cardId ? getCardById(cardId) : null;
+    const r      = card ? (RARITY[card.rarity]||RARITY.COMMON) : null;
+    return card
+      ? `<div class="showcase-card-slot filled" style="border-color:${r.color};" onclick="openCardPicker(${i})">
+           <div style="font-size:28px;">${card.img}</div>
+           <div style="font-size:10px;font-weight:700;margin-top:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;width:100%;">${card.name}</div>
+           <div style="font-size:9px;color:${r.color};">${r.name}</div>
+           <div style="font-size:10px;color:#ffc107;margin-top:2px;">⚔️${card.atk}</div>
+         </div>`
+      : `<div class="showcase-card-slot" onclick="openCardPicker(${i})">
+           <div style="font-size:28px;color:#333;">➕</div>
+           <div style="font-size:11px;color:#555;margin-top:4px;">Slot ${i+1}</div>
+         </div>`;
+  }).join("");
+}
+
+// ── Picker de item de perfil ────────────────────────────────
+function openPicker(type) {
+  pickerType = type;
+  const typeNames = { frame:"Moldura", title:"Título", avatar:"Avatar", effect:"Efeito", badge:"Selo" };
+  document.getElementById("picker-title").textContent = "Escolher " + (typeNames[type]||"Item");
+
+  const owned = (save.ownedProfileItems || []);
+  const all   = [...PROFILE_ITEMS, ...SHOWCASE_POOL, ...(typeof CREATOR_ITEMS!=="undefined"?CREATOR_ITEMS:[])];
+  const items = all.filter(p => p.type === type && owned.includes(p.id));
+  const currentId = save["profile" + type.charAt(0).toUpperCase() + type.slice(1)] || "";
+
+  if (items.length === 0) {
+    const link = type === "badge"
+      ? `<a href="criador.html" style="color:#29b6f6;font-size:13px;margin-top:8px;display:inline-block;">Virar Criador Verificado</a>`
+      : `<a href="shop.html" style="color:#ffc107;font-size:13px;margin-top:8px;display:inline-block;">Ir à Loja</a>`;
+    document.getElementById("picker-list").innerHTML =
+      `<div style="text-align:center;padding:20px;color:#9e9e9e;">
+         <div style="font-size:40px;margin-bottom:8px;">${type==="badge"?"🎬":"🛒"}</div>
+         <div>Você não tem itens desse tipo.</div>
+         ${link}
+       </div>`;
+  } else {
+    document.getElementById("picker-list").innerHTML = items.map(item => {
+      const r   = RARITY[item.rarity]||RARITY.COMMON;
+      const sel = item.id === currentId;
+      return `<div class="item-picker-row ${sel?"selected":""}" onclick="equipItem('${item.id}')">
+        <span style="font-size:32px;">${item.emoji}</span>
+        <div style="flex:1;">
+          <div style="font-weight:700;color:${item.color};">${item.name}</div>
+          <div style="font-size:11px;color:${r.color};">${r.name}</div>
+          <div style="font-size:11px;color:#9e9e9e;">${item.desc}</div>
+        </div>
+        ${sel ? `<span style="color:#4CAF50;font-size:18px;">✓</span>` : ""}
+      </div>`;
+    }).join("");
+  }
+
+  document.getElementById("picker-modal").classList.remove("hidden");
+}
+
+function equipItem(itemId) {
+  if (!pickerType) return;
+  const key = "profile" + pickerType.charAt(0).toUpperCase() + pickerType.slice(1);
+  save[key] = itemId;
+  writeSave(save);
+  renderProfile();
+  document.getElementById("picker-modal").classList.add("hidden");
+  showToast("✅ Item equipado!", "gold");
+}
+
+function removePicker() {
+  if (!pickerType) return;
+  const key = "profile" + pickerType.charAt(0).toUpperCase() + pickerType.slice(1);
+  save[key] = "";
+  writeSave(save);
+  renderProfile();
+  document.getElementById("picker-modal").classList.add("hidden");
+  showToast("🗑️ Item removido.", "info");
+}
+
+function closePickerModal() {
+  document.getElementById("picker-modal").classList.add("hidden");
+}
+
+// ── Picker de carta em destaque ─────────────────────────────
+function openCardPicker(slotIdx) {
+  pickerCardSlot = slotIdx;
+  const uniqueIds = [...new Set(save.vault)];
+  const cards     = uniqueIds.map(id => getCardById(id)).filter(Boolean);
+  // Ordenar por raridade
+  const order = ["ORIGENS","ULTRA_RARE","MYTHIC","LEGENDARY","EPIC","RARE","COMMON"];
+  cards.sort((a,b) => order.indexOf(a.rarity) - order.indexOf(b.rarity));
+
+  const currentCards = save.profileCards || [];
+
+  document.getElementById("card-picker-list").innerHTML = cards.slice(0,60).map(card => {
+    const r   = RARITY[card.rarity]||RARITY.COMMON;
+    const sel = currentCards.includes(card.id);
+    return `<div class="card-picker-row ${sel?"selected":""}" onclick="equipCardSlot('${card.id}')">
+      <span style="font-size:24px;">${card.img}</span>
+      <div style="flex:1;">
+        <div style="font-weight:700;font-size:13px;">${card.name}</div>
+        <div style="font-size:11px;color:${r.color};">${r.name}</div>
+        <div style="font-size:11px;color:#ffc107;">⚔️${card.atk} ❤️${card.hp}</div>
+      </div>
+      ${sel ? `<span style="color:#4CAF50;font-size:16px;">✓</span>` : ""}
+    </div>`;
+  }).join("");
+
+  if (cards.length === 0) {
+    document.getElementById("card-picker-list").innerHTML =
+      `<div style="text-align:center;padding:20px;color:#9e9e9e;">Cofre vazio! Abra pacotes primeiro.</div>`;
+  }
+
+  document.getElementById("card-picker-modal").classList.remove("hidden");
+}
+
+function equipCardSlot(cardId) {
+  if (!save.profileCards) save.profileCards = [null, null, null];
+  // Não repetir carta
+  if (save.profileCards.includes(cardId)) {
+    showToast("⚠️ Carta já em destaque!", "error"); return;
+  }
+  save.profileCards[pickerCardSlot] = cardId;
+  writeSave(save);
+  renderProfile();
+  document.getElementById("card-picker-modal").classList.add("hidden");
+  showToast("🃏 Carta em destaque atualizada!", "gold");
+}
+
+function removeCardSlot() {
+  if (save.profileCards) save.profileCards[pickerCardSlot] = null;
+  writeSave(save);
+  renderProfile();
+  document.getElementById("card-picker-modal").classList.add("hidden");
+}
+
+function closeCardPicker() {
+  document.getElementById("card-picker-modal").classList.add("hidden");
+}
+
+init();
+</script>
+</body>
+</html>

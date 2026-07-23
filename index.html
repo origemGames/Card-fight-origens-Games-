@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Card Fight – By Origens Games</title>
+<script>
+  // Cache-buster global: garante que o navegador sempre busque a versao mais nova
+  // de CSS/JS a cada carregamento da pagina, em vez de depender de numero de versao fixo.
+  var CF_BUILD = Date.now();
+  document.write('<link rel="stylesheet" href="game.css?v=' + CF_BUILD + '"/>');
+</script>
+<style>
+#particle-canvas {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events:none; z-index:0; opacity:0.55;
+}
+.page { position:relative; z-index:1; }
+
+.hero {
+  background:linear-gradient(180deg,#070712 0%,#0d0022 45%,#07120a 100%);
+  border:2px solid #ff4444; border-radius:20px;
+  padding:24px 16px 20px; margin-bottom:16px; text-align:center;
+  position:relative; overflow:hidden;
+}
+.hero::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(255,68,68,0.12) 0%,transparent 60%);
+  pointer-events:none;
+}
+.hero::after {
+  content:''; position:absolute; inset:0;
+  background-image:
+    radial-gradient(circle,rgba(255,68,68,0.6) 1px,transparent 1px),
+    radial-gradient(circle,rgba(255,193,7,0.4) 1px,transparent 1px),
+    radial-gradient(circle,rgba(255,255,255,0.2) 1px,transparent 1px);
+  background-size:80px 80px, 120px 120px, 60px 60px;
+  background-position:10px 10px, 40px 30px, 5px 50px;
+  animation:star-drift 20s linear infinite;
+  pointer-events:none;
+}
+@keyframes star-drift {
+  from { background-position:10px 10px,  40px 30px,  5px 50px; }
+  to   { background-position:90px 90px, 160px 150px, 65px 110px; }
+}
+
+.hero-logo {
+  font-size:76px; display:block; margin-bottom:6px;
+  animation:float 2.5s ease-in-out infinite;
+  filter:drop-shadow(0 0 32px rgba(255,68,68,0.6)) drop-shadow(0 0 64px rgba(255,68,68,0.2));
+  position:relative; z-index:1;
+}
+.hero-title {
+  font-family:'Cinzel',serif; font-size:30px; font-weight:900;
+  background:linear-gradient(135deg,#ff4444 0%,#ff6d00 40%,#ffc107 70%,#ff4444 100%);
+  background-size:200%;
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  margin-bottom:4px; letter-spacing:2px;
+  animation:title-shimmer 4s linear infinite;
+  position:relative; z-index:1;
+}
+@keyframes title-shimmer {
+  0%   { background-position:0%   50%; }
+  100% { background-position:200% 50%; }
+}
+.hero-sub { font-size:12px; color:#9e9e9e; margin-bottom:14px; position:relative; z-index:1; }
+
+.player-hero-card {
+  background:rgba(0,0,0,0.5); border:1px solid #2a2a4a;
+  border-radius:14px; padding:12px; margin-bottom:14px;
+  display:flex; align-items:center; gap:12px; text-align:left;
+  position:relative; z-index:1; transition:border-color 0.3s;
+}
+.player-hero-card:hover { border-color:#ff4444; }
+.player-hero-avatar { font-size:38px; flex-shrink:0; filter:drop-shadow(0 0 8px rgba(255,68,68,0.3)); }
+.player-hero-info  { flex:1; }
+.player-hero-name  { font-family:'Cinzel',serif; font-weight:700; font-size:15px; }
+.player-hero-rank  { font-size:12px; color:#9e9e9e; margin-top:2px; }
+.player-hero-gold  { font-size:13px; color:#ffc107; font-weight:700; margin-top:2px; }
+
+.nav-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+
+.nav-big-btn {
+  background:linear-gradient(135deg,var(--btn-from),var(--btn-to));
+  border:2px solid var(--btn-border,transparent); border-radius:16px;
+  padding:18px 12px; text-align:center; cursor:pointer;
+  transition:all 0.25s; text-decoration:none; display:flex;
+  flex-direction:column; align-items:center; gap:6px;
+  position:relative; overflow:hidden;
+}
+.nav-big-btn::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,0.08) 50%,transparent 70%);
+  background-size:200%;
+  animation:btn-shimmer 3s ease infinite;
+  animation-delay:var(--shimmer-delay,0s);
+}
+@keyframes btn-shimmer {
+  0%   { background-position:200% 0; }
+  100% { background-position:-200% 0; }
+}
+.nav-big-btn::after {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(180deg,rgba(255,255,255,0.04) 0%,transparent 60%);
+}
+.nav-big-btn:hover { transform:translateY(-4px); box-shadow:0 10px 28px rgba(0,0,0,0.5); }
+.nav-big-btn:active { transform:scale(0.96); }
+.nav-big-btn .icon  { font-size:38px; position:relative; z-index:1; transition:transform 0.2s; }
+.nav-big-btn:hover .icon { transform:scale(1.15) rotate(-3deg); }
+.nav-big-btn .label { font-family:'Cinzel',serif; font-size:13px; font-weight:700; position:relative; z-index:1; }
+.nav-big-btn .desc  { font-size:10px; color:rgba(255,255,255,0.6); position:relative; z-index:1; }
+
+.nav-big-btn.indigo-btn  { --btn-from:#1a237e; --btn-to:#283593; --btn-border:#7986cb; }
+.nav-big-btn.primary-btn { --btn-from:#8b0000; --btn-to:#c62828; --btn-border:#ff4444; box-shadow:0 4px 24px rgba(198,40,40,0.35); }
+.nav-big-btn.gold-btn    { --btn-from:#b8730a; --btn-to:#e65100; --btn-border:#ffc107; }
+.nav-big-btn.purple-btn  { --btn-from:#4a0072; --btn-to:#7b1fa2; --btn-border:#ce93d8; }
+.nav-big-btn.green-btn   { --btn-from:#1b5e20; --btn-to:#388e3c; --btn-border:#66bb6a; }
+.nav-big-btn.blue-btn    { --btn-from:#0d47a1; --btn-to:#1565c0; --btn-border:#90caf9; }
+.nav-big-btn.dark-btn    { --btn-from:#1a1a2e; --btn-to:#2d1b4e; --btn-border:#9c27b0; }
+.nav-big-btn.teal-btn    { --btn-from:#004d40; --btn-to:#00695c; --btn-border:#4CAF50; }
+.nav-big-btn.brown-btn   { --btn-from:#3e2723; --btn-to:#5d4037; --btn-border:#a1887f; }
+.nav-big-btn.cyan-btn    { --btn-from:#001a2e; --btn-to:#002d4e; --btn-border:#29b6f6; }
+.nav-big-btn.ocean-btn   { --btn-from:#001a2e; --btn-to:#00263d; --btn-border:#00e5ff; box-shadow:0 4px 20px rgba(0,229,255,0.2); }
+.nav-big-btn.torneio-btn { --btn-from:#0a0020; --btn-to:#1a003a; --btn-border:#7c4dff; box-shadow:0 4px 24px rgba(124,77,255,0.3); }
+/* NOVO: botão Arena do Caos */
+.nav-big-btn.caos-btn {
+  --btn-from:#0d0520; --btn-to:#1a0835; --btn-border:#e040fb;
+  box-shadow:0 4px 24px rgba(224,64,251,0.3);
+}
+@keyframes caos-border-pulse {
+  0%,100% { box-shadow:0 4px 20px rgba(224,64,251,0.3); }
+  50%      { box-shadow:0 4px 32px rgba(224,64,251,0.7); }
+}
+.nav-big-btn.caos-btn { animation:caos-border-pulse 2s infinite; }
+
+@keyframes glow-border { 0%,100%{box-shadow:0 4px 20px rgba(255,68,68,0.35);} 50%{box-shadow:0 4px 30px rgba(255,68,68,0.6);} }
+.nav-big-btn.war-locked { --btn-from:#1a0a0a;--btn-to:#200f0f;--btn-border:#3a1a1a; opacity:0.6; cursor:not-allowed; }
+.nav-big-btn.war-locked:hover { transform:none; box-shadow:none; }
+.war-locked-desc { font-size:9px; color:rgba(255,100,100,0.7); position:relative; z-index:1; }
+
+@keyframes glow-border-red {
+  0%,100% { box-shadow:0 4px 20px rgba(255,68,68,0.35); border-color:#ff4444; }
+  50%      { box-shadow:0 4px 30px rgba(255,68,68,0.7);  border-color:#ff6666; }
+}
+.mn-live-btn { animation:glow-border-red 2s infinite; }
+
+@keyframes fish-swim {
+  0%,100% { transform:translateX(0) rotate(0deg); }
+  25%      { transform:translateX(4px) rotate(5deg); }
+  75%      { transform:translateX(-4px) rotate(-5deg); }
+}
+.pesca-btn-special .icon { animation:fish-swim 2s ease-in-out infinite; }
+
+/* Ícone da Arena do Caos gira aleatoriamente */
+@keyframes caos-icon-spin {
+  0%,100% { transform:rotate(-5deg) scale(1); }
+  25%     { transform:rotate(10deg) scale(1.05); }
+  75%     { transform:rotate(-8deg) scale(1.08); }
+}
+.nav-big-btn.caos-btn .icon { animation:caos-icon-spin 3s ease-in-out infinite; }
+
+.boost-indicator {
+  font-size:10px; font-weight:700; padding:2px 8px;
+  border-radius:20px; background:#ffc107; color:#000;
+  animation:glow-pulse 1.5s infinite;
+}
+.news-banner {
+  background:linear-gradient(135deg,#0a1a0a,#1a3000);
+  border:1px solid #4CAF50; border-radius:12px;
+  padding:12px 14px; margin-bottom:10px;
+  font-size:12px; color:#c0c0d0; line-height:1.8;
+}
+.news-banner .news-tag {
+  background:#4CAF50; color:#000; border-radius:4px;
+  padding:1px 6px; font-size:10px; font-weight:700; margin-right:6px;
+}
+.stat-strip { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:14px; }
+.stat-strip-box {
+  background:#0e0e1c; border:1px solid #1e1e30; border-radius:10px;
+  padding:8px; text-align:center; transition:border-color 0.3s;
+}
+.stat-strip-box:hover { border-color:#ff4444; }
+.stat-strip-box .val { font-size:16px; font-weight:900; }
+.stat-strip-box .lbl { font-size:10px; color:#9e9e9e; }
+.nav-badge-dot {
+  position:absolute; top:8px; right:8px; background:#f44336; color:#fff;
+  font-size:10px; font-weight:900; border-radius:10px; min-width:18px; height:18px;
+  display:flex; align-items:center; justify-content:center; padding:0 4px;
+  box-shadow:0 0 8px rgba(244,67,54,0.6); z-index:2;
+}
+.player-verified-chip {
+  display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:700;
+  color:#29b6f6; background:rgba(41,182,246,0.12); border:1px solid #29b6f6;
+  border-radius:10px; padding:1px 6px; margin-left:6px;
+}
+.companion-chip {
+  display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:700;
+  color:#00e5ff; background:rgba(0,229,255,0.1); border:1px solid rgba(0,229,255,0.3);
+  border-radius:10px; padding:2px 8px; margin-top:2px;
+}
+
+.menu-section { margin-bottom:20px; }
+.menu-section-title {
+  display:flex; align-items:center; gap:10px; margin-bottom:10px; padding:0 2px;
+}
+.menu-section-title .msl-icon { font-size:15px; }
+.menu-section-title .msl-text {
+  font-family:'Cinzel',serif; font-size:11px; font-weight:700;
+  letter-spacing:1.8px; text-transform:uppercase; white-space:nowrap;
+  color:var(--msl-color,#8a8a9e);
+}
+.menu-section-title .msl-line {
+  flex:1; height:1px;
+  background:linear-gradient(90deg,var(--msl-color,#8a8a9e),transparent);
+  opacity:0.35;
+}
+.menu-section.sec-play    { --msl-color:#ff6d6d; }
+.menu-section.sec-rewards { --msl-color:#ffc107; }
+.menu-section.sec-collect { --msl-color:#ce93d8; }
+.menu-section.sec-guild   { --msl-color:#e040fb; }
+.menu-section.sec-shop    { --msl-color:#ffb300; }
+.menu-section.sec-account { --msl-color:#a1887f; }
+.menu-section.sec-pesca   { --msl-color:#29b6f6; }
+
+.floating-card-decoration {
+  position:fixed; pointer-events:none; z-index:0;
+  font-size:var(--fc-size,28px); opacity:var(--fc-opacity,0.06);
+  animation:float-card var(--fc-dur,12s) ease-in-out infinite;
+  top:var(--fc-top,20%); left:var(--fc-left,5%);
+  transform:rotate(var(--fc-rot,15deg));
+}
+@keyframes float-card {
+  0%,100% { transform:rotate(var(--fc-rot,15deg)) translateY(0px); }
+  50%      { transform:rotate(calc(var(--fc-rot,15deg) + 8deg)) translateY(-18px); }
+}
+
+.audio-banner {
+  background:linear-gradient(135deg,#0a0020,#150035);
+  border:1px solid #4a0072; border-radius:12px;
+  padding:10px 14px; margin-bottom:10px;
+  display:flex; align-items:center; gap:10px;
+  font-size:12px; color:#c0c0d0; cursor:pointer;
+  transition:border-color 0.2s; text-decoration:none;
+}
+.audio-banner:hover { border-color:#7c4dff; }
+.audio-banner .ab-icon { font-size:24px; animation:float 2s ease-in-out infinite; }
+.audio-banner .ab-text { flex:1; }
+.audio-banner .ab-title { font-weight:700; color:#ce93d8; font-size:13px; }
+.audio-banner .ab-sub   { font-size:10px; color:#9e9e9e; margin-top:2px; }
+.audio-banner .ab-btn   {
+  font-size:10px; font-weight:700; color:#7c4dff;
+  border:1px solid #7c4dff; border-radius:8px; padding:4px 10px;
+  background:rgba(124,77,255,0.08); white-space:nowrap;
+}
+
+.pesca-promo-banner {
+  background:linear-gradient(135deg,#001a2e,#002d4e,#001a2e);
+  border:2px solid #00e5ff; border-radius:16px;
+  padding:14px; margin-bottom:10px;
+  display:flex; align-items:center; gap:12px;
+  text-decoration:none; transition:border-color 0.2s, box-shadow 0.2s;
+  position:relative; overflow:hidden;
+}
+.pesca-promo-banner::before { content:'🎣'; position:absolute; font-size:90px; opacity:0.04; top:-10px; right:-10px; }
+.pesca-promo-banner:hover { border-color:#29b6f6; box-shadow:0 4px 24px rgba(0,229,255,0.2); }
+
+/* Banner especial da Arena do Caos */
+.caos-promo-banner {
+  background:linear-gradient(135deg,#0d0520,#1a0835,#0d0520);
+  border:2px solid #e040fb; border-radius:16px;
+  padding:14px; margin-bottom:10px;
+  display:flex; align-items:center; gap:12px;
+  text-decoration:none; transition:border-color 0.2s, box-shadow 0.2s;
+  position:relative; overflow:hidden;
+  animation:caos-border-pulse 3s infinite;
+}
+@keyframes caos-border-pulse {
+  0%,100% { box-shadow:0 4px 20px rgba(224,64,251,0.2); }
+  50%      { box-shadow:0 4px 32px rgba(224,64,251,0.5); }
+}
+.caos-promo-banner::before { content:'🎲'; position:absolute; font-size:90px; opacity:0.04; top:-10px; right:-10px; }
+.caos-promo-banner:hover { border-color:#ce93d8; }
+</style>
+</head>
+<body>
+
+<canvas id="particle-canvas"></canvas>
+
+<div class="floating-card-decoration" style="--fc-size:42px;--fc-opacity:0.05;--fc-top:8%;--fc-left:3%;--fc-rot:20deg;--fc-dur:14s;">🃏</div>
+<div class="floating-card-decoration" style="--fc-size:28px;--fc-opacity:0.04;--fc-top:60%;--fc-left:88%;--fc-rot:-15deg;--fc-dur:11s;">⚔️</div>
+<div class="floating-card-decoration" style="--fc-size:34px;--fc-opacity:0.04;--fc-top:80%;--fc-left:6%;--fc-rot:30deg;--fc-dur:16s;">🛡️</div>
+<div class="floating-card-decoration" style="--fc-size:22px;--fc-opacity:0.05;--fc-top:35%;--fc-left:92%;--fc-rot:-25deg;--fc-dur:9s;">💎</div>
+<div class="floating-card-decoration" style="--fc-size:38px;--fc-opacity:0.03;--fc-top:50%;--fc-left:0%;--fc-rot:10deg;--fc-dur:18s;">🔥</div>
+<div class="floating-card-decoration" style="--fc-size:30px;--fc-opacity:0.04;--fc-top:25%;--fc-left:95%;--fc-rot:-8deg;--fc-dur:13s;">🎲</div>
+
+<div class="page" id="app">
+<main class="content">
+
+  <!-- ═══ HERO ═══ -->
+  <div class="hero">
+    <span class="hero-logo">⚔️</span>
+    <div class="hero-title">CARD FIGHT</div>
+    <div class="hero-sub">by Origens Games · v19.0 ✨ Faça Seu Caminho</div>
+
+    <div class="player-hero-card">
+      <div class="player-hero-avatar" id="player-avatar">👤</div>
+      <div class="player-hero-info">
+        <div class="player-hero-name" id="player-name">Carregando...<span id="player-verified-chip"></span></div>
+        <div class="player-hero-rank" id="player-rank">Bronze I</div>
+        <div class="player-hero-gold">🪙 <span id="player-gold">0</span> ouro</div>
+        <div id="companion-chip-wrap"></div>
+      </div>
+      <div style="text-align:right;">
+        <a href="profile.html" class="btn btn-outline btn-sm">👤 Perfil</a>
+      </div>
+    </div>
+
+    <div id="active-boosts-row" style="display:none;margin-bottom:10px;text-align:center;position:relative;z-index:1;">
+      <span class="boost-indicator">⚡ Boost Ativo!</span>
+    </div>
+  </div>
+
+  <!-- Estatísticas -->
+  <div class="stat-strip">
+    <div class="stat-strip-box">
+      <div class="val" style="color:#66bb6a;" id="stat-wins">0</div>
+      <div class="lbl">⚔️ Vitórias</div>
+    </div>
+    <div class="stat-strip-box">
+      <div class="val" style="color:#2196F3;" id="stat-cards">0</div>
+      <div class="lbl">🃏 Cartas</div>
+    </div>
+    <div class="stat-strip-box">
+      <div class="val" style="color:#ce93d8;" id="stat-level">1</div>
+      <div class="lbl">⭐ Nível</div>
+    </div>
+  </div>
+
+  <!-- Banner de Áudio -->
+  <a href="audio.html" class="audio-banner">
+    <div class="ab-icon">🎵</div>
+    <div class="ab-text">
+      <div class="ab-title">Música Ambiente</div>
+      <div class="ab-sub">Trilha calma para jogar · 6 climas · Web Audio API</div>
+    </div>
+    <div class="ab-btn">Abrir ▶</div>
+  </a>
+
+  <!-- Notícias v16.0 -->
+  <div class="news-banner" style="background:linear-gradient(135deg,#1a1000,#2a1a08);border-color:#e6c36a;">
+    <span class="news-tag" style="background:#e6c36a;color:#000;">🧙 NOVO v16.0</span><strong>Sábio das Trocas!</strong> Um velho ermitão troca cartas do seu cofre por ouro, boosts, cartas ou pacotes. 10 níveis, felicidade que multiplica prêmios, e no nível 10: 1 Origens → 3 Origens!<br>
+    <span class="news-tag">🎲 v11</span><strong>Arena do Caos!</strong> 5 rodadas com eventos aleatórios que mudam as regras.<br>
+    <span class="news-tag">v11 PESCA</span>🎣 <strong>+30 cartas de pesca</strong> · 🌙 Isca Lunar · 🎲 Isca do Caos.<br>
+    <span class="news-tag">SECRETO</span><strong>Mercado Negro</strong> aparece 1x/semana por 10 minutos — sempre tenha 30M de ouro!
+  </div>
+
+  <!-- ═══ NOVO v19 — FAÇA SEU CAMINHO ═══ -->
+  <div class="menu-section" style="--msl-color:#ff00aa;">
+    <div class="menu-section-title">
+      <span class="msl-icon">✨</span>
+      <span class="msl-text" style="color:#ff00aa;">NOVO v19 — Faça Seu Caminho</span>
+      <span class="msl-line"></span>
+    </div>
+    <div style="background:linear-gradient(135deg,#150025,#0a0018,#150025);border:1px solid #6a0055;border-radius:12px;padding:12px;margin-bottom:10px;font-size:11px;color:#c9b48a;line-height:1.9;">
+      ✨ Escolha entre <b style="color:#ff00aa;">5 raças</b> únicas (Human, Shark, Mink, Cyborg, Angel)<br>
+      🏆 Ganhe <b>Artefatos permanentes</b> · Suba de <b>V1 até V4</b><br>
+      🌌 Desbloqueie a raça <b>Origens</b> e forje o <b>Dominador de Artefatos</b> (ATK 1050 / HP 3000)<br>
+      ⏳ Cooldown de 24h (vitória) ou 3 dias (derrota) · ⚡ nova moeda: Energia
+    </div>
+    <div class="nav-grid">
+      <a href="Ra%C3%A7as%26Run.html" class="nav-big-btn" style="grid-column:span 2;--btn-from:#150025;--btn-to:#3a005c;--btn-border:#ff00aa;box-shadow:0 4px 24px rgba(255,0,170,0.35);--shimmer-delay:0.1s;">
+        <span class="icon" style="filter:drop-shadow(0 0 14px rgba(255,0,170,0.8));">✨</span>
+        <span class="label" style="background:linear-gradient(135deg,#ff00aa,#ffc107,#00e5ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">FAÇA SEU CAMINHO</span>
+        <span class="desc">5 raças · 30 batalhas · 5 Artefatos · Dominador</span>
+        <span style="font-size:9px;color:#ff00aa;background:rgba(255,0,170,0.15);padding:2px 10px;border-radius:12px;margin-top:2px;">🆕 v19.0</span>
+      </a>
+    </div>
+  </div>
+
+  
+  <!-- ═══ NOVO v16 — MESA DE FERRAMENTAS (CRAFTING) ═══ -->
+  <div class="menu-section" style="--msl-color:#ffb74d;">
+    <div class="menu-section-title"><span class="msl-icon">⚙️</span><span class="msl-text" style="color:#ffb74d;">NOVO v16 — Mesa de Ferramentas</span><span class="msl-line"></span></div>
+    <div style="background:linear-gradient(135deg,#1a0e05,#2a1a08);border:1px solid #6a4a20;border-radius:12px;padding:12px;margin-bottom:10px;font-size:11px;color:#c9b48a;line-height:1.8;">
+      🔧 Funda cartas do cofre em <b style="color:#ffb74d;">200 cartas exclusivas</b> de craft.<br>
+      🔬 Pesquise receitas (custo 5K/20K, 3/dia), forje com <b>⚙️ engrenagens</b> e <b>⛽ gasolina</b>.<br>
+      🏭 Melhore a máquina até <b>Nv 3</b> pra acelerar tudo e ganhar bônus.<br>
+      🎁 Brinde diário grátis: <b>1 ⛽ + 1 ⚙️</b>. Drops em batalha (7%) e pesca (22%)!
+    </div>
+    <div class="nav-grid">
+      <a href="Crafting.html" class="nav-big-btn" style="grid-column:span 2;--btn-from:#3a2412;--btn-to:#5b3820;--btn-border:#ffb74d;box-shadow:0 4px 20px rgba(255,183,77,0.25);--shimmer-delay:0.3s;">
+        <span class="icon">⚙️</span>
+        <span class="label" style="color:#ffb74d;">MESA DE FERRAMENTAS</span>
+        <span class="desc">Craft · Pesquisa · Upgrades · Conquistas</span>
+      </a>
+    </div>
+  </div>
+
+<div class="menu-section" style="--msl-color:#e6c36a;">
+    <div class="menu-section-title"><span class="msl-icon">🧙</span><span class="msl-text" style="color:#e6c36a;">NOVO v16.0 — Sábio das Trocas</span><span class="msl-line"></span></div>
+
+    <a href="Sabio.html" style="display:flex;align-items:center;gap:12px;padding:14px;margin-bottom:10px;
+        background:linear-gradient(135deg,#1a0e05,#2a1a08,#1a0e05);
+        border:2px solid #e6c36a;border-radius:16px;text-decoration:none;
+        position:relative;overflow:hidden;transition:all 0.2s;
+        box-shadow:0 4px 20px rgba(230,195,106,0.15);">
+      <span style="font-size:46px;filter:drop-shadow(0 0 14px rgba(230,195,106,0.7));animation:float 2.5s ease-in-out infinite;">🧙‍♂️</span>
+      <div style="flex:1;position:relative;z-index:1;">
+        <div style="font-family:'Cinzel',serif;font-size:16px;font-weight:700;
+                    background:linear-gradient(135deg,#e6c36a,#fff3c0,#e6c36a);
+                    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+                    margin-bottom:3px;">SÁBIO DAS TROCAS</div>
+        <div style="font-size:11px;color:#c9b48a;line-height:1.6;">
+          🎁 Trocas por ouro · boosts · cartas · pacotes<br>
+          😊 Felicidade x1.0 → x3.0 · 🌌 Nível 10 = Troca Lendária Origens
+        </div>
+      </div>
+      <div style="position:relative;z-index:1;">
+        <span style="font-size:9px;font-weight:700;padding:3px 10px;background:#e6c36a;color:#000;border-radius:8px;">🆕 v16.0</span>
+      </div>
+    </a>
+
+    <div style="background:rgba(0,0,0,0.35);border:1px solid #3a2a10;border-radius:12px;
+                padding:12px 14px;margin-bottom:10px;font-size:11px;color:#c9b48a;line-height:1.9;">
+      <strong style="color:#e6c36a;font-family:'Cinzel',serif;font-size:12px;">📖 Como jogar com o Sábio:</strong><br>
+      1️⃣ Ele pede uma carta específica do seu <strong style="color:#fff3c0;">cofre</strong><br>
+      2️⃣ Entregue em <strong style="color:#66bb6a;">menos de 30 min</strong> para ganhar mais felicidade<br>
+      3️⃣ Quanto mais feliz, <strong style="color:#ffc107;">maiores as recompensas</strong> (até x3.0)<br>
+      4️⃣ Você pode <strong>pular 1x por dia</strong> (mas o velho fica chateado)<br>
+      5️⃣ Chegue ao <strong style="color:#ff00aa;">nível 10</strong> para desbloquear a Troca Lendária<br>
+      6️⃣ Compre <strong style="color:#e6c36a;">Felicidades</strong> e <strong style="color:#e6c36a;">XPs pro Sábio</strong> na Loja (aba Boosts)
+    </div>
+
+    <div class="nav-grid">
+      <a href="Sabio.html" class="nav-big-btn" style="grid-column:span 2;--btn-from:#3a2412;--btn-to:#5b3820;--btn-border:#e6c36a;box-shadow:0 4px 20px rgba(230,195,106,0.25);--shimmer-delay:0.4s;">
+        <span class="icon">🧙‍♂️</span>
+        <span class="label" style="background:linear-gradient(135deg,#e6c36a,#fff3c0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">VISITAR O SÁBIO</span>
+        <span class="desc">Entregar carta · Ver pedido atual · Trocar recompensas</span>
+      </a>
+    </div>
+  </div>
+
+
+  <!-- ═══ ARENA DO CAOS (destaque) ═══ -->
+  <div class="menu-section" style="--msl-color:#e040fb;">
+    <div class="menu-section-title"><span class="msl-icon">🎲</span><span class="msl-text" style="color:#e040fb;">NOVO — Arena do Caos</span><span class="msl-line"></span></div>
+
+    <a href="arena_caos.html" class="caos-promo-banner">
+      <span style="font-size:44px;filter:drop-shadow(0 0 16px rgba(224,64,251,0.8));animation:caos-icon-spin 3s ease-in-out infinite;">🎲</span>
+      <div style="flex:1;position:relative;z-index:1;">
+        <div style="font-family:'Cinzel',serif;font-size:16px;font-weight:700;
+                    background:linear-gradient(135deg,#e040fb,#9c27b0,#ffc107);
+                    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+                    margin-bottom:3px;">ARENA DO CAOS</div>
+        <div style="font-size:11px;color:#ce93d8;line-height:1.6;">
+          🎲 10 eventos aleatórios · ⚔️ Carta vencedora sobrevive<br>
+          🔥 Chama Dupla · ⚡ Grande Inversão · 🌙 Lua Mítica · 🃏 Sorte do Destino
+        </div>
+      </div>
+      <div style="position:relative;z-index:1;">
+        <span style="font-size:9px;font-weight:700;padding:3px 10px;background:linear-gradient(135deg,#9c27b0,#e040fb);color:#fff;border-radius:8px;">🆕 v11.0</span>
+      </div>
+    </a>
+
+    <div class="nav-grid">
+      <a href="arena_caos.html" class="nav-big-btn caos-btn" style="grid-column:span 2;--shimmer-delay:0s;">
+        <span class="icon">🎲</span>
+        <span class="label" style="background:linear-gradient(135deg,#e040fb,#ce93d8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">ENTRAR NO CAOS</span>
+        <span class="desc">eventos aleatórios · 5 rodadas · Imprevisível!</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ═══ PESCA ═══ -->
+  <div class="menu-section sec-pesca">
+    <div class="menu-section-title"><span class="msl-icon">🎣</span><span class="msl-text">Pesca</span><span class="msl-line"></span></div>
+
+    <a href="pesca.html" class="pesca-promo-banner">
+      <span style="font-size:44px;filter:drop-shadow(0 0 16px rgba(0,229,255,0.5));animation:float 2s ease-in-out infinite;">🎣</span>
+      <div style="flex:1;position:relative;z-index:1;">
+        <div style="font-family:'Cinzel',serif;font-size:16px;font-weight:700;
+                    background:linear-gradient(135deg,#29b6f6,#00e5ff);
+                    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+                    margin-bottom:3px;">SISTEMA DE PESCA</div>
+        <div style="font-size:11px;color:#80deea;line-height:1.6;">
+          🌌 Lago Origens · 🌙 Isca Lunar · 🎲 Isca do Caos<br>
+          90+ cartas exclusivas · 25+ locais · 16 conquistas
+        </div>
+      </div>
+      <div style="position:relative;z-index:1;">
+        <span style="font-size:9px;font-weight:700;padding:3px 10px;background:#00e5ff;color:#000;border-radius:8px;">v11.0</span>
+      </div>
+    </a>
+
+    <div class="nav-grid">
+      <a href="pesca.html" class="nav-big-btn ocean-btn pesca-btn-special" style="grid-column:span 2;--shimmer-delay:0s;">
+        <span class="icon">🎣</span>
+        <span class="label">PESCAR AGORA</span>
+        <span class="desc">Iscas diárias · Varas · 90+ cartas exclusivas</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ═══ JOGAR ═══ -->
+  <div class="menu-section sec-play">
+    <div class="menu-section-title"><span class="msl-icon">⚔️</span><span class="msl-text">Jogar</span><span class="msl-line"></span></div>
+    <div class="nav-grid">
+      <a href="battle.html" class="nav-big-btn primary-btn" style="grid-column:span 2;--shimmer-delay:0s;">
+        <span class="icon">⚔️</span>
+        <span class="label">BATALHA</span>
+        <span class="desc">Lutar agora • VS Jogadores &amp; Bots • Carta vencedora sobrevive!</span>
+      </a>
+      
+      <a href="torneio.html" class="nav-big-btn torneio-btn" style="grid-column:span 2;--shimmer-delay:0.5s;">
+        <span class="icon" style="filter:drop-shadow(0 0 12px rgba(124,77,255,0.8));">🏆</span>
+        <span class="label" style="background:linear-gradient(135deg,#ce93d8,#7c4dff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">TORNEIO ELIMINATÓRIO</span>
+        <span class="desc">4 rodadas · Cartas crescentes · 1 derrota = fim!</span>
+      </a>
+
+      <a href="bandeiras.html" class="nav-big-btn" style="grid-column:span 2;--btn-from:#0a1a00;--btn-to:#1a3a00;--btn-border:#8bc34a;box-shadow:0 4px 16px rgba(139,195,74,0.2);--shimmer-delay:1s;">
+        <span class="icon">🚩</span>
+        <span class="label">DOMINAR BANDEIRAS</span>
+        <span class="desc">Batalha tática · 3 bandeiras · Vença 2 pra ganhar</span>
+      </a>
+
+      <a href="sobrevivencia.html" class="nav-big-btn" style="grid-column:span 2;--btn-from:#1a0010;--btn-to:#2d0020;--btn-border:#ff0044;box-shadow:0 4px 24px rgba(255,0,68,0.3);--shimmer-delay:2s;">
+        <span class="icon" style="filter:drop-shadow(0 0 12px rgba(255,0,68,0.8));">💀</span>
+        <span class="label" style="background:linear-gradient(135deg,#ff4488,#ff0044);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">SOBREVIVÊNCIA INFINITA</span>
+        <span class="desc">Ondas crescentes · Carta vencedora sobrevive · Recordes pessoais</span>
+      </a>
+
+      <a href="sala.html" class="nav-big-btn" style="grid-column:span 2;--btn-from:#0a1a0a;--btn-to:#1b3d1b;--btn-border:#66bb6a;--shimmer-delay:1.5s;">
+        <span class="icon">🏟️</span>
+        <span class="label">Salas</span>
+        <span class="desc">Crie ou entre em salas personalizadas</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ═══ RECOMPENSAS ═══ -->
+  <div class="menu-section sec-rewards">
+    <div class="menu-section-title"><span class="msl-icon">🎁</span><span class="msl-text">Recompensas</span><span class="msl-line"></span></div>
+    <div class="nav-grid">
+      <a href="daily.html" class="nav-big-btn teal-btn" style="--shimmer-delay:0.2s;">
+        <span class="icon">📅</span>
+        <span class="label">Diário</span>
+        <span class="desc">Missões &amp; Recompensas</span>
+      </a>
+
+      <a href="correio.html" class="nav-big-btn blue-btn" style="position:relative;--shimmer-delay:0.6s;">
+        <span class="icon">📬</span>
+        <span class="label">Correio</span>
+        <span class="desc">Presentes &amp; avisos</span>
+        <span class="nav-badge-dot" id="correio-badge" style="display:none;">0</span>
+      </a>
+
+      <a href="events.html" class="nav-big-btn green-btn" style="--shimmer-delay:1s;">
+        <span class="icon">🔥</span>
+        <span class="label">Eventos</span>
+        <span class="desc">Cartas exclusivas</span>
+      </a>
+
+      <a href="pass.html" class="nav-big-btn" style="--btn-from:#1a0040;--btn-to:#2d0060;--btn-border:#7c4dff;--shimmer-delay:1.4s;">
+        <span class="icon">🎟️</span>
+        <span class="label">Battle Pass</span>
+        <span class="desc">Passe sazonal</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ═══ COLEÇÃO & PROGRESSO ═══ -->
+  <div class="menu-section sec-collect">
+    <div class="menu-section-title"><span class="msl-icon">🃏</span><span class="msl-text">Coleção &amp; Progresso</span><span class="msl-line"></span></div>
+    <div class="nav-grid">
+      <a href="vault.html" class="nav-big-btn purple-btn" style="--shimmer-delay:0.3s;">
+        <span class="icon">📦</span>
+        <span class="label">Cofre</span>
+        <span class="desc">Suas cartas</span>
+      </a>
+      
+      <!-- ═══ FORTALEZA ═══ -->
+
+  <a href="fortaleza.html" class="nav-big-btn" style="--btn-from:#0a0015;--btn-to:#1a0028;--btn-border:#7c4dff;box-shadow:0 4px 24px rgba(124,77,255,0.25);--shimmer-delay:0.5s;">
+    <span class="icon" style="filter:drop-shadow(0 0 12px rgba(124,77,255,0.6));">🏰</span>
+    <span class="label" style="background:linear-gradient(135deg,#ce93d8,#7c4dff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">FORTALEZA</span>
+    <span class="desc">Base de poder · Bônus passivos · Carta diária</span>
+  </a>
+
+      <a href="maestria.html" class="nav-big-btn" style="--btn-from:#0d0025;--btn-to:#200050;--btn-border:#ce93d8;box-shadow:0 4px 16px rgba(124,77,255,0.2);--shimmer-delay:0.7s;">
+        <span class="icon">⭐</span>
+        <span class="label">Maestria</span>
+        <span class="desc">1★ a 5★ + Prestige!</span>
+      </a>
+
+      <a href="companheiros.html" class="nav-big-btn" style="--btn-from:#001a2a;--btn-to:#002d3d;--btn-border:#00e5ff;box-shadow:0 4px 16px rgba(0,229,255,0.15);--shimmer-delay:1.1s;">
+        <span class="icon">🐾</span>
+        <span class="label">Companheiros</span>
+        <span class="desc">Mascotes com buffs</span>
+      </a>
+
+      <a href="indexcartas.html" class="nav-big-btn indigo-btn" style="--shimmer-delay:1.5s;">
+        <span class="icon">📖</span>
+        <span class="label">Índice de Cartas</span>
+        <span class="desc">Coleção completa</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ═══ GUILDA & SOCIAL ═══ -->
+  <div class="menu-section sec-guild">
+    <div class="menu-section-title"><span class="msl-icon">⚜️</span><span class="msl-text">Guilda &amp; Social</span><span class="msl-line"></span></div>
+    <div class="nav-grid">
+      <div id="guerra-btn-wrap" style="grid-column:span 2;"></div>
+      <div id="raide-btn-wrap"  style="grid-column:span 2;"></div>
+
+      <a href="guilda.html" class="nav-big-btn" style="--btn-from:#0a0020;--btn-to:#2d0060;--btn-border:#7c4dff;--shimmer-delay:0.4s;">
+        <span class="icon">⚜️</span>
+        <span class="label">Guildas</span>
+        <span class="desc">Entre em uma guilda</span>
+      </a>
+
+      <a href="rankingg.html" class="nav-big-btn" style="--btn-from:#1a001a;--btn-to:#2d0042;--btn-border:#e040fb;box-shadow:0 4px 16px rgba(224,64,251,0.15);--shimmer-delay:0.8s;">
+        <span class="icon">🏅</span>
+        <span class="label">Ranking Guildas</span>
+        <span class="desc">Classificação da Guerra</span>
+      </a>
+
+      <a href="ranking.html" class="nav-big-btn blue-btn" style="--shimmer-delay:1.2s;">
+        <span class="icon">🏆</span>
+        <span class="label">Ranking</span>
+        <span class="desc">Top players</span>
+      </a>
+
+      <a href="trocas.html" class="nav-big-btn cyan-btn" style="--shimmer-delay:1.6s;">
+        <span class="icon">🔄</span>
+        <span class="label">Trocas</span>
+        <span class="desc">Troque cartas ⚖️ justo</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ═══ NOVO v17: ALDEIA ═══ -->
+<div class="menu-section sec-village" style="--msl-color:#7cb342;">
+  <div class="menu-section-title">
+    <span class="msl-icon">🏘️</span>
+    <span class="msl-text" style="color:#7cb342;">NOVO v17 — Aldeia</span>
+    <span class="msl-line"></span>
+  </div>
+  <div class="nav-grid">
+    <a href="Aldeia.html" class="nav-big-btn" style="grid-column:span 2;--btn-from:#0a1505;--btn-to:#1a2a08;--btn-border:#7cb342;box-shadow:0 4px 20px rgba(124,179,66,0.25);--shimmer-delay:0.4s;position:relative;">
+      <span class="icon" style="filter:drop-shadow(0 0 12px rgba(124,179,66,0.6));">🏘️</span>
+      <span class="label" style="background:linear-gradient(135deg,#7cb342,#ffc107);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">SUA ALDEIA</span>
+      <span class="desc">Construções · Clientes · Ladrões · Contratos · Ranking</span>
+      <span id="aldeia-badge-idx" style="display:none;position:absolute;top:8px;right:8px;background:#ff4444;color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:800;box-shadow:0 2px 8px rgba(255,68,68,0.5);">0</span>
+      <span style="font-size:9px;color:#7cb342;background:rgba(124,179,66,0.15);padding:2px 10px;border-radius:12px;margin-top:2px;">🆕 v18.0</span>
+    </a>
+  </div>
+</div>
+
+  
+  <!-- ═══ NOVO v18 — ACADEMIA & EXPEDIÇÃO ═══ -->
+  <div class="menu-section" style="--msl-color:#e6c36a;">
+    <div class="menu-section-title">
+      <span class="msl-icon">🥋</span>
+      <span class="msl-text" style="color:#e6c36a;">NOVO v18 — Academia &amp; Expedição</span>
+      <span class="msl-line"></span>
+    </div>
+    <div style="background:linear-gradient(135deg,#1a0e05,#2a1a08,#1a0e05);border:1px solid #6a4a20;border-radius:12px;padding:12px;margin-bottom:10px;font-size:11px;color:#c9b48a;line-height:1.9;">
+      🥋 Treine 1 carta/dia · buffs aleatórios até <b style="color:#66bb6a;">+3%</b> (ou risco <b style="color:#ff4444;">-2%</b>)<br>
+      ⛩️ <b>Seção 7 dias</b> (100K 🪙): boost até <b style="color:#e6c36a;">+10%</b> · atenção à consistência!<br>
+      🗺️ <b>Expedições</b>: até 1.500 🪙 · 47% chance de carta · risco de perder<br>
+      ⭐ 6 níveis de faixa · foco ATK/HP/Equilibrado · Seguro · Dupla · 23 conquistas
+    </div>
+    <div class="nav-grid">
+      <a href="AcademiaExP.html" class="nav-big-btn" style="grid-column:span 2;--btn-from:#3a2412;--btn-to:#5b3820;--btn-border:#e6c36a;box-shadow:0 4px 24px rgba(230,195,106,0.3);--shimmer-delay:0.2s;">
+        <span class="icon" style="filter:drop-shadow(0 0 12px rgba(230,195,106,0.7));">🥋</span>
+        <span class="label" style="background:linear-gradient(135deg,#e6c36a,#fff3c0,#e6c36a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">ACADEMIA &amp; EXPEDIÇÃO</span>
+        <span class="desc">Treinar cartas · Enviar em missões · Subir de faixa</span>
+        <span style="font-size:9px;color:#e6c36a;background:rgba(230,195,106,0.15);padding:2px 10px;border-radius:12px;margin-top:2px;">🆕 v18.0</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ═══ LOJA & ECONOMIA ═══ -->
+<div class="menu-section sec-shop">
+  <div class="menu-section-title">
+    <span class="msl-icon">🛒</span>
+    <span class="msl-text">Loja &amp; Economia</span>
+    <span class="msl-line"></span>
+  </div>
+  <div class="nav-grid">
+    <a href="shop.html" class="nav-big-btn gold-btn" style="--shimmer-delay:0.1s;">
+      <span class="icon">🛒</span>
+      <span class="label">Loja</span>
+      <span class="desc">Pacotes · Boosts · Pesca</span>
+    </a>
+
+    <div id="mercado-negro-btn-wrap"></div>
+
+    <a href="vendedor.html" class="nav-big-btn" style="--btn-from:#1a1206;--btn-to:#2e1f0a;--btn-border:#c9932e;box-shadow:0 4px 16px rgba(201,147,46,0.25);--shimmer-delay:1s;">
+      <span class="icon">🧳</span>
+      <span class="label">Vendedor Errante</span>
+      <span class="desc">Cartas exclusivas · muda a cada hora</span>
+    </a>
+
+    <a href="comprar.html" class="nav-big-btn" style="grid-column:span 2;--btn-from:#1a0a00;--btn-to:#3a1500;--btn-border:#ffc107;box-shadow:0 4px 24px rgba(255,193,7,0.2);--shimmer-delay:0.9s;">
+      <span class="icon">💎</span>
+      <span class="label">Loja de Diamantes</span>
+      <span class="desc">Ouro · XP · Varas · Iscas Origens/Lunar/Caos · Discord</span>
+    </a>
+  </div>
+</div>
+
+<!-- ═══ ROLETA ═══ -->
+<div class="menu-section sec-play" style="--msl-color:#ffb300;">
+  <div class="menu-section-title">
+    <span class="msl-icon">🎰</span>
+    <span class="msl-text" style="color:#ffb300;">NOVO — Roleta</span>
+    <span class="msl-line"></span>
+  </div>
+  <div class="nav-grid">
+    <a href="roleta.html" class="nav-big-btn gold-btn" style="grid-column:span 2;--shimmer-delay:1.2s;">
+      <span class="icon" style="filter:drop-shadow(0 0 12px rgba(255,193,7,0.6));">🎰</span>
+      <span class="label" style="background:linear-gradient(135deg,#ffc107,#ff6d00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">ROLETA DO DESTINO</span>
+      <span class="desc">Gire a roleta e ganhe prêmios exclusivos!</span>
+      <span style="font-size:9px;color:#ffc107;background:rgba(255,193,7,0.15);padding:2px 10px;border-radius:12px;margin-top:2px;">🆕 v16.0</span>
+    </a>
+  </div>
+</div>
+
+  <!-- ═══ CONTA & INFO ═══ -->
+  <div class="menu-section sec-account">
+    <div class="menu-section-title"><span class="msl-icon">👤</span><span class="msl-text">Conta &amp; Info</span><span class="msl-line"></span></div>
+    <div class="nav-grid">
+      <a href="profile.html" class="nav-big-btn dark-btn" style="--shimmer-delay:0.2s;">
+        <span class="icon">👤</span>
+        <span class="label">Perfil</span>
+        <span class="desc">Personalizar conta</span>
+      </a>
+
+      <a href="criador.html" class="nav-big-btn cyan-btn" style="--shimmer-delay:0.6s;">
+        <span class="icon">🎬</span>
+        <span class="label">Criador</span>
+        <span class="desc">Central de conteúdo</span>
+      </a>
+
+      <a href="audio.html" class="nav-big-btn" style="--btn-from:#0a0020;--btn-to:#150035;--btn-border:#7c4dff;--shimmer-delay:1s;">
+        <span class="icon">🎵</span>
+        <span class="label">Música</span>
+        <span class="desc">Trilha ambiente do jogo</span>
+      </a>
+
+      <a href="about.html" class="nav-big-btn brown-btn" style="--shimmer-delay:1.4s;">
+        <span class="icon">ℹ️</span>
+        <span class="label">Sobre</span>
+        <span class="desc">Patentes &amp; regras</span>
+      </a>
+
+      <a href="power.html" class="nav-big-btn" style="grid-column:span 1;--btn-from:#0a0020;--btn-to:#1a003a;--btn-border:#7c4dff;box-shadow:0 4px 16px rgba(124,77,255,0.2);--shimmer-delay:1.6s;">
+        <span class="icon">⚡</span>
+        <span class="label">Power-ups</span>
+        <span class="desc">Inventário &amp; batalha</span>
+      </a>
+
+      <a href="configuracoes.html" class="nav-big-btn" style="grid-column:span 1;--btn-from:#080818;--btn-to:#12122a;--btn-border:#546e7a;box-shadow:0 4px 16px rgba(84,110,122,0.15);--shimmer-delay:1.8s;">
+        <span class="icon">⚙️</span>
+        <span class="label">Configurações</span>
+        <span class="desc">Som · Velocidade · Dificuldade</span>
+      </a>
+
+      <a href="enciclopedia.html" class="nav-big-btn" style="grid-column:span 2;--btn-from:#0a0518;--btn-to:#160830;--btn-border:#9c27b0;box-shadow:0 4px 16px rgba(156,39,176,0.15);--shimmer-delay:2s;">
+        <span class="icon">📚</span>
+        <span class="label">Enciclopédia</span>
+        <span class="desc">Lore · Mundo · Facções · Estratégia avançada</span>
+      </a>
+      <a href="prime.html" class="nav-big-btn" style="grid-column:span 2;--btn-from:#100020;--btn-to:#2a0040;--btn-border:#ff00aa;box-shadow:0 4px 24px rgba(255,0,170,0.25);--shimmer-delay:2.2s;">
+        <span class="icon">8️⃣</span>
+        <span class="label">Prime</span>
+        <span class="desc">Gaste moedas · 8 niveis · Ranking global</span>
+      </a>
+    </div>
+  </div>
+
+  <div style="text-align:center;font-size:11px;color:#333;padding-bottom:80px;">
+    Card Fight v19.0 · Origens Games 2026 · Todos os direitos reservados<br>
+    <span style="color:#4a4a5a;">✨ Faça Seu Caminho · 🧙 Sábio · ⚡ Power-ups · 🗺️ Expedição · 📚 Enciclopédia</span>
+  </div>
+
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn active"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html" class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="Aldeia.html" class="nav-btn"><span class="icon">🏘️</span>Aldeia</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script>
+  // Mesmo cache-buster do <head>: garante que todos os arquivos de dados
+  // sejam sempre buscados na versao mais nova, todos sincronizados.
+  [
+    "gamedata.js",
+    "gamedata2.js",
+    "gamedata3.js",
+    "gamedata-v7-patch.js",
+    "gamedata-pesca.js",
+    "gamedata-pesca-patch.js",
+    "gamedata-maestria-patch.js",
+    "gamedata-prime-patch.js",
+    "gamedata-sabio-patch.js",
+    "gamedata-vendedor-patch.js",
+    "gamedata-aldeia-patch.js",
+    "gamedata-academia-patch.js",
+    "gamedata-powerups.js",
+    "gamedata-racas-patch.js",
+    "gamedata-evento-circo-patch.js",
+    "NewPersonagem.js"
+  ].forEach(function (src) {
+    document.write('<scr' + 'ipt src="' + src + '?v=' + CF_BUILD + '"></scr' + 'ipt>');
+  });
+</script>
+<script>
+/* PARTÍCULAS */
+(function initParticles() {
+  const canvas = document.getElementById("particle-canvas");
+  const ctx    = canvas.getContext("2d");
+  let W, H, particles = [];
+  const COLORS = ["#ff444422","#ffc10714","#ff6d0012","#66bb6a10","#29b6f610","#ce93d80e","#e040fb0e"];
+  const EMOJIS  = ["🃏","⚔️","💎","⭐","🔥","🛡️","✨","🎣","🎲"];
+
+  function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+  function spawnParticle() {
+    return { x:Math.random()*W, y:H+30, size:10+Math.random()*22, speedY:0.3+Math.random()*0.6,
+      speedX:(Math.random()-0.5)*0.5, opacity:0.04+Math.random()*0.08, emoji:EMOJIS[Math.floor(Math.random()*EMOJIS.length)] };
+  }
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    particles.forEach(p => {
+      ctx.globalAlpha = p.opacity;
+      ctx.font = p.size+"px serif";
+      ctx.fillText(p.emoji, p.x, p.y);
+    });
+    ctx.globalAlpha = 1;
+  }
+  function update() {
+    particles.forEach(p => { p.y -= p.speedY; p.x += p.speedX; });
+    particles = particles.filter(p => p.y > -50);
+    while (particles.length < 12) particles.push(spawnParticle());
+    draw();
+    requestAnimationFrame(update);
+  }
+  resize();
+  window.addEventListener("resize", resize);
+  for (let i=0;i<12;i++) { const p=spawnParticle(); p.y=Math.random()*H; particles.push(p); }
+  update();
+})();
+
+/* INIT */
+(function initIndex() {
+  if (typeof getOrCreateSave !== "function") return;
+  const save = getOrCreateSave();
+
+  // Player info
+  document.getElementById("player-name").innerHTML =
+    (save.playerName || "Herói") +
+    (save.isVerifiedCreator ? '<span class="player-verified-chip">✅ Criador</span>' : "");
+  document.getElementById("player-avatar").textContent = save.avatar || "👤";
+  document.getElementById("player-gold").textContent   = typeof fmtNum === "function" ? fmtNum(save.gold||0) : (save.gold||0);
+
+  if (typeof getRank === "function") {
+    const rank = getRank(save.xpp||0);
+    document.getElementById("player-rank").textContent = rank.name;
+  }
+
+  // Stats
+  document.getElementById("stat-wins").textContent  = typeof fmtNum === "function" ? fmtNum(save.wins||0) : (save.wins||0);
+  document.getElementById("stat-cards").textContent = typeof fmtNum === "function" ? fmtNum((save.vault||[]).length) : (save.vault||[]).length;
+  document.getElementById("stat-level").textContent = typeof getLevel === "function" ? getLevel(save.xp || 0) : (save.level || 1);
+
+  // Companion chip
+  if (save.activeCompanion && typeof COMPANION_BASE_BUFFS !== "undefined") {
+    const COMP_EMOJIS = { c_slime:"🟢",c_bat:"🦇",c_fox:"🦊",c_owl:"🦉",c_wolf:"🐺",c_dragon:"🐲",c_phoenix:"🔥",c_unicorn:"🦄",c_titan:"⚡",c_cosmos:"🌌" };
+    const em = COMP_EMOJIS[save.activeCompanion] || "🐾";
+    document.getElementById("companion-chip-wrap").innerHTML =
+      `<div class="companion-chip">${em} Companheiro ativo</div>`;
+  }
+
+  // Boosts
+  if (save.activeBoosts && Object.keys(save.activeBoosts).length > 0) {
+    document.getElementById("active-boosts-row").style.display = "block";
+  }
+
+  // Correio badge
+  const mail = save.inbox || [];
+  const unread = mail.filter(m => !m.read).length;
+  if (unread > 0) {
+    const badge = document.getElementById("correio-badge");
+    badge.style.display = "flex";
+    badge.textContent = unread > 99 ? "99+" : unread;
+  }
+
+  // Guerra de Guildas
+const guerraWrap = document.getElementById("guerra-btn-wrap");
+  if (guerraWrap) {
+    const now = new Date();
+    const day = now.getDay(); // 5 = sexta, 6 = sábado
+    const hour = now.getHours();
+    const isActive = (day === 5 || day === 6) && hour >= 16 && hour < 23;
+    guerraWrap.innerHTML = isActive
+      ? `<a href="guerrag.html" class="nav-big-btn war-active" style="--btn-from:#1a0000;--btn-to:#300000;--btn-border:#ff4444;grid-column:span 2;">
+          <span class="icon">⚜️</span><span class="label" style="color:#ff8888;">GUERRA DE GUILDAS</span>
+          <span class="desc">🔴 AO VIVO AGORA · até 23:00</span></a>`
+      : `<div class="nav-big-btn war-locked" style="grid-column:span 2;">
+          <span class="icon" style="opacity:0.5;">⚜️</span>
+          <span class="label" style="color:#555;">GUERRA DE GUILDAS</span>
+          <span class="war-locked-desc">⏰ Sex e Sáb 16:00–23:00</span></div>`;
+  }
+
+  // Mercado Negro
+  const mnWrap = document.getElementById("mercado-negro-btn-wrap");
+  if (mnWrap && save.mercadoNegro) {
+    const isLive = save.mercadoNegro.isLive;
+    if (isLive) {
+      mnWrap.innerHTML = `<a href="shop.html#mercado" class="nav-big-btn mn-live-btn" style="--btn-from:#1a0005;--btn-to:#2d0008;--btn-border:#ff4444;">
+        <span class="icon">🕶️</span><span class="label" style="color:#ff8888;">MERCADO NEGRO</span>
+        <span class="desc">🔴 ABERTO AGORA — 10 min!</span></a>`;
+    }
+  }
+})();
+</script>
+<script>document.write('<script src="gamedata-crafting.js?v=' + (window.CF_BUILD||Date.now()) + '"><\/script>');</script>
+
+<script>
+// v16.0 — HUD chips para engrenagens/gasolina no topo do index
+(function(){
+  function addChips(){
+    try {
+      var s = getOrCreateSave();
+      if (window.CraftAPI) window.CraftAPI.ensure(s);
+      var el = document.querySelector(".player-hero-card") || document.querySelector(".player-hero-info");
+      if (!el || el.querySelector(".craft-hud-chips")) return;
+      var wrap = document.createElement("div");
+      wrap.className = "craft-hud-chips";
+      wrap.style.cssText = "display:flex;gap:6px;margin-top:4px;font-size:11px;";
+      wrap.innerHTML =
+        '<span style="background:#1a1108;border:1px solid #6a4a20;padding:2px 8px;border-radius:8px;color:#ffb74d;">⚙️ '+(s.craftGears||0)+'</span>' +
+        '<span style="background:#0a1a2a;border:1px solid #29b6f6;padding:2px 8px;border-radius:8px;color:#29b6f6;">⛽ '+(s.craftGas||0)+'</span>';
+      var info = el.querySelector(".player-hero-info") || el;
+      info.appendChild(wrap);
+    } catch(e){}
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", addChips);
+  else setTimeout(addChips, 100);
+})();
+</script>
+
+<script>
+/* v17 — badge de clientes esperando na Aldeia */
+(function(){
+  function upd(){
+    try{
+      if (!window.AldeiaAPI) return;
+      var a = window.AldeiaAPI.ensure();
+      var n = (a.clientes||[]).length;
+      var el = document.getElementById("aldeia-badge-idx");
+      if (!el) return;
+      if (n>0){ el.style.display=""; el.textContent = n+" 🧍"; } else { el.style.display="none"; }
+    }catch(e){}
+  }
+  setInterval(upd, 2500); setTimeout(upd, 800);
+})();
+</script>
+</body>
+</html>

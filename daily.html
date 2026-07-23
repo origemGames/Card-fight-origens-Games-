@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Diário – Card Fight</title>
+<link rel="stylesheet" href="game.css"/>
+<style>
+.streak-card {
+  background:linear-gradient(135deg,#1a0500,#2d0a00);
+  border:2px solid #ff6d00; border-radius:16px;
+  padding:16px; margin-bottom:14px; text-align:center;
+}
+.streak-number {
+  font-family:'Cinzel',serif; font-size:48px; font-weight:900;
+  color:#ff6d00; text-shadow:0 0 20px rgba(255,109,0,0.5);
+  animation:float 2s ease-in-out infinite;
+}
+.login-days { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin:12px 0; }
+.day-box {
+  aspect-ratio:1; border-radius:8px; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; font-size:10px; font-weight:700;
+  border:1px solid #2a2a4a; transition:all 0.2s;
+}
+.day-box.claimed { background:linear-gradient(135deg,#1b5e20,#388e3c); border-color:#66bb6a; }
+.day-box.today   { background:linear-gradient(135deg,#b8730a,#e65100); border-color:#ffc107;
+  box-shadow:0 0 12px rgba(255,193,7,0.4); animation:glow-pulse 1.5s infinite; }
+.day-box.future  { background:#0e0e1c; color:#555; }
+.day-box .day-reward { font-size:14px; }
+.mission-card {
+  background:var(--bg-card); border:2px solid #2a2a4a; border-radius:14px;
+  padding:14px; margin-bottom:8px; transition:border-color 0.2s;
+}
+.mission-card.completed   { border-color:#4CAF50; }
+.mission-card.claimed     { border-color:#2a2a4a; opacity:0.55; }
+.mission-header { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+.mission-icon  { font-size:24px; flex-shrink:0; }
+.mission-info  { flex:1; }
+.mission-name  { font-weight:700; font-size:14px; }
+.mission-desc  { font-size:11px; color:#9e9e9e; margin-top:2px; }
+.mission-rewards { font-size:11px; color:#9e9e9e; margin-top:3px; }
+.mission-progress-bar { background:#1e1e30; border-radius:20px; height:6px; overflow:hidden; margin:6px 0; }
+.mission-progress-fill { height:100%; border-radius:20px; background:linear-gradient(90deg,#1b5e20,#66bb6a); }
+.mission-footer { display:flex; align-items:center; justify-content:space-between; }
+.mission-pct   { font-size:11px; color:#9e9e9e; }
+.weekday-bonus { background:linear-gradient(135deg,#0a1a00,#1a3000); border:1px solid #4CAF50;
+  border-radius:10px; padding:10px 12px; margin-bottom:10px; font-size:12px; line-height:1.7; }
+</style>
+</head>
+<body>
+<div class="page" id="app">
+
+<header class="top-bar">
+  <a href="index.html" class="btn btn-outline btn-sm">← Voltar</a>
+  <span class="logo-title">📅 DIÁRIO</span>
+  <span class="gold-badge">🪙 <span id="hdr-gold">0</span></span>
+</header>
+
+<main class="content">
+
+  <!-- Sequência de login -->
+  <div class="streak-card">
+    <div style="font-size:14px;color:#9e9e9e;margin-bottom:4px;">Sequência de Login</div>
+    <div class="streak-number" id="streak-num">0</div>
+    <div style="font-size:13px;color:#9e9e9e;">dias seguidos 🔥</div>
+
+    <!-- Grade de recompensas de login -->
+    <div class="login-days" id="login-days"></div>
+
+    <button class="btn btn-gold btn-block" id="btn-claim-login"
+            style="margin-top:8px;" onclick="claimLoginReward()">
+      🎁 Coletar Recompensa do Dia
+    </button>
+  </div>
+
+  <!-- Bônus de fim de semana -->
+  <div class="weekday-bonus" id="weekend-bonus" style="display:none;">
+    🎉 <strong>Bônus de Fim de Semana!</strong> XP x2 em todas as batalhas hoje e amanhã!
+  </div>
+
+  <!-- Missões diárias -->
+  <div style="font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:#ffc107;margin-bottom:10px;">
+    📋 Missões Diárias
+    <span style="font-size:11px;color:#9e9e9e;font-family:'Rajdhani',sans-serif;font-weight:400;margin-left:6px;">
+      Resetam à meia-noite
+    </span>
+  </div>
+
+  <div id="missions-list"></div>
+
+  <div style="text-align:center;font-size:12px;color:#555;margin-top:10px;">
+    As missões resetam todo dia à meia-noite automaticamente.
+  </div>
+  <div style="height:70px;"></div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html"  class="nav-btn"><span class="icon">🏠</span>Início</a>
+  <a href="battle.html" class="nav-btn"><span class="icon">⚔️</span>Batalha</a>
+  <a href="vault.html"  class="nav-btn"><span class="icon">📦</span>Cofre</a>
+  <a href="shop.html"   class="nav-btn"><span class="icon">🛒</span>Loja</a>
+  <a href="about.html"  class="nav-btn"><span class="icon">ℹ️</span>Sobre</a>
+</nav>
+<div id="toast-container"></div>
+</div>
+
+<script src="gamedata.js"></script>
+<script src="gamedata2.js"></script>
+<script src="gamedata3.js"></script>
+<script src="gamedata-fortaleza-patch.js"></script>
+<script>
+let save;
+
+const LOGIN_REWARDS = [
+  { day:1,  emoji:"🪙", gold:300,   xp:100,  label:"300🪙"  },
+  { day:2,  emoji:"⭐", gold:0,     xp:500,  label:"500⭐"  },
+  { day:3,  emoji:"🪙", gold:800,   xp:200,  label:"800🪙"  },
+  { day:4,  emoji:"🎖️", gold:0,     xp:0,    xpp:50, label:"50🎖️" },
+  { day:5,  emoji:"🪙", gold:1500,  xp:800,  label:"1500🪙" },
+  { day:6,  emoji:"⭐", gold:500,   xp:1500, label:"XP Grande" },
+  { day:7,  emoji:"👑", gold:3000,  xp:2000, xpp:100, label:"MEGA DIA 7!" },
+  { day:14, emoji:"🎁", gold:8000,  xp:5000, xpp:300, label:"DIA 14!" },
+  { day:21, emoji:"💎", gold:20000, xp:12000,xpp:800, label:"3 SEMANAS!" },
+  { day:30, emoji:"🔥", gold:50000, xp:30000,xpp:2000,label:"1 MÊS!" },
+];
+
+function getDayReward(day) {
+  const milestones = LOGIN_REWARDS.filter(r => r.day <= 7);
+  const idx = ((day - 1) % 7); // ciclo de 7 dias
+  return milestones[idx] || milestones[0];
+}
+
+function init() {
+  save = getOrCreateSave();
+  handleLoginStreak();
+  renderLoginDays();
+  renderMissions();
+  updateHeader();
+  checkWeekendBonus();
+  startAutoSave(() => save);
+}
+
+function handleLoginStreak() {
+  const today     = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+
+  if (save.lastLoginDate === today) return; // já fez login hoje
+
+  if (save.lastLoginDate === yesterday) {
+    save.loginStreak = (save.loginStreak || 0) + 1;
+  } else if (!save.lastLoginDate) {
+    save.loginStreak = 1;
+  } else {
+    // Quebrou a streak
+    save.loginStreak = 1;
+  }
+
+  save.lastLoginDate    = today;
+  save.loginRewardDay   = (save.loginRewardDay || 0) + 1;
+  save.loginClaimedToday = false;
+  writeSave(save);
+}
+
+function renderLoginDays() {
+  const streak = save.loginStreak || 1;
+  const today  = save.loginClaimedToday;
+
+  document.getElementById("streak-num").textContent = streak;
+
+  // Grade dos próximos 7 dias
+  const grid = document.getElementById("login-days");
+  const dayBase = Math.ceil(streak / 7) * 7 - 6; // início do ciclo atual
+  let html = "";
+  for (let i = 0; i < 7; i++) {
+    const d   = dayBase + i;
+    const rw  = getDayReward(d);
+    const done = d < streak || (d === streak && today);
+    const isToday = d === streak && !today;
+    const cls = done ? "claimed" : isToday ? "today" : "future";
+    html += `<div class="day-box ${cls}">
+      <span class="day-reward">${rw.emoji}</span>
+      <span>${d}</span>
+      ${done ? "✓" : ""}
+    </div>`;
+  }
+  grid.innerHTML = html;
+
+  const btn = document.getElementById("btn-claim-login");
+  if (save.loginClaimedToday) {
+    btn.disabled = true; btn.textContent = "✅ Coletado hoje!"; btn.style.opacity = "0.5";
+  } else {
+    btn.disabled = false;
+    const day = save.loginRewardDay || 1;
+    // FIX: usava sempre getDayReward() (ciclo de 7 dias), então em dias de
+    // marco (14, 21, 30) o botão mostrava o rótulo errado (ex: "500⭐" em
+    // vez de "DIA 14!"), mesmo a recompensa concedida sendo a de marco.
+    const milestone = LOGIN_REWARDS.find(r => r.day === day);
+    const rw = milestone || getDayReward(day);
+    btn.textContent = `🎁 Coletar Dia ${day}: ${rw.label}`;
+  }
+}
+
+function claimLoginReward() {
+  if (save.loginClaimedToday) { showToast("✅ Já coletado hoje!", "info"); return; }
+
+  const day = save.loginRewardDay || 1;
+  const rw  = getDayReward(day);
+
+  // Milestone especial (14, 21, 30)?
+  const milestone = LOGIN_REWARDS.find(r => r.day === day);
+  const realRw = milestone || rw;
+
+  earnGold(save, realRw.gold || 0);
+  save.xp  += (realRw.xp  || 0);
+  save.xpp += (realRw.xpp || 0);
+  save.loginClaimedToday = true;
+  writeSave(save);
+
+  let msg = `🎁 Dia ${day}! `;
+  if (realRw.gold) msg += `+${fmtNum(realRw.gold)} ouro `;
+  if (realRw.xp)  msg += `+${fmtNum(realRw.xp)} XP `;
+  if (realRw.xpp) msg += `+${fmtNum(realRw.xpp)} XPP `;
+  showToast(msg, "gold");
+
+  updateHeader();
+  renderLoginDays();
+}
+
+function renderMissions() {
+  const list = document.getElementById("missions-list");
+  list.innerHTML = DAILY_MISSIONS.map(mission => {
+    const state    = getMissionProgress(save, mission.id);
+    const progress = state.progress || 0;
+    const pct      = Math.min(100, Math.round((progress / mission.target) * 100));
+    const done     = state.completed;
+    const claimed  = state.claimed;
+
+    const missionIcons = {
+      wins:"⚔️", battles:"🛡️", packs:"📦"
+    };
+    const icon = missionIcons[mission.type] || "📋";
+
+    return `<div class="mission-card ${claimed?"claimed":done?"completed":""}">
+      <div class="mission-header">
+        <div class="mission-icon">${icon}</div>
+        <div class="mission-info">
+          <div class="mission-name">${mission.name}</div>
+          <div class="mission-desc">${mission.desc}</div>
+          <div class="mission-rewards">
+            ${mission.fortressXP
+              ? `🏰 ${fmtNum(mission.fortressXP)} XP da Fortaleza`
+              : `🪙${fmtNum(mission.goldReward)} · ⭐${fmtNum(mission.xpReward)} XP · 🎖️${fmtNum(mission.xppReward)} XPP`}
+          </div>
+        </div>
+      </div>
+      <div class="mission-progress-bar">
+        <div class="mission-progress-fill" style="width:${pct}%;"></div>
+      </div>
+      <div class="mission-footer">
+        <div class="mission-pct">${progress}/${mission.target} (${pct}%)</div>
+        <button class="btn btn-sm ${done&&!claimed?"btn-gold":"btn-outline"}"
+                style="${!done||claimed?"opacity:0.4;":""}"
+                onclick="claimMission('${mission.id}')"
+                ${!done||claimed?"disabled":""}>
+          ${claimed ? "✅ Coletado" : done ? "🎁 Coletar!" : `${pct}%`}
+        </button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function claimMission(missionId) {
+  const mission = DAILY_MISSIONS.find(m => m.id === missionId);
+  if (!mission) return;
+  const state = getMissionProgress(save, missionId);
+  if (!state.completed) { showToast("⚠️ Missão incompleta!", "error"); return; }
+  if (state.claimed)    { showToast("✅ Já coletado!", "info"); return; }
+
+  earnGold(save, mission.goldReward);
+  save.xp  += mission.xpReward;
+  save.xpp += mission.xppReward;
+
+  if (!save.dailyMissions) save.dailyMissions = {};
+  save.dailyMissions[missionId] = { ...state, claimed:true };
+  writeSave(save);
+
+  // FIX: missões da Fortaleza (fm1-fm5) carregam "fortressXP" — esse valor
+  // nunca era concedido. Sem isso, completar essas missões nunca fazia a
+  // Fortaleza subir de nível.
+  let fortMsg = "";
+  if (mission.fortressXP && typeof CF_Fortress !== "undefined") {
+    const r = CF_Fortress.grantMissionReward(mission);
+    if (r && r.leveled) fortMsg = ` 🏰 Fortaleza subiu para o nível ${r.level}!`;
+  }
+
+  updateHeader();
+  renderMissions();
+  showToast(`🎉 ${mission.name} concluída! +${fmtNum(mission.goldReward)} ouro!${fortMsg}`, "gold");
+}
+
+function checkWeekendBonus() {
+  const d = new Date().getDay();
+  if (d === 0 || d === 6) {
+    document.getElementById("weekend-bonus").style.display = "block";
+  }
+}
+
+function updateHeader() {
+  document.getElementById("hdr-gold").textContent = fmtNum(save.gold);
+}
+
+init();
+</script>
+</body>
+</html>
